@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+ <title>NoFunc &middot; Drag Drop ( Javascript & HTML )</title>
+ <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+ <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+ <link href="/main.css" rel="stylesheet" type="text/css" />
+
+ <link href="/inc/highlight/code.css" rel="stylesheet" type="text/css" />
+ <script type="text/javascript" src="/inc/highlight/code_highlighter.js"></script>
+ <script type="text/javascript" src="/inc/highlight/javascript.js"></script>
+ <script type="text/javascript" src="/inc/highlight/css.js"></script>
+ <script type="text/javascript" src="/inc/highlight/html.js"></script>
+
+ <script type="text/javascript">
+function $(v) { return(document.getElementById(v)); }
+function agent(v) { return(Math.max(navigator.userAgent.toLowerCase().indexOf(v),0)); }
+function xy(e,v) { return(v?(agent('msie')?event.clientY+document.body.scrollTop:e.pageY):(agent('msie')?event.clientX+document.body.scrollTop:e.pageX)); }
+
+function dragOBJ(d,e) {
+
+	function drag(e) { if(!stop) { d.style.top=(tX=xy(e,1)+oY-eY+'px'); d.style.left=(tY=xy(e)+oX-eX+'px'); } }
+
+	var oX=parseInt(d.style.left),oY=parseInt(d.style.top),eX=xy(e),eY=xy(e,1),tX,tY,stop;
+
+	document.onmousemove=drag; document.onmouseup=function(){ stop=1; document.onmousemove=''; document.onmouseup=''; };
+
+}
+</script>
+</head>
+<body>
+<div id="sexyBG"></div><div id="sexyBOX" onmousedown="document.onclick=function(){};" onmouseup="setTimeout('sexyTOG()',1);"></div>
+<div class="everything">
+ <div id="head">
+  <span style="position: relative; top: 9px; left: 23px"><a href="/">Nomadic Functions<span>Where selfishness is good&#8482;</span></a></span>
+  <ul>
+   <li><a href="/blog/"><span>blog</span></a></li>
+   <li id="curr"><a href="/"><span>code</span></a></li>
+  </ul>
+  <div style="height: 0; clear:both"></div>
+ </div>
+ <div class="locate"><div><a href="/" title="Javascript, CSS & HTML">code</a> / <a href="/Drag_Drop/" title="Drag Drop Javascript">drag drop</a></div></div>
+			     <div class="summery">This will work on DIV, TABLE, IMG, basically anything you can throw at it.<br><br>
+Remember to attach style="position: relative; top: 0; left: 0;" onmousedown="dragOBJ(this,event); return false;" to the element you wish to drag.<br><br>
+<b style="float: left">Example:</b> <div id="example" style="-moz-user-select: none; -khtml-user-select: none; user-select: none; padding: 1px 4px 2px 4px; background: #222; border: 1px solid #000; float: left; position: relative; top: -3px; left: 10px; color: #fff; border: 1px solid #f8f8f8; z-index: 100;" onmousedown="dragOBJ(this,event)">move me</div><br style="clear: both"></div>
+			     
+
+
+<pre id="code"><h1>JAVASCRIPT</h1><br><br><code class="javascript">function $(v) { return(document.getElementById(v)); }
+function agent(v) { return(Math.max(navigator.userAgent.toLowerCase().indexOf(v),0)); }
+function xy(e,v) { return(v?(agent('msie')?event.clientY+document.body.scrollTop:e.pageY):(agent('msie')?event.clientX+document.body.scrollTop:e.pageX)); }
+
+function dragOBJ(d,e) {
+
+    function drag(e) { if(!stop) { d.style.top=(tX=xy(e,1)+oY-eY+'px'); d.style.left=(tY=xy(e)+oX-eX+'px'); } }
+
+    var oX=parseInt(d.style.left),oY=parseInt(d.style.top),eX=xy(e),eY=xy(e,1),tX,tY,stop;
+
+    document.onmousemove=drag; document.onmouseup=function(){ stop=1; document.onmousemove=''; document.onmouseup=''; };
+
+}<br><br></code><br><br><h1>HTML</h1><br><br><code class="html">&lt;div style=&quot;position: relative; top: 0; left: 0&quot; onmousedown=&quot;dragOBJ(this,event); return false;&quot;&gt;test&lt;/div&gt;<br><br></code></pre></div><script type="text/javascript"> var v=window.onload; window.onload=function() { if(v) v(); CodeHighlighter.init(); }; </script><div id="foot"><div><a href="/contact/">Have ideas for code changes?</a></div><span><a href="http://creativecommons.org/licenses/by/3.0/">CC</a> &nbsp;&middot; &nbsp;<a href="http://www.gnu.org/copyleft/gpl.html">GPL</a> &nbsp;&middot; &nbsp;<a href="/">NoFunc.com</a></span></div>
+</div>
+<script src="http://www.google-analytics.com/urchin.js" type="text/javascript"></script>
+<script type="text/javascript"> _uacct = "UA-400768-8"; _udn="nofunc.com"; urchinTracker(); </script>
+</body>
+</html>

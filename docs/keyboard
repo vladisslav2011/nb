@@ -1,0 +1,21 @@
+Mozilla:
+	arrows:	keypress
+	Fn:		keypress
+	Enter:	keypress
+	Shift:	keydown
+Opera9:
+	arrows:	keypress
+	Fn:		keypress
+	Enter:	keypress
+	Shift:	keydown
+Opera10:
+	arrows:	keypress
+	Fn:		keypress
+	Enter:	keypress
+	Shift:	keydown
+Chrome windows:
+	arrows:	keydown/no keypress
+	Fn:		keydown/no keypress
+	Enter:	keypress
+	Shift:	keydown
+	

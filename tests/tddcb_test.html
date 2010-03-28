@@ -1,0 +1,215 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"    "http://www.w3.org/TR/html4/loose.dtd"><html><head>
+<meta http-equiv=content-type content="text/html; charset=UTF-8">
+<title>dropdown with checkboxes pure js</title>
+<script type='text/javascript' src='../settings/settings.js'></script>
+<script type='text/javascript' src='../js/core.js'></script>
+<script type='text/javascript'><!--
+
+
+function tddcb_activate(input_ref,div_id,full)
+{
+	
+	var dd_div=document.getElementById(div_id);
+	clearTimeout(input_ref.hidetimeout);
+	if(input_ref.variant_list)
+	{
+	}else{
+		input_ref.variant_list=full.split(" ");
+		
+		var mk=input_ref.variant_list.length;
+		input_ref.variant_selection=input_ref.value.split(" ");
+		input_ref.variant_cb=[];
+		var tbl = document.createElement("table");
+		dd_div.appendChild(tbl);
+		for(var k=0;k<mk;k++)
+		{
+			var tr=document.createElement("tr");
+			tbl.appendChild(tr);
+			tr.style.outlineColor="white";
+			tr.style.outlineWidth="1px";
+			tr.style.outlineStyle="solid";
+			tr.setAttribute("onmouseover","this.style.outlineColor='blue';");
+			tr.setAttribute("onmouseout","this.style.outlineColor='white';");
+			var td=document.createElement("td");
+			tr.appendChild(td);
+			var cb=document.createElement("input");
+			cb.type="checkbox";
+			for(var t=0;t<input_ref.variant_selection.length;t++)
+				if(input_ref.variant_selection[t]==input_ref.variant_list[k])
+					cb.checked=true;
+			input_ref.variant_cb[k]=cb;
+			cb.input_ref=input_ref;
+			cb.tr_ref=tr;
+			cb.setAttribute("onclick","tddcb_update(this);");
+			cb.setAttribute("onfocus","tddcb_cb_focus(this);");
+			cb.setAttribute("onblur","tddcb_cb_blur(this,'"+div_id+"');");
+			cb.setAttribute("onkeypress","tddcb_cb_keypress(event,this.input_ref," + k + ");");
+			td.appendChild(cb);
+			var td=document.createElement("td");
+			tr.appendChild(td);
+			td.input_ref=input_ref;
+			td.setAttribute("onmousedown","event.preventDefault();event.stopPropagation();return false;");
+			td.setAttribute("onmouseup","tddcb_td_click(this,event,"+k+");");
+			var txt=document.createTextNode(input_ref.variant_list[k]);
+			td.appendChild(txt);
+		}
+	}
+	dd_div.style.display="block";
+		
+}
+
+
+function tddcb_update(ref)
+{
+	//var input_ref=document.getElementById(input_id);
+	var tmpv="";
+	for(var k=0;k<ref.input_ref.variant_list.length;k++)
+		if(ref.input_ref.variant_cb[k].checked)
+		{
+			if(tmpv!="")tmpv+=" ";
+			tmpv+=ref.input_ref.variant_list[k];
+		}
+	ref.input_ref.value=tmpv;
+}
+
+function tddcb_td_click(ref,ev,t_k)
+{
+	//var input_ref=document.getElementById(input_id);
+	ref.input_ref.variant_cb[t_k].checked=(ref.input_ref.variant_cb[t_k].checked)?false:true;
+	tddcb_update(ref);
+	ev.stopPropagation();
+	ref.input_ref.variant_cb[t_k].focus();
+	return false;
+	
+}
+
+function tddcb_cb_focus(ref)
+{
+	ref.tr_ref.style.backgroundColor='blue';
+	clearTimeout(ref.input_ref.hidetimeout);
+}
+
+function tddcb_cb_blur(ref,div_id)
+{
+//	var input_ref=document.getElementById(input_id);
+	ref.tr_ref.style.backgroundColor='white';
+	ref.input_ref.hidetimeout=setTimeout("document.getElementById('"+div_id+"').style.display='none';",200);
+}
+
+function tddcb_deactivate(ref,div_id)
+{
+	ref.hidetimeout=setTimeout("document.getElementById('"+div_id+"').style.display='none';",200);
+}
+
+
+
+function tddcb_keypress(ev,input_ref,div_id)
+{
+	var key=ev.keyCode;
+	var dd_div=document.getElementById(div_id);
+	switch(key)
+	{
+	case 38://up
+		if(input_ref.variant_cb)
+		{
+			input_ref.variant_cb[input_ref.variant_cb.length-1].focus();
+		}
+		break;
+	case 40://down
+		if(input_ref.variant_cb)
+		{
+			input_ref.variant_cb[0].focus();
+		}
+		break;
+	case 13:
+		if(dd_div.style.display=='none')dd_div.style.display='block';
+		else dd_div.style.display='none';
+		break;
+	case 9:
+	case 27:
+		return true;
+	default:
+		ev.stopPropagation();
+		ev.preventDefault();
+		return false;
+	};
+	ev.stopPropagation();
+	ev.preventDefault();
+	return false;
+}
+
+function tddcb_cb_keypress(ev,input_ref,t_k)
+{
+	var key=ev.keyCode;
+//	var dd_div=document.getElementById(div_id);
+	switch(key)
+	{
+	case 38://up
+		if(input_ref.variant_cb)
+		{
+			var k=t_k-1;
+			if(k<0)input_ref.focus();
+			else input_ref.variant_cb[k].focus();
+		}
+		break;
+	case 40://down
+		if(input_ref.variant_cb)
+		{
+			var k=t_k+1;
+			if(k==input_ref.variant_cb.length)input_ref.focus();
+			else input_ref.variant_cb[k].focus();
+		}
+		break;
+	case 13:
+//		if(dd_div.style.display=='none')dd_div.style.display='block';
+//		else dd_div.style.display='none';
+		break;
+	case 9:
+	case 27:
+	case 32:
+		return true;
+	default:
+		ev.stopPropagation();
+		ev.preventDefault();
+		return false;
+	};
+	ev.stopPropagation();
+	ev.preventDefault();
+	return false;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--></script>
+<link rel="stylesheet" href='/css/default.css' type='text/css'>
+</head>
+<body id='c0'>
+<div id=res>
+</div>
+<div>
+<input type=text value="" onfocus="tddcb_activate(this,'aa00','aa bb cc dd ee ff kk');" onblur="tddcb_deactivate(this,'aa00');"
+onkeypress="return tddcb_keypress(event,this,'aa00');" onchange="document.getElementById('res').innerHTML=this.value;" >
+<div id=aa00 style="display:none;position:absolute;border:1px solid blue;">
+</div>
+</div>
+
+
+
+
+</body></html>

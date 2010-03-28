@@ -1,0 +1,70 @@
+options [sid bigint,object bigint,option varchar(100),value text]
+types [id bigint,intname varchar,hrname varchar,editor varchar,viewer varchar]
+objects [id bigint,parent bigint,type bigint,timestamp timestamp,tbl_base_name varchar,field varchar,fetch_query varchar,hrname varchar,query_is_preset bool,do_store bool,use_query bool ]
+
+base_tables,version_table#
+version_table.state=
+	0 - previous version
+	1 - editing copy
+	2 - preset
+
+
+
+
+
+
+
+
+
+
+
+1. parse path
+2. load object tree
+3. load base dom tree for this type
+4. add object tree to dom tree
+5. dom tree -> print html
+
+
+
+$meta=new meta;
+$meta->set_object($oid);
+//select object
+if($action=='setting change')
+{
+	$meta->store_setting($_POST['id'],$_POST['setting']);
+	//store into 'current' set
+	//mark fields, that require update
+	
+	$meta->load_settings();
+	//load settings back in
+	
+	$meta->set_udate_hint($_POST['update_hint']);
+	//set up actual ids for objects
+	print $meta->js_update();
+	print $meta->js_update_after();
+	exit;
+}
+
+if($action=='value store')
+{
+	$meta->store_value($_POST['obj'],$_POST['keys'],$_POST['value']);
+	//store value
+	//mark fields, that require update
+	
+	$meta->load_settings();
+	//load settings
+	
+	$meta->set_udate_hint($_POST['update_hint']);
+	//set up actual ids for objects
+	print $meta->js_update();
+	print $meta->js_update_after();
+	exit;
+}
+
+
+$meta->load_settings();
+//load settings
+
+print $meta->html();
+
+

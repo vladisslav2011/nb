@@ -1,0 +1,113 @@
+<html>
+<head>
+<title>drag and drop</title><meta http-equiv=content-type content="text/html; charset=UTF-8">
+</head>
+
+<head>
+
+<script type='text/javascript'>
+
+flg = 1;//(document.all) ? 0 : 1;
+rsz=0;
+var obj,X,Y,wX,wY;
+
+function mousedown(ev) 
+{
+ if (flg) 
+ { 
+  //obj = document.layers[ev.target.name];
+  if(! ev.target || ! ev.target.id) return;
+  obj = document.getElementById(ev.target.id);
+  //alert(ev.target.name);
+  //alert(event);
+  obj.style.position='relative';
+  obj.style.left= '0';// obj.offsetLeft;
+  obj.style.top= '0';// obj.offsetTop;
+  X=ev.clientX - parseInt(obj.style.left.replace(/[^0-9]/,''));//x;
+  Y=ev.clientY - parseInt(obj.style.top.replace(/[^0-9]/,''));//y;
+  wX=ev.clientX - parseInt(obj.style.width.replace(/[^0-9]/,''));//x;
+  wY=ev.clientY - parseInt(obj.style.height.replace(/[^0-9]/,''));//y;
+  rsz=((X + 4 >= parseInt(obj.style.width.replace(/[^0-9]/,'')))||(Y + 4 >= parseInt(obj.style.height.replace(/[^0-9]/,''))))?1:0;
+  ev.stopPropagation();
+  return false;
+ }
+ else 
+ {
+  obj = event.srcElement.parentElement.style;
+  X=event.offsetX;
+  Y=event.offsetY;
+ }
+}
+
+function mousemove(ev) 
+{
+ if (obj) 
+ {
+  if (flg) 
+  {
+   document.getElementById('xy').innerHTML= '1x=' + X + ';y=' + Y;
+   if(rsz)
+   {
+    obj.style.width = (ev.clientX - wX > 5)?ev.clientX - wX:5;
+    obj.style.height = (ev.clientY - wY >5)?ev.clientY - wY:5;
+   }else{
+    obj.style.left = ev.clientX - X;//obj.offsetLeft + 
+    obj.style.top = ev.clientY - Y;//obj.offsetTop + 
+   }
+  }
+  else 
+  {
+   document.getElementById('xy').innerHTML= '0x=' + X + ';y=' + Y;
+   obj.pixelLeft = event.clientX-X + document.body.scrollLeft;
+   obj.pixelTop = event.clientY-Y + document.body.scrollTop;
+   return false;
+  }
+ }
+}
+
+function mouseup() 
+{
+ obj.style.position='';
+ obj = null;
+}
+
+if (flg) 
+{
+  document.captureEvents(Event.MOUSEDOWN | Event.MOUSEMOVE | Event.MOUSEUP);
+}
+
+document.onmousedown = mousedown;
+document.onmousemove = mousemove;
+document.onmouseup = mouseup;
+
+</script>
+</HEAD>
+
+
+<BODY>
+
+<div style='display:inline-block;width:150px;'>
+asd
+<div style='display:inline-block;width:50px;'>qwe
+</div>
+
+<div id="a" style="overflow:auto;display:inline-block;width:50;height:50;background-color:red;">
+С самого начала надо определить свое место в жизни, чтобы
+не уподо
+   При  затененном  свете  лампы,  висящей  под самым потолком,
+разбуженный мальчик различил маячившую у двери грузную  женскую
+</div>
+
+<!-- <div id="b" style="overflow:auto;left:90;top:150;width:50;height:50;background-color:blue;"> -->
+<div id="b" style="overflow:auto;display:inline-block;width:50;height:50;background-color:blue;">
+</div>
+
+<div id="c" style="position:absolute;left:150;top:100;width:50;height:50;background-color:grey;">
+</div>
+
+<div id="d" style="position:absolute;left:150;top:150;width:50;height:50;background-color:purple;">
+</div>
+<div id=xy>
+</div>
+</body>
+</html>

@@ -1,0 +1,1 @@
+update accounts set code0=if(locate('.',code2)=0,code2,substr(code2,1,locate('.',code2)-1)), code1=if(locate('.',code2)=0,code2,if(locate('.',code2,locate('.',code2)+1)=0,code2,substr(code2,1,locate('.',code2,locate('.',code2)+1)-1)))
