@@ -3665,7 +3665,7 @@ class ed_tree_main extends dom_div
 		$this->ctl->attributes['onkeyup']="return ed_tree_main_ctl_k(event,this,2);";
 		$this->ctl->attributes['onkeypress']="return ed_tree_main_ctl_k(event,this,1);";
 		$this->ctl->attributes['onkeydown']="return ed_tree_main_ctl_k(event,this,0);";
-		//$this->editors['clip']->attributes['onmousedown']="resizer.create_ghost(event,this,{t:'ti',d:'".js_escape($this->path)."'});return false;";
+		$this->editors['clip']->attributes['onmousedown']="resizer.create_ghost(event,this,{t:'cl',d:''});return false;";
 		
 		$this->editors['clip']->attributes['onmouseup']=
 			"return ed_tree_clip_up(event,this);";
@@ -3849,6 +3849,13 @@ class ed_tree_main extends dom_div
 				$node=clone $node;
 				$this->add_node($obj,$_POST['before'],$node);
 				break;
+			case 'copycl':
+				global $clipboard;
+				$new=$clipboard->fetch();
+				if(!isset($new))return;
+				if(!method_exists($new,'text_short'))return;
+				$this->add_node($obj,$_POST['before'],$new);
+				break;
 			case 'del':
 				$this->del_node($obj,$_POST['path']);
 				break;
@@ -3860,7 +3867,31 @@ class ed_tree_main extends dom_div
 			print 'window.location.reload(true);';
 			return;
 		}
-		else
+		if($ev->rem_name=='clip')
+		{
+			global $clipboard;
+			//$this->editors['fa']->handle_event($ev);
+			$this->context=&$ev->context;
+			$this->long_name=$ev->parent_name;
+			$this->oid=$this->context[$this->long_name]['oid'];
+			$obj=$this->fetch($this);
+			switch($_POST['val'])
+			{
+			case 'moveti':
+				$node=$this->find($obj,$_POST['path']);
+				$this->del_node($obj,$_POST['path']);
+				$clipboard->store($node);
+				$this->store($this,$obj);
+				break;
+			case 'copyti':
+				$node=$this->find($obj,$_POST['path']);
+				$clipboard->store($node);
+				break;
+			}
+			print 'window.location.reload(true);';
+			return;
+		}
+		
 			editor_generic::handle_event($ev);
 	}
 }

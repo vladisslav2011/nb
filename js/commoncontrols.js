@@ -972,7 +972,13 @@ function ed_tree_fa_item_up(event,object_id,path)
 				encodeURIComponent(object.id_list[k].keys)+
 				'&path='+
 				encodeURIComponent(resizer.drag_context.data.d)+
-				'&parent_id='+encodeURIComponent(object.id_list[k].pcid)+'&n',val:'',c_id:this.id});
+				'&parent_id='+encodeURIComponent(object.id_list[k].pcid)+'&n',val:'',c_id:object.id});
+		}
+		if(resizer.drag_context.data.t=='cl')
+		{
+			chse.send_or_push({static:object.send_static+'=copycl&before='+
+				encodeURIComponent(object.id_list[k].keys)+
+				'&clipboard=1&n',val:'',c_id:object.id});
 		}
 	}
 }
