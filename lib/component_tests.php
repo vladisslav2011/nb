@@ -8,17 +8,17 @@ require_once("lib/query_editor.php");
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 class clipboard_session
 {
-	function __construct()
+	function fetch()
 	{
 		if($_SESSION['clipboard']['format']=='x-serialized')
-			$this->contents=unserialize($_SESSION['clipboard']['data']);
+			return unserialize($_SESSION['clipboard']['data']);
 		else
-			$this->contents=NULL;
+			return NULL;
 	}
+	
 	function store($var)
 	{
-		$this->contents=$var;
-		$_SESSION['clipboard']['data']=serialize($this->contents);
+		$_SESSION['clipboard']['data']=serialize($var);
 		$_SESSION['clipboard']['format']='x-serialized';
 	}
 }

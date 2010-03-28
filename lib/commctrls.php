@@ -692,13 +692,23 @@ class editor_valbutton extends editor_button
 	}
 }
 
-class editor_valbutton_button extends editor_button
+class editor_valbutton_button extends dom_any
 {
 	function __construct()
 	{
 		dom_any::__construct('button');
 		$this->main=$this;
 		$this->etype=get_class($this);
+	}
+	
+	function bootstrap()
+	{
+		
+		editor_generic::bootstrap_part();
+		$this->attributes['onfocus']='';
+		$this->attributes['onblur']='';
+		// focus persistence test
+		if(!isset($this->no_restore_focus))editor_generic::add_focus_restore();
 	}
 	
 	function html_head()

@@ -1069,16 +1069,16 @@ class editor_sql_list extends dom_any
 			break;
 		case 'do_paste':
 			if(!isset($clipboard))break;
-			if(!method_exists($clipboard->contents,'result'))break;
-			$new = $clipboard->contents;
+			$new=$clipboard->fetch();
+			if(!method_exists($new,'result'))break;
 			$this->curr->exprs[]=$new;
 			$this->ioclass->save($this->obj);
 			$reload=true;
 			break;
 		case 'paste_here':
 			if(!isset($clipboard))break;
-			if(!method_exists($clipboard->contents,'result'))break;
-			$new = $clipboard->contents;
+			$new=$clipboard->fetch();
+			if(!method_exists($new,'result'))break;
 			workers_container::insert_by_path($new,$this->path,$this->obj);
 			$this->path=preg_replace('/\/[^\/]+$/','',$this->path);
 			$this->ioclass->save($this->obj);
@@ -1283,8 +1283,8 @@ class editor_sql_expression extends editor_sql_list
 			break;
 		case 'do_paste':
 			if(!isset($clipboard))break;
-			if(!method_exists($clipboard->contents,'result'))break;
-			$new = $clipboard->contents;
+			$new=$clipboard->fetch();
+			if(!method_exists($new,'result'))break;
 			$this->curr->exprs[]=$new;
 			$this->ioclass->save($this->obj);
 			$reload=true;
@@ -1296,8 +1296,8 @@ class editor_sql_expression extends editor_sql_list
 			break;
 		case 'paste_here':
 			if(!isset($clipboard))break;
-			if(!method_exists($clipboard->contents,'result'))break;
-			$new = $clipboard->contents;
+			$new=$clipboard->fetch();
+			if(!method_exists($new,'result'))break;
 			workers_container::insert_by_path($new,$this->path,$this->obj);
 			$this->path=preg_replace('/\/[^\/]+$/','',$this->path);
 			$this->ioclass->save($this->obj);
