@@ -997,6 +997,31 @@ function ed_tree_fa_item_mou(event,object_id,path,s)
 	return true;
 }
 
+//--------------- ed_tree_clip
+function ed_tree_clip_up(event,object)
+{
+	if(resizer.drag_context.active)
+	{
+		var act='moveti';
+		if(event.ctrlKey)act='copyti';
+		if(resizer.drag_context.data.t=='ti')
+		{
+			$i('debug')[text_content]='enn';
+			chse.send_or_push({static:object.send_static+'='+act+
+				'&path='+
+				encodeURIComponent(resizer.drag_context.data.d)+'&n',val:'',c_id:object.id});
+		}
+	}
+}
+
+function ed_tree_clip_mov(event,object)
+{
+}
+
+function ed_tree_clip_mou(event,object)
+{
+}
+
 //------------------------- Keyboard support functions
 //------------------------- Move from this file later
 

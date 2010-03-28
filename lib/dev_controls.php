@@ -3610,6 +3610,7 @@ class ed_tree_main_cv extends dom_div
 	
 	function bootstrap()
 	{
+		editor_generic::bootstrap_part();
 	}
 	
 	function html_inner()
@@ -3664,6 +3665,14 @@ class ed_tree_main extends dom_div
 		$this->ctl->attributes['onkeyup']="return ed_tree_main_ctl_k(event,this,2);";
 		$this->ctl->attributes['onkeypress']="return ed_tree_main_ctl_k(event,this,1);";
 		$this->ctl->attributes['onkeydown']="return ed_tree_main_ctl_k(event,this,0);";
+		//$this->editors['clip']->attributes['onmousedown']="resizer.create_ghost(event,this,{t:'ti',d:'".js_escape($this->path)."'});return false;";
+		
+		$this->editors['clip']->attributes['onmouseup']=
+			"return ed_tree_clip_up(event,this);";
+		$this->editors['clip']->attributes['onmousemove']=
+			"return ed_tree_clip_mov(event,this);";
+		$this->editors['clip']->attributes['onmouseout']=
+			"return ed_tree_clip_mou(event,this);";
 	}
 	
 	function bootstrap()
@@ -3686,7 +3695,8 @@ class ed_tree_main extends dom_div
 	
 	function html_inner()
 	{
-		$this->rootnode->endscripts[]="(function(){var a=\$i('".js_escape($this->ctl->id_gen())."');a.id_list=new Array();a.id_current=-1;a.send_static='".$this->ctl->send."'})();";
+		$this->rootnode->endscripts[]="(function(){var a=\$i('".js_escape($this->ctl->id_gen())."');a.id_list=new Array();a.id_current=-1;a.send_static='".$this->ctl->send."';".
+		"var b=\$i('".js_escape($this->editors['clip']->id_gen())."');b.send_static='".$this->editors['clip']->send."';})();";
 		$this->editors['fa']->object=$this->fetch($this);
 		parent::html_inner();
 	}
