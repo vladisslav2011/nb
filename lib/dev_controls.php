@@ -3597,40 +3597,6 @@ class ref_listx extends dom_div
 */
 
 
-class ed_tree_main_cv extends dom_div
-{
-	function __construct()
-	{
-		parent::__construct();
-		$this->txt=new dom_statictext;
-		$this->append_child($this->txt);
-		$this->css_style['display']='inline-block';
-		$this->css_style['border']='1px solid blue';
-	}
-	
-	function bootstrap()
-	{
-		editor_generic::bootstrap_part();
-	}
-	
-	function html_inner()
-	{
-		global $clipboard;
-		$r=$clipboard->fetch();
-		if(!isset($r))
-		{
-			$this->txt->text='Empty';
-			parent::html_inner();
-			return;
-		}
-		if(method_exists($r,'text_short'))
-			$this->txt->text=$r->text_short();
-		else	
-			$this->txt->text='Unknown';
-			parent::html_inner();
-	}
-	
-}
 
 
 class ed_tree_main extends dom_div
@@ -3908,8 +3874,42 @@ class ed_tree_main extends dom_div
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
+class ed_tree_main_cv extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->txt=new dom_statictext;
+		$this->append_child($this->txt);
+		$this->css_style['display']='inline-block';
+		$this->css_style['border']='1px solid blue';
+	}
+	
+	function bootstrap()
+	{
+		editor_generic::bootstrap_part();
+	}
+	
+	function html_inner()
+	{
+		global $clipboard;
+		$r=$clipboard->fetch();
+		if(!isset($r))
+		{
+			$this->txt->text='Empty';
+			parent::html_inner();
+			return;
+		}
+		if(method_exists($r,'text_short'))
+			$this->txt->text=$r->text_short();
+		else	
+			$this->txt->text='Unknown';
+			parent::html_inner();
+	}
+	
+}
 
-
+/////////////////////////////////////////////////////////////////////////////////////////
 
 class ed_tree_tracker extends dom_any
 {
