@@ -1046,10 +1046,22 @@ function ed_tree_clip_up(event,object)
 
 function ed_tree_clip_mov(event,object)
 {
+	if(resizer.drag_context.active)
+	{
+		if(event.ctrlKey)resizer.drag_context.plus.style.display='block';else resizer.drag_context.plus.style.display='none';
+		object.style.backgroundColor='#ffeeee';
+	}
+	return true;
 }
 
 function ed_tree_clip_mou(event,object)
 {
+	if(resizer.drag_context.active)
+	{
+		resizer.drag_context.plus.style.display='none';
+		object.style.backgroundColor='';
+	}
+	return true;
 }
 
 //------------------------- Keyboard support functions
