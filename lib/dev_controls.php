@@ -3627,7 +3627,7 @@ class ed_tree_main extends dom_div
 		$div->append_child($this->editors['fa']);
 		$this->ctl_text=new dom_statictext('Objects:');
 		$this->ctl->append_child($this->ctl_text);
-		$this->editors['fa']->ctl=$this->ctl;
+		//$this->editors['fa']->ctl=$this->ctl;
 		$this->ctl->attributes['onkeyup']="return ed_tree_main_ctl_k(event,this,2);";
 		$this->ctl->attributes['onkeypress']="return ed_tree_main_ctl_k(event,this,1);";
 		$this->ctl->attributes['onkeydown']="return ed_tree_main_ctl_k(event,this,0);";
@@ -3645,6 +3645,9 @@ class ed_tree_main extends dom_div
 	{
 		$this->long_name=editor_generic::long_name();
 		$this->context[$this->long_name.'.fa']['button_id']=$this->ctl->id_gen();
+		$this->context[$this->long_name]['fa_id']=$this->editors['fa']->id_gen();
+		$this->context[$this->long_name]['ctl_id']=$this->ctl->id_gen();
+		$this->context[$this->long_name]['clip_id']=$this->editors['clip']->id_gen();
 		if(!is_array($this->editors))return;
 		foreach($this->editors as $i => $e)
 		{
@@ -3790,6 +3793,7 @@ class ed_tree_main extends dom_div
 	
 	function handle_event($ev)
 	{
+		$this->oid=$ev->context[$ev->long_name]['oid'];
 		if($ev->rem_name=='tracker')
 		{
 			//$this->editors['fa']->handle_event($ev);
@@ -3810,60 +3814,81 @@ class ed_tree_main extends dom_div
 				}
 				$this->add_node($obj,$_POST['before'],$this->pick_node($obj,$_POST['path']));
 				$this->cleanup_picked($obj);
+				$reload_fa=true;
 				break;
 			case 'copyti':
 				$node=$this->find($obj,$_POST['path']);
 				$node=clone $node;
 				$this->add_node($obj,$_POST['before'],$node);
+				$reload_fa=true;
 				break;
 			case 'pastecl':
 				$new=$clipboard->fetch();
 				if(!isset($new))return;
 				if(!method_exists($new,'text_short'))return;
 				$this->add_node($obj,$_POST['before'],$new);
+				$reload_fa=true;
 				break;
 			case 'movecl':
 				$node=$this->find($obj,$_POST['path']);
 				$this->del_node($obj,$_POST['path']);
 				$clipboard->store($node);
 				$this->store($this,$obj);
+				$reload_fa=true;
+				$reload_clip=true;
 				break;
 			case 'copycl':
 				$node=$this->find($obj,$_POST['path']);
 				$clipboard->store($node);
+				$reload_clip=true;
 				break;
 			case 'del':
 				$this->del_node($obj,$_POST['path']);
+				$reload_fa=true;
 				break;
 			case 'activate':
 				print "\$i('debug')[text_content]='".js_escape('path='.$_POST['path'])."';";
+				//print "\$i('debug')[text_content]=\$i('".js_escape($ev->context[$ev->parent_name]['fa_id'])."').innerHTML;";
 				return;
 			}
 			$this->store($this,$obj);
-			print 'window.location.reload(true);';
-			return;
-		}
-		if($ev->rem_name=='clip')
-		{
-			//$this->editors['fa']->handle_event($ev);
-			$this->context=&$ev->context;
-			$this->long_name=$ev->parent_name;
-			$this->oid=$this->context[$this->long_name]['oid'];
-			$obj=$this->fetch($this);
-			switch($_POST['val'])
+			
+			if($reload_fa)
 			{
-			case 'moveti':
-				$node=$this->find($obj,$_POST['path']);
-				$this->del_node($obj,$_POST['path']);
-				$clipboard->store($node);
-				$this->store($this,$obj);
-				break;
-			case 'copyti':
-				$node=$this->find($obj,$_POST['path']);
-				$clipboard->store($node);
-				break;
+				$r=$this->editors['fa'];
+				unset($r->com_parent);
+				$r->object=$obj;
+				$r->context=&$ev->context;
+				$r->context[$ev->parent_name.'.fa']['button_id']=$ev->context[$ev->parent_name]['ctl_id'];
+				$r->keys=&$ev->keys;
+				$r->oid=$this->oid;
+				$r->name=$ev->parent_name.'.fa';
+				$r->etype=$ev->parent_type.'.'.$r->etype;
+				print "(function(){var a=\$i('".js_escape($ev->context[$ev->parent_name]['ctl_id'])."');a.id_list=new Array();a.id_current=-1;";
+				print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['fa_id'])."');";
+				print "try{nya.innerHTML=";
+				reload_object($r,true);
+				print "nya.scrollTop=0;}catch(e){ window.location.reload(true);};";
+				print "})();";
+			};
+			if($reload_clip)
+			{
+				$r=$this->editors['clip'];
+				unset($r->com_parent);
+				$r->context=&$ev->context;
+				$r->keys=&$ev->keys;
+				$r->oid=$this->oid;
+				$r->name=$ev->parent_name.'.clip';
+				$r->etype=$ev->parent_type.'.'.$r->etype;
+				print "(function(){";
+				print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['clip_id'])."');";
+				print "try{nya.innerHTML=";
+				reload_object($r,true);
+				print "}catch(e){ window.location.reload(true);};";
+				print "})();";
 			}
-			print 'window.location.reload(true);';
+			
+			//print 'window.location.reload(true);';
 			return;
 		}
 		
