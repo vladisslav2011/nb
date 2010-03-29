@@ -3668,7 +3668,7 @@ class ed_tree_main extends dom_div
 		$this->editors['clip']->attributes['onmousedown']="resizer.create_ghost(event,this,{t:'cl',d:''});return false;";
 		
 		$this->editors['clip']->attributes['onmouseup']=
-			"return ed_tree_clip_up(event,this);";
+			"return ed_tree_clip_up(event,\$i('".$this->ctl->id_gen()."'));";
 		$this->editors['clip']->attributes['onmousemove']=
 			"return ed_tree_clip_mov(event,this);";
 		$this->editors['clip']->attributes['onmouseout']=
@@ -3831,6 +3831,7 @@ class ed_tree_main extends dom_div
 			$this->long_name=$ev->parent_name;
 			$this->oid=$this->context[$this->long_name]['oid'];
 			$obj=$this->fetch($this);
+			global $clipboard;
 			switch($_POST['val'])
 			{
 			case 'moveti':
@@ -3849,12 +3850,21 @@ class ed_tree_main extends dom_div
 				$node=clone $node;
 				$this->add_node($obj,$_POST['before'],$node);
 				break;
-			case 'copycl':
-				global $clipboard;
+			case 'pastecl':
 				$new=$clipboard->fetch();
 				if(!isset($new))return;
 				if(!method_exists($new,'text_short'))return;
 				$this->add_node($obj,$_POST['before'],$new);
+				break;
+			case 'movecl':
+				$node=$this->find($obj,$_POST['path']);
+				$this->del_node($obj,$_POST['path']);
+				$clipboard->store($node);
+				$this->store($this,$obj);
+				break;
+			case 'copycl':
+				$node=$this->find($obj,$_POST['path']);
+				$clipboard->store($node);
 				break;
 			case 'del':
 				$this->del_node($obj,$_POST['path']);
@@ -3869,7 +3879,6 @@ class ed_tree_main extends dom_div
 		}
 		if($ev->rem_name=='clip')
 		{
-			global $clipboard;
 			//$this->editors['fa']->handle_event($ev);
 			$this->context=&$ev->context;
 			$this->long_name=$ev->parent_name;

@@ -890,6 +890,7 @@ function ed_tree_main_ctl_k(event,object,t)
 	{
 	case 38://up
 		if(!is.leave && !is.repeated)return stop_event(event);
+		if(is.leave && !is.repeated)return true;
 		if(object.id_current!=-1)$i(object.id_list[object.id_current].cid).style.backgroundColor='';
 		
 		if(object.id_current==-1)object.id_current=object.id_list.length-1;
@@ -905,6 +906,7 @@ function ed_tree_main_ctl_k(event,object,t)
 		
 	case 40://down
 		if(!is.leave && !is.repeated)return stop_event(event);
+		if(is.leave && !is.repeated)return true;
 		if(object.id_current!=-1)$i(object.id_list[object.id_current].cid).style.backgroundColor='';
 		
 		if(object.id_current==object.id_list.length-1)object.id_current=-1;
@@ -919,11 +921,33 @@ function ed_tree_main_ctl_k(event,object,t)
 		return stop_event(event);
 	case 46://del
 		if(!is.leave && !is.repeated)return stop_event(event);
+		if(is.leave && !is.repeated)return true;
 		if(object.id_current==-1)break;
-		$i('debug')[text_content]='del '+object.id_list[object.id_current].keys;
+		var m=event_to_mkc(event);
+		if(m.m==m.SHIFT)//cut
+		{
+			chse.send_or_push({static:object.send_static+'=movecl&path='+
+				encodeURIComponent(object.id_list[object.id_current].keys)+'&n',val:'',c_id:object.id});
+			return stop_event(event);
+		}
 		chse.send_or_push({static:object.send_static+'=del&path='+
 			encodeURIComponent(object.id_list[object.id_current].keys)+
 			'&parent_id='+encodeURIComponent(object.id_list[object.id_current].pcid)+'&n',val:'',c_id:this.id});
+		return stop_event(event);
+	case 45://insert
+		if(!is.leave && !is.repeated)return stop_event(event);
+		if(is.leave && !is.repeated)return true;
+		var m=event_to_mkc(event);
+		if(m.m==m.CTRL)//copy
+		{
+			chse.send_or_push({static:object.send_static+'=copycl&path='+
+				encodeURIComponent(object.id_list[object.id_current].keys)+'&n',val:'',c_id:object.id});
+		}
+		if(m.m==m.SHIFT)//paste
+		{
+			chse.send_or_push({static:object.send_static+'=pastecl&before='+
+				encodeURIComponent(object.id_list[object.id_current].keys)+'&n',val:'',c_id:object.id});
+		}
 		return stop_event(event);
 	}
 	
@@ -976,7 +1000,7 @@ function ed_tree_fa_item_up(event,object_id,path)
 		}
 		if(resizer.drag_context.data.t=='cl')
 		{
-			chse.send_or_push({static:object.send_static+'=copycl&before='+
+			chse.send_or_push({static:object.send_static+'=pastecl&before='+
 				encodeURIComponent(object.id_list[k].keys)+
 				'&clipboard=1&n',val:'',c_id:object.id});
 		}
@@ -1008,8 +1032,8 @@ function ed_tree_clip_up(event,object)
 {
 	if(resizer.drag_context.active)
 	{
-		var act='moveti';
-		if(event.ctrlKey)act='copyti';
+		var act='movecl';
+		if(event.ctrlKey)act='copycl';
 		if(resizer.drag_context.data.t=='ti')
 		{
 			$i('debug')[text_content]='enn';
