@@ -1036,7 +1036,6 @@ function ed_tree_clip_up(event,object)
 		if(event.ctrlKey)act='copycl';
 		if(resizer.drag_context.data.t=='ti')
 		{
-			$i('debug')[text_content]='enn';
 			chse.send_or_push({static:object.send_static+'='+act+
 				'&path='+
 				encodeURIComponent(resizer.drag_context.data.d)+'&n',val:'',c_id:object.id});

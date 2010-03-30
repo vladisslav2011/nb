@@ -3631,6 +3631,7 @@ class ed_tree_main extends dom_div
 		$this->ctl->attributes['onkeyup']="return ed_tree_main_ctl_k(event,this,2);";
 		$this->ctl->attributes['onkeypress']="return ed_tree_main_ctl_k(event,this,1);";
 		$this->ctl->attributes['onkeydown']="return ed_tree_main_ctl_k(event,this,0);";
+		$this->editors['clip']->css_style['cursor']='default';
 		$this->editors['clip']->attributes['onmousedown']="resizer.create_ghost(event,this,{t:'cl',d:''});return false;";
 		
 		$this->editors['clip']->attributes['onmouseup']=
