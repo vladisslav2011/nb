@@ -921,7 +921,6 @@ function ed_tree_main_ctl_k(event,object,t)
 		return stop_event(event);
 	case 46://del
 		if(!is.leave && !is.repeated)return stop_event(event);
-		alert(event.keyCode);
 		if(is.leave && !is.repeated)return true;
 		if(object.id_current==-1)break;
 		var m=event_to_mkc(event);
