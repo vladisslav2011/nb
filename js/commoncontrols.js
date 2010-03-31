@@ -921,17 +921,21 @@ function ed_tree_main_ctl_k(event,object,t)
 		return stop_event(event);
 	case 46://del
 		if(!is.leave && !is.repeated)return stop_event(event);
+		alert(event.keyCode);
 		if(is.leave && !is.repeated)return true;
 		if(object.id_current==-1)break;
 		var m=event_to_mkc(event);
 		if(m.m==m.SHIFT)//cut
 		{
-			chse.send_or_push({static:object.send_static+'=movecl&path='+
+			chse.send_or_push({static:object.send_static+'=movecl'+
+				'&last_generated_id=' + last_generated_id +
+				'&path='+
 				encodeURIComponent(object.id_list[object.id_current].keys)+'&n',val:'',c_id:object.id});
 			return stop_event(event);
 		}
 		chse.send_or_push({static:object.send_static+'=del&path='+
 			encodeURIComponent(object.id_list[object.id_current].keys)+
+			'&last_generated_id=' + last_generated_id +
 			'&parent_id='+encodeURIComponent(object.id_list[object.id_current].pcid)+'&n',val:'',c_id:this.id});
 		return stop_event(event);
 	case 45://insert
@@ -940,12 +944,16 @@ function ed_tree_main_ctl_k(event,object,t)
 		var m=event_to_mkc(event);
 		if(m.m==m.CTRL)//copy
 		{
-			chse.send_or_push({static:object.send_static+'=copycl&path='+
+			chse.send_or_push({static:object.send_static+'=copycl'+
+				'&last_generated_id=' + last_generated_id +
+				'&path='+
 				encodeURIComponent(object.id_list[object.id_current].keys)+'&n',val:'',c_id:object.id});
 		}
 		if(m.m==m.SHIFT)//paste
 		{
-			chse.send_or_push({static:object.send_static+'=pastecl&before='+
+			chse.send_or_push({static:object.send_static+'=pastecl'+
+				'&last_generated_id=' + last_generated_id +
+				'&before='+
 				encodeURIComponent(object.id_list[object.id_current].keys)+'&n',val:'',c_id:object.id});
 		}
 		return stop_event(event);
@@ -977,6 +985,7 @@ function ed_tree_item_act(object)
 			encodeURIComponent(object.id_list[object.id_current].keys)+
 			'&cid='+
 			encodeURIComponent(object.id_list[object.id_current].cid)+
+			'&last_generated_id=' + last_generated_id +
 			'&n',val:'',c_id:this.id});
 		},100);
 }
@@ -998,12 +1007,14 @@ function ed_tree_fa_item_up(event,object_id,path)
 				encodeURIComponent(object.id_list[k].keys)+
 				'&path='+
 				encodeURIComponent(resizer.drag_context.data.d)+
+				'&last_generated_id=' + last_generated_id +
 				'&parent_id='+encodeURIComponent(object.id_list[k].pcid)+'&n',val:'',c_id:object.id});
 		}
 		if(resizer.drag_context.data.t=='cl')
 		{
 			chse.send_or_push({static:object.send_static+'=pastecl&before='+
 				encodeURIComponent(object.id_list[k].keys)+
+				'&last_generated_id=' + last_generated_id +
 				'&clipboard=1&n',val:'',c_id:object.id});
 		}
 	}
@@ -1039,6 +1050,7 @@ function ed_tree_clip_up(event,object)
 		if(resizer.drag_context.data.t=='ti')
 		{
 			chse.send_or_push({static:object.send_static+'='+act+
+				'&last_generated_id=' + last_generated_id +
 				'&path='+
 				encodeURIComponent(resizer.drag_context.data.d)+'&n',val:'',c_id:object.id});
 		}

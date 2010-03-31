@@ -3997,7 +3997,7 @@ class ed_tree_tracker extends dom_any
 	function bootstrap()
 	{
 		
-		editor_generic::bootstrap_part();
+		editor_generic::bootstrap_part(false);
 		//$this->attributes['onclick']="chse.send_or_push({static:'".$this->send."',val:".$this->val_js.",c_id:this.id});";
 		$this->attributes['onfocus']='';
 		$this->attributes['onblur']='';
@@ -4186,6 +4186,8 @@ class ed_tree_item_editor extends dom_div//virtual component injector
 	{
 		parent::__construct();
 		$this->etype=get_class($this);
+		$this->tbl=new dom_table;
+		$this->append_child($this->tbl);
 		
 	}
 	
@@ -4203,6 +4205,22 @@ class ed_tree_item_editor extends dom_div//virtual component injector
 		}
 		foreach($this->editors as $i => $e)
 			$e->bootstrap();
+	}
+	
+	function field_add($obj,$name,$hrname,$ed)
+	{
+			editor_generic::addeditor($name,$ed);
+			$tr=new dom_tr;
+			$this->tbl->append_child($tr);
+			$td=new dom_td;
+			$tr->append_child($td);
+			$txt=new dom_statictext($hrname);
+			$td->append_child($txt);
+			$td->attributes['title']=$name;
+			$td=new dom_td;
+			$tr->append_child($td);
+			$td->append_child($this->editors[$name]);
+			$this->args[$name]=$obj->$name;
 	}
 	
 	function configure($obj)//virtual method
@@ -4226,31 +4244,39 @@ class ed_tree_meta_editor extends ed_tree_item_editor//virtual component injecto
 		switch($type)
 		{
 		case 'fm_undefined':
-			editor_generic::addeditor('ed_static',new editor_statictext);
-			$this->append_child($this->editors['ed_static']);
 			break;
 		case 'fm_text_constant':
-			editor_generic::addeditor('value',new editor_text);
-			$this->append_child($this->editors['value']);
-			editor_generic::addeditor('to_variable',new editor_text);
-			$this->append_child($this->editors['to_variable']);
-			editor_generic::addeditor('invert',new editor_checkbox);
-			$this->append_child($this->editors['invert']);
-			$this->args['value']=$obj->value;
-			$this->args['to_variable']=$obj->to_variable;
-			$this->args['invert']=$obj->invert;
+			//TODO: localization
+			$this->field_add($obj,'value','Значение',new editor_text);
+			$this->field_add($obj,'to_variable','Переменная',new editor_text);
+			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
 			break;
 		case 'fm_logical_expression':
+			//TODO: localization
+			$this->field_add($obj,'operator','operator',new editor_text);
+			$this->field_add($obj,'to_variable','Переменная',new editor_text);
+			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
 			break;
 		case 'fm_list':
+			$this->field_add($obj,'function','function',new editor_text);
+			$this->field_add($obj,'to_variable','Переменная',new editor_text);
+			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
 			break;
 		case 'fm_logical_group':
+			$this->field_add($obj,'operator','operator',new editor_text);
+			$this->field_add($obj,'to_variable','Переменная',new editor_text);
+			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
 			break;
 		case 'fm_meta_object':
+			$this->field_add($obj,'path','path',new editor_m_object);
+			$this->field_add($obj,'to_variable','Переменная',new editor_text);
+			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
 			break;
 		case 'fm_set_expression':
 			break;
 		case 'fm_limit':
+			$this->field_add($obj,'count','count',new editor_m_object);
+			$this->field_add($obj,'offset','offset',new editor_m_object);
 			break;
 		case 'meta_query_gen':
 			break;

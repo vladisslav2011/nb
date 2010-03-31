@@ -183,7 +183,7 @@ class editor_generic extends dom_any
 	
 	
 	
-	function bootstrap_part()
+	function bootstrap_part($r=true)
 	{
 	$this->long_name=editor_generic::long_name();
 
@@ -212,7 +212,7 @@ class editor_generic extends dom_any
 #	'&name='.urlencode($this->long_name).
 	'&name='.	urlencode(editor_generic::effective_name()).
 	'&type='.urlencode(editor_generic::long_type());
-	$send.="&last_generated_id=' + last_generated_id + '";
+	if($r)$send.="&last_generated_id=' + last_generated_id + '";
 	$send.="&val";
 	$this->send=&$send;
 	//$this->postargs=&$postargs;
