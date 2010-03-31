@@ -1008,6 +1008,7 @@ function ed_tree_fa_item_up(event,object_id,path)
 				encodeURIComponent(resizer.drag_context.data.d)+
 				'&last_generated_id=' + last_generated_id +
 				'&parent_id='+encodeURIComponent(object.id_list[k].pcid)+'&n',val:'',c_id:object.id});
+			return;
 		}
 		if(resizer.drag_context.data.t=='cl')
 		{
@@ -1015,7 +1016,12 @@ function ed_tree_fa_item_up(event,object_id,path)
 				encodeURIComponent(object.id_list[k].keys)+
 				'&last_generated_id=' + last_generated_id +
 				'&clipboard=1&n',val:'',c_id:object.id});
+			return;
 		}
+		chse.send_or_push({static:object.send_static+'=pastenew&before='+
+			encodeURIComponent(object.id_list[k].keys)+
+			'&last_generated_id=' + last_generated_id +
+			'&n',val:resizer.drag_context.data.t,c_id:object.id});
 	}
 }
 

@@ -3616,6 +3616,19 @@ class ed_tree_main extends dom_div
 		
 		editor_generic::addeditor('clip',new ed_tree_main_cv);
 		
+			//TODO: localization
+		$add_d_cont=Array(
+			'text_constant'=>'<tc>',
+			'logical_expression'=>'<le>',
+			'list'=>'<li>',
+			'logical_group'=>'<lg>',
+			'meta_object'=>'<mo>',
+			'set_expression'=>'<se>'
+			);
+		foreach($add_d_cont as $nn => $vv)
+			editor_generic::addeditor($nn,new ed_tree_main_nd($vv));
+		
+		
 		$tbl=new dom_table;
 		$this->append_child($tbl);
 		$tr=new dom_tr;
@@ -3629,6 +3642,10 @@ class ed_tree_main extends dom_div
 		
 		$ltd->append_child($this->ctl);
 		$ltd->append_child($this->editors['clip']);
+		foreach($add_d_cont as $nn => $vv)
+			$ltd->append_child($this->editors[$nn]);
+		
+		
 		$ltd->append_child($this->editors['fa_cnt']);
 		
 		$div=new dom_div;
@@ -3650,6 +3667,13 @@ class ed_tree_main extends dom_div
 			"return ed_tree_clip_mov(event,this);";
 		$this->editors['clip']->attributes['onmouseout']=
 			"return ed_tree_clip_mou(event,this);";
+		foreach($add_d_cont as $nn => $vv)
+		{
+			$this->editors[$nn]->css_style['cursor']='default';
+			$this->editors[$nn]->attributes['onmousedown']="resizer.create_ghost(event,this,{t:'".$nn."',d:''});return false;";
+		}
+		
+		
 	}
 	
 	function bootstrap()
@@ -3866,6 +3890,14 @@ class ed_tree_main extends dom_div
 				$reload_clip=true;
 				$do_store=true;
 				break;
+			case 'pastenew':
+				$cn='fm_'.$_POST['n'];
+				if(class_exists($cn))$new=new $cn;
+				else return;
+				$this->add_node($obj,$_POST['before'],$new);
+				$reload_fa=true;
+				$do_store=true;
+				break;
 			case 'del':
 				$this->del_node($obj,$_POST['path']);
 				$reload_fa=true;
@@ -3957,7 +3989,7 @@ class ed_tree_main_cv extends dom_div
 	
 	function bootstrap()
 	{
-		editor_generic::bootstrap_part();
+//		editor_generic::bootstrap_part();
 	}
 	
 	function html_inner()
@@ -3976,7 +4008,25 @@ class ed_tree_main_cv extends dom_div
 			$this->txt->text='Unknown';
 			parent::html_inner();
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+class ed_tree_main_nd extends dom_div
+{
+	function __construct($n)
+	{
+		parent::__construct();
+		$this->txt=new dom_statictext($n);
+		$this->append_child($this->txt);
+		$this->css_style['display']='inline-block';
+		$this->css_style['border']='1px solid blue';
+	}
 	
+	function bootstrap()
+	{
+//		editor_generic::bootstrap_part();
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
