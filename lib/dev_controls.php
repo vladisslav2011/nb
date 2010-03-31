@@ -3618,13 +3618,23 @@ class ed_tree_main extends dom_div
 		
 		editor_generic::addeditor('clip',new ed_tree_main_cv);
 		
-		$this->append_child($this->ctl);
-		$this->append_child($this->editors['clip']);
-		$this->append_child($this->editors['fa_cnt']);
+		$tbl=new dom_table;
+		$this->append_child($tbl);
+		$tr=new dom_tr;
+		$tbl->append_child($tr);
+		$this->left_td=new dom_td;
+		$tr->append_child($this->left_td);
+		$this->right_td=new dom_td;
+		$tr->append_child($this->right_td);
+		
+		$this->left_td->append_child($this->ctl);
+		$this->left_td->append_child($this->editors['clip']);
+		$this->left_td->append_child($this->editors['fa_cnt']);
+		
 		$div=new dom_div;
 		$this->editors['fa_cnt']->append_child($div);
-		
 		$div->append_child($this->editors['fa']);
+		
 		$this->ctl_text=new dom_statictext('Objects:');
 		$this->ctl->append_child($this->ctl_text);
 		//$this->editors['fa']->ctl=$this->ctl;
@@ -4130,6 +4140,32 @@ class ed_tree_nofa extends dom_div
 		editor_generic::handle_event($ev);
 	}
 }
+
+####################################################################################################
+class ed_tree_item_editor extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		
+	}
+	
+	function bootstrap()
+	{
+	}
+	
+	function handle_event($ev)
+	{
+		editor_generic::handle_event($ev);
+	}
+}
+
+
+
+
+
+
 #####################################################################################################
 #####################################################################################################
 
