@@ -3622,14 +3622,16 @@ class ed_tree_main extends dom_div
 		$this->append_child($tbl);
 		$tr=new dom_tr;
 		$tbl->append_child($tr);
-		$this->left_td=new dom_td;
-		$tr->append_child($this->left_td);
-		$this->right_td=new dom_td;
-		$tr->append_child($this->right_td);
+		$ltd=new dom_td;
+		$tr->append_child($ltd);
+		$rtd=new dom_td;
+		$tr->append_child($rtd);
+		$this->right_td=new dom_div;
+		$rtd->append_child($this->right_td);
 		
-		$this->left_td->append_child($this->ctl);
-		$this->left_td->append_child($this->editors['clip']);
-		$this->left_td->append_child($this->editors['fa_cnt']);
+		$ltd->append_child($this->ctl);
+		$ltd->append_child($this->editors['clip']);
+		$ltd->append_child($this->editors['fa_cnt']);
 		
 		$div=new dom_div;
 		$this->editors['fa_cnt']->append_child($div);
@@ -3659,6 +3661,7 @@ class ed_tree_main extends dom_div
 		$this->context[$this->long_name]['fa_id']=$this->editors['fa']->id_gen();
 		$this->context[$this->long_name]['ctl_id']=$this->ctl->id_gen();
 		$this->context[$this->long_name]['clip_id']=$this->editors['clip']->id_gen();
+		$this->context[$this->long_name]['right_id']=$this->right_td->id_gen();
 		if(!is_array($this->editors))return;
 		foreach($this->editors as $i => $e)
 		{
@@ -3805,13 +3808,20 @@ class ed_tree_main extends dom_div
 	function handle_event($ev)
 	{
 		$this->oid=$ev->context[$ev->long_name]['oid'];
+		$obj=$this->fetch($this);
+		if($ev->keys['!']=='o')
+		{
+			$current=$this->find($obj,$ev->keys['path']);
+			$n=$ev->rem_name;
+			$current->$n=$_POST['val'];
+			print "\$i('".$ev->context[$ev->parent_name]['cid']."').innerHTML='".js_escape((method_exists($current,'text_short'))?$current->text_short():'undef?')."';";
+			$do_store=true;
+		}
 		if($ev->rem_name=='tracker')
 		{
 			//$this->editors['fa']->handle_event($ev);
 			$this->context=&$ev->context;
 			$this->long_name=$ev->parent_name;
-			$this->oid=$this->context[$this->long_name]['oid'];
-			$obj=$this->fetch($this);
 			global $clipboard;
 			switch($_POST['val'])
 			{
@@ -3826,12 +3836,14 @@ class ed_tree_main extends dom_div
 				$this->add_node($obj,$_POST['before'],$this->pick_node($obj,$_POST['path']));
 				$this->cleanup_picked($obj);
 				$reload_fa=true;
+				$do_store=true;
 				break;
 			case 'copyti':
 				$node=$this->find($obj,$_POST['path']);
 				$node=clone $node;
 				$this->add_node($obj,$_POST['before'],$node);
 				$reload_fa=true;
+				$do_store=true;
 				break;
 			case 'pastecl':
 				$new=$clipboard->fetch();
@@ -3839,6 +3851,7 @@ class ed_tree_main extends dom_div
 				if(!method_exists($new,'text_short'))return;
 				$this->add_node($obj,$_POST['before'],$new);
 				$reload_fa=true;
+				$do_store=true;
 				break;
 			case 'movecl':
 				$node=$this->find($obj,$_POST['path']);
@@ -3847,23 +3860,50 @@ class ed_tree_main extends dom_div
 				$this->store($this,$obj);
 				$reload_fa=true;
 				$reload_clip=true;
+				$do_store=true;
 				break;
 			case 'copycl':
 				$node=$this->find($obj,$_POST['path']);
 				$clipboard->store($node);
 				$reload_clip=true;
+				$do_store=true;
 				break;
 			case 'del':
 				$this->del_node($obj,$_POST['path']);
 				$reload_fa=true;
+				$do_store=true;
 				break;
 			case 'activate':
 				print "\$i('debug')[text_content]='".js_escape('path='.$_POST['path'])."';";
+				$current=$this->find($obj,$_POST['path']);
 				//print "\$i('debug')[text_content]=\$i('".js_escape($ev->context[$ev->parent_name]['fa_id'])."').innerHTML;";
-				return;
+				$reload_right=true;
+				$do_store=false;
+				break;
 			}
-			$this->store($this,$obj);
+		}
+			if($do_store)$this->store($this,$obj);
 			
+			if($reload_right)
+			{
+				$r=new ed_tree_meta_editor;
+				$r->context=&$ev->context;
+				$r->context[$ev->parent_name.'.fa']['button_id']=$ev->context[$ev->parent_name]['ctl_id'];
+				$r->context[$ev->parent_name]['cid']=$_POST['cid'];
+				$r->keys=&$ev->keys;
+				$r->keys['path']=$_POST['path'];
+				$r->keys['!']='o';
+				$r->oid=$this->oid;
+				$r->name=$ev->parent_name;
+				$r->etype=$ev->parent_type;
+				$r->configure($current);
+				print "(function(){";
+				print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['right_id'])."');";
+				print "try{nya.innerHTML=";
+				reload_object($r,true);
+				print "}catch(e){ window.location.reload(true);};";
+				print "})();";
+			}
 			if($reload_fa)
 			{
 				$r=$this->editors['fa'];
@@ -3880,6 +3920,7 @@ class ed_tree_main extends dom_div
 				print "try{nya.innerHTML=";
 				reload_object($r,true);
 				print "nya.scrollTop=0;}catch(e){ window.location.reload(true);};";
+				print "\$i('".js_escape($ev->context[$ev->parent_name]['right_id'])."').innerHTML='';";
 				print "})();";
 			};
 			if($reload_clip)
@@ -3898,12 +3939,9 @@ class ed_tree_main extends dom_div
 				print "}catch(e){ window.location.reload(true);};";
 				print "})();";
 			}
-			
 			//print 'window.location.reload(true);';
-			return;
-		}
 		
-			editor_generic::handle_event($ev);
+			editor_generic::handle_event($ev);print ';/*aaa*/';
 	}
 }
 
@@ -4142,7 +4180,7 @@ class ed_tree_nofa extends dom_div
 }
 
 ####################################################################################################
-class ed_tree_item_editor extends dom_div
+class ed_tree_item_editor extends dom_div//virtual component injector
 {
 	function __construct()
 	{
@@ -4153,14 +4191,78 @@ class ed_tree_item_editor extends dom_div
 	
 	function bootstrap()
 	{
+		$this->long_name=editor_generic::long_name();
+		if(!is_array($this->editors))return;
+		foreach($this->editors as $i => $e)
+		{
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+			$e->oid=$this->oid;
+		}
+		foreach($this->editors as $i => $e)
+			$e->bootstrap();
 	}
 	
-	function handle_event($ev)
+	function configure($obj)//virtual method
+	{
+		
+	}
+	
+	
+	function handle_event($ev)//parent handles events
 	{
 		editor_generic::handle_event($ev);
 	}
 }
 
+class ed_tree_meta_editor extends ed_tree_item_editor//virtual component injector
+{
+	
+	function configure($obj)//virtual method
+	{
+		$type=get_class($obj);
+		switch($type)
+		{
+		case 'fm_undefined':
+			editor_generic::addeditor('ed_static',new editor_statictext);
+			$this->append_child($this->editors['ed_static']);
+			break;
+		case 'fm_text_constant':
+			editor_generic::addeditor('value',new editor_text);
+			$this->append_child($this->editors['value']);
+			editor_generic::addeditor('to_variable',new editor_text);
+			$this->append_child($this->editors['to_variable']);
+			editor_generic::addeditor('invert',new editor_checkbox);
+			$this->append_child($this->editors['invert']);
+			$this->args['value']=$obj->value;
+			$this->args['to_variable']=$obj->to_variable;
+			$this->args['invert']=$obj->invert;
+			break;
+		case 'fm_logical_expression':
+			break;
+		case 'fm_list':
+			break;
+		case 'fm_logical_group':
+			break;
+		case 'fm_meta_object':
+			break;
+		case 'fm_set_expression':
+			break;
+		case 'fm_limit':
+			break;
+		case 'meta_query_gen':
+			break;
+		}
+	}
+	
+	
+	function handle_event($ev)//parent handles events
+	{
+		editor_generic::handle_event($ev);
+	}
+}
 
 
 

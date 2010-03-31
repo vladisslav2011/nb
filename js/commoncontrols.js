@@ -975,6 +975,8 @@ function ed_tree_item_act(object)
 	object.act_timeout=setTimeout(function(){
 		chse.send_or_push({static:object.send_static+'=activate&path='+
 			encodeURIComponent(object.id_list[object.id_current].keys)+
+			'&cid='+
+			encodeURIComponent(object.id_list[object.id_current].cid)+
 			'&n',val:'',c_id:this.id});
 		},100);
 }
