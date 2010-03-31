@@ -825,14 +825,14 @@ class editor_text extends dom_any
 			'if(x){'.
 			'$i(x.failure_viewer).style.display=\'\';'.
 			'$i(x.failure_viewer_text).innerHTML=\''.js_escape(htmlspecialchars($ev->failure,ENT_QUOTES)).'\';'.
-			'}'
+			'};'
 			;
 		}else
 			print 'var x=chse.bgifc(\''.js_escape($ev->context[$ev->long_name]['htmlid']).'\',\'\');'.
 			'if(x){'.
 			//print 'var x=$i(\''.js_escape($ev->context[$ev->long_name]['htmlid']).'\');x.style.backgroundColor=\'\';'.
 			'$i(x.failure_viewer).style.display=\'none\';'.
-			'}';
+			'};';
 	}
 }
 

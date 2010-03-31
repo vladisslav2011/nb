@@ -1144,6 +1144,25 @@ function is_special(ev,t)
 	case 0://opera
 		//onkeypress event and keyCode
 		var r=key_from_code(ev.keyCode);
+		if(t==0)
+		{
+			if(
+				(ev.keyCode==36 && ev.which==36)||
+				(ev.keyCode==35 && ev.which==35)||
+				(ev.keyCode==45 && ev.which==45)||
+				(ev.keyCode==46 && ev.which==46)
+			)
+				window.opera_keyboard_fix0=true;
+			else
+				window.opera_keyboard_fix0=false;
+		}
+		if(
+			r.special && (t==1) && window.opera_keyboard_fix0 && (
+				(ev.keyCode==36 && ev.which==36)||
+				(ev.keyCode==35 && ev.which==35)||
+				(ev.keyCode==45 && ev.which==45)||
+				(ev.keyCode==46 && ev.which==46)
+				))ret.special=true;
 		if(r.special && (ev.which==0) && (t==1))ret.special=true;
 		if(r.special && (ev.which==ev.keyCode) && (t!=1))ret.special=true;
 		if(t==1)ret.repeated=true;

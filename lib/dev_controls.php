@@ -718,7 +718,6 @@ class m_text extends editor_text
 			else
 				$q="UPDATE `".$sql->esc($table)."` SET `".$sql->esc($col)."`='".$sql->esc($_POST['val'])."' WHERE".$upd;
 			//print "alert('".js_escape($q)."');";
-			#print "\$i('debug').textContent='".js_escape($q)."';";
 			$res=$sql->query($q);
 			if($res===FALSE)$ev->failure=$sql->err();
 		}else{
@@ -1740,7 +1739,6 @@ class editor_m_object extends dom_div
 		switch($ev->rem_name)
 		{
 		case "pick":
-			#print "\$i('debug').innerHTML='<div style=\'margin-left:300px;\'>hide:'+ostack[".$ostack_level."]+'<\/div>';";
 			if($oid==-1)
 			{
 				$q="SELECT a.id, coalesce(b.val,a.name) as hr_name,(SELECT COUNT(d.`id`) FROM `".TABLE_META_TREE."` as d WHERE d.`parentid`=a.`id` AND d.`sql_type` != '') as num_children FROM `".TABLE_META_TREE."` as a LEFT OUTER JOIN `".TABLE_META_I18N."` as b ON a.id=b.object AND b.var='name' AND b.loc='".$_SESSION['lang']."' WHERE a.sql_type='' AND (a.xobject!='sys' OR a.xobject IS NULL)";
@@ -3874,9 +3872,7 @@ class ed_tree_main extends dom_div
 				$do_store=true;
 				break;
 			case 'activate':
-				print "\$i('debug')[text_content]='".js_escape('path='.$_POST['path'])."';";
 				$current=$this->find($obj,$_POST['path']);
-				//print "\$i('debug')[text_content]=\$i('".js_escape($ev->context[$ev->parent_name]['fa_id'])."').innerHTML;";
 				$reload_right=true;
 				$do_store=false;
 				break;
@@ -3941,7 +3937,7 @@ class ed_tree_main extends dom_div
 			}
 			//print 'window.location.reload(true);';
 		
-			editor_generic::handle_event($ev);print ';/*aaa*/';
+			editor_generic::handle_event($ev);
 	}
 }
 
@@ -4215,12 +4211,29 @@ class ed_tree_item_editor extends dom_div//virtual component injector
 			$td=new dom_td;
 			$tr->append_child($td);
 			$txt=new dom_statictext($hrname);
-			$td->append_child($txt);
-			$td->attributes['title']=$name;
+			$l=new dom_any('label');
+			$td->append_child($l);
+			$l->append_child($txt);
+			$l->attributes['title']=$name;
 			$td=new dom_td;
 			$tr->append_child($td);
 			$td->append_child($this->editors[$name]);
 			$this->args[$name]=$obj->$name;
+			$l->attributes['for']=$this->editors[$name]->id_gen();
+	}
+	
+	function title_add($hrname,$title)
+	{
+			$tr=new dom_tr;
+			$this->tbl->append_child($tr);
+			$td=new dom_td;
+			$tr->append_child($td);
+			$txt=new dom_statictext($hrname);
+			$td->append_child($txt);
+			$td->attributes['title']=$title;
+			$td->attributes['colspan']='2';
+			$td->css_style['text-align']='center';
+			$td->css_style['font-weight']='bold';
 	}
 	
 	function configure($obj)//virtual method
@@ -4241,6 +4254,7 @@ class ed_tree_meta_editor extends ed_tree_item_editor//virtual component injecto
 	function configure($obj)//virtual method
 	{
 		$type=get_class($obj);
+		$this->title_add($type,$type);
 		switch($type)
 		{
 		case 'fm_undefined':
