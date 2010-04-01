@@ -4,6 +4,15 @@
 $doc_root=$_SERVER['DOCUMENT_ROOT'];
 if(preg_match('#.*[^/]$#',$doc_root))$doc_root.='/';
 $uploaddir = $doc_root.'uploads/';
+if(!is_dir($uploaddir))
+{
+	if(!mkdir($uploaddir))
+	{
+		if($_POST['rtype']=='ext')print "403\n";
+		if($_POST['rtype']=='test')print "Failed to create upload directory.";
+		exit;
+	};
+};
 $name =preg_replace('/^.*\//','',$_FILES['file1']['name']);
 $uploadfile = $uploaddir . $name;
 if (move_uploaded_file($_FILES['file1']['tmp_name'], $uploadfile))
