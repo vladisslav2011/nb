@@ -3964,6 +3964,7 @@ class ed_tree_main extends dom_div
 				print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['clip_id'])."');";
 				print "try{nya.innerHTML=";
 				reload_object($r,true);
+				print "nya.style.backgroundColor='';";
 				print "}catch(e){ window.location.reload(true);};";
 				print "})();";
 			}
