@@ -779,5 +779,127 @@ class test_drop_button_0 extends dom_any
 }
 $tests_m_array[]='test_drop_button_0';
 
+/*--------------------------------------------------------------------------------------------
+
+
+
+--------------------------------------------------------------------------------------------*/
+
+class csv2vcard_1 extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		editor_generic::addeditor('fn',new file_pick_or_upload);
+		$this->append_child($this->editors['fn']);
+		editor_generic::addeditor('do',new editor_button);
+		$this->append_child($this->editors['do']);
+		$this->editors['do']->main->attributes['value']='do!';
+		$this->res=new dom_div;
+		$this->append_child($this->res);
+		
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		$this->context[$this->long_name]['res_id']=$this->res->id_gen();
+		$this->context[$this->long_name]['oid']=$this->oid;
+		if(is_array($this->editors))foreach($this->editors as $i => $e)
+		{
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+			$e->oid=$this->oid;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+		}
+		if(is_array($this->editors))
+			foreach($this->editors as $e)$e->bootstrap();
+	}
+	
+	function write2($s)
+	{
+		fwrite($this->unix_fd,$s."\n");
+		fwrite($this->win_fd,iconv('utf-8','cp1251',$s)."\n");
+	}
+	
+	function handle_event($ev)
+	{
+		switch($ev->rem_name)
+		{
+		case 'fn':
+			$file_name=$_POST['val'];
+			$this->unix_fd=fopen('../uploads/utf8.vcf',"w");
+			$this->win_fd=fopen('../uploads/cp1251.vcf',"w");
+			$csv=new csv;
+			$in=file_get_contents('../uploads/'.$file_name);
+			$r=explode("\n",$in);
+			foreach($r as $line)
+				if($line !='')
+				{
+					$row=$csv->split($line);
+					$vc->email=$row[0];
+					$vc->name=$row[1];
+					$vc->surname=$row[2];
+					$this->write2("BEGIN:VCARD");
+					$this->write2("VERSION:3.0");
+					$this->write2("REV:2008-06-24T15:18:51Z");
+					$this->write2("EMAIL;TYPE=OTHER:".$vc->email);
+					$this->write2("X-EVOLUTION-FILE-AS:".$vc->surname."\\, ".$vc->name);
+					$this->write2("N:".$vc->surname.";".$vc->name.";;;");
+					$this->write2("FN:".$vc->name." ".$vc->surname);
+					$this->write2("END:VCARD");
+					$this->write2("");
+				}
+			fclose($this->unix_fd);
+			fclose($this->win_fd);
+			print "\$i('".js_escape($ev->context[$ev->parent_name]['res_id'])."').innerHTML='".
+				js_escape(
+					"<div>".htmlspecialchars($in)."</div".
+					"<a href='../uploads/utf8.vcf'>utf-8</a> ".
+					"<a href='../uploads/cp1251.vcf'>cp1251</a> "
+				)."';";
+			break;
+		case 'do':
+			break;
+		}
+		
+		
+		editor_generic::handle_event($ev);
+	}
+	
+}
+$tests_m_array[]='csv2vcard_1';
+
+/*--------------------------------------------------------------------------------------------
+
+
+
+--------------------------------------------------------------------------------------------*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ?>
