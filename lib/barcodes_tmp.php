@@ -1286,6 +1286,27 @@ class query_result_viewer_codessel extends dom_any
 		$td->css_style['text-align']='center';
 		$td->append_child(new dom_statictext('Отчет'));
 		
+		$td=new dom_any('td');
+		$tr->append_child($td);
+		$td->css_style['text-align']='center';
+		$td->append_child(new dom_statictext('Плотн'));
+		
+		$td=new dom_any('td');
+		$tr->append_child($td);
+		$td->css_style['text-align']='center';
+		$td->append_child(new dom_statictext('Скор'));
+		
+		$td=new dom_any('td');
+		$tr->append_child($td);
+		$td->css_style['text-align']='center';
+		$td->append_child(new dom_statictext('host'));
+		
+		$td=new dom_any('td');
+		$tr->append_child($td);
+		$td->css_style['text-align']='center';
+		$td->append_child(new dom_statictext('printer'));
+/* ---------------------------------------------------------- */
+		
 		$tr=new dom_any('tr');
 		$tbl->append_child($tr);
 		
@@ -1404,7 +1425,31 @@ class query_result_viewer_codessel extends dom_any
 		$sp->append_child($a);
 		$a->append_child(new dom_statictext('Сохранить'));
 		
+		$td=new dom_any('td');//плотн
+		$tr->append_child($td);
+		editor_generic::addeditor('density',new editor_select);
+		for($k=0;$k<16;$k++)$this->editors['density']->options[$k]=$k;
+		$td->append_child($this->editors['density']);
 		
+		$td=new dom_any('td');//скор
+		$tr->append_child($td);
+		editor_generic::addeditor('speed',new editor_select);
+		for($k=0;$k<7;$k++)$this->editors['speed']->options[$k]=$k;
+		$td->append_child($this->editors['speed']);
+		
+		$td=new dom_any('td');//host
+		$tr->append_child($td);
+		editor_generic::addeditor('ipp_host',new editor_text);
+		$td->append_child($this->editors['ipp_host']);
+		$this->editors['ipp_host']->main->css_style['width']='5em';
+		
+		$td=new dom_any('td');//printer
+		$tr->append_child($td);
+		editor_generic::addeditor('ipp_printer',new editor_text);
+		$td->append_child($this->editors['ipp_printer']);
+		$this->editors['ipp_printer']->main->css_style['width']='9em';
+		
+/* ---------------------------------------------------------- */
 		$tbl=new dom_any('table');
 		$this->sdiv->append_child($tbl);
 		$tr=new dom_any('tr');
@@ -1683,6 +1728,9 @@ class query_result_viewer_codessel extends dom_any
 		$this->context[$this->long_name.'.ribbon_remaining']['tblname']='barcodes_counters';
 		$this->context[$this->long_name.'.ribbon_remaining']['colname']='current';
 		
+		foreach($this->editors as $n => $e)
+			$this->context[$this->long_name.'.'.$n]['var']=$n;
+		
 		$this->context[$this->long_name.'.fltr']['var']='@@fltr';
 		$this->context[$this->long_name.'.only_selected']['var']='@@selonly';
 		$this->context[$this->long_name.'.ed_count']['var']='@@ed_count';
@@ -1730,8 +1778,13 @@ class query_result_viewer_codessel extends dom_any
 			$e->context=&$this->context;
 			$e->keys=&$this->keys;
 			$e->args=&$this->args;
+			$e->oid=$this->oid;
 		}
 		
+		$this->args['density']=$this->rootnode->setting_val($this->oid,$this->long_name.'.density',7);
+		$this->args['speed']=$this->rootnode->setting_val($this->oid,$this->long_name.'.speed',5);
+		$this->args['ipp_host']=$this->rootnode->setting_val($this->oid,$this->long_name.'.ipp_host','localhost');
+		$this->args['ipp_printer']=$this->rootnode->setting_val($this->oid,$this->long_name.'.ipp_printer','/printers/TLP2824_');
 		unset($this->editors['labels_init']->keys);$this->editors['labels_init']->keys=Array('id'=>0);
 		unset($this->editors['labels_remaining']->keys);$this->editors['labels_remaining']->keys=Array('id'=>0);
 		unset($this->editors['ribbon_init']->keys);$this->editors['ribbon_init']->keys=Array('id'=>1);
@@ -1799,8 +1852,7 @@ class query_result_viewer_codessel extends dom_any
 		$sql->query("UPDATE `barcodes_print` SET `printed`=".$count." WHERE `id`=".$row['id']." AND `task`=".$current_task);
 
 		
-		$print=	"\nS6\n".
-				"N\n".
+		$print=	"N\n".
 				"I8,10,001\n".
 				"A7,10,0,2,1,1,N,\"".$s1."\"\n".
 				"A7,31,0,2,1,1,N,\"".$s2."\"\n".
@@ -1808,16 +1860,41 @@ class query_result_viewer_codessel extends dom_any
 				"B10,80,0,E30,4,4,120,B,\"".$barcode."\"\n".
 				"P".$count."\n";
 		$this->print_job($print);
+		/*
+		$print=	"\nS0\n".
+				"OD\n".
+				"D0\n".
+				"N\n".
+				"I8,10,001\n".
+				"A7,10,0,2,1,1,N,\"".$s1."\"\n".
+				"A7,31,0,2,1,1,N,\"".$s2."\"\n".
+				"A7,52,0,2,1,1,N,\"".$s3."\"\n".
+				"B10,80,0,E30,4,4,120,B,\"".$barcode."\"\n".
+				"P1\n";
+		for($k=0;$k<$count;$k++)
+			$this->print_job($print);
+		*/
 		
 		
 	}
 	
 	function print_job($job)
 	{
+		global $sql;
+		$settings=new settings_tool;
+		$speed=$sql->q1($settings->single_query(-1,$this->name.'.speed',$_SESSION['uid'],0));
+		if(!isset($speed))$speed=5;
+		$density=$sql->q1($settings->single_query(-1,$this->name.'.density',$_SESSION['uid'],0));
+		if(!isset($density))$density=4;
+		$ipp_host=$sql->q1($settings->single_query(-1,$this->name.'.ipp_host',$_SESSION['uid'],0));
+		if(!isset($ipp_host))$ipp_host='localhost';
+		$ipp_printer=$sql->q1($settings->single_query(-1,$this->name.'.ipp_printer',$_SESSION['uid'],0));
+		if(!isset($ipp_printer))$ipp_printer='/printers/TLP2824_';
+		
 		$ipp = new PrintIPP();
-		$ipp->setHost("localhost");
-		$ipp->setPrinterURI("/printers/TLP2824_");
-		$ipp->setData($job);
+		$ipp->setHost($ipp_host);
+		$ipp->setPrinterURI($ipp_printer);
+		$ipp->setData("\nS".$speed."\nD".$density."\n".$job);
 		$ipp->setRawText();
 		$ipp->printJob();
 	}
@@ -1827,6 +1904,11 @@ class query_result_viewer_codessel extends dom_any
 	{
 		global $sql;// !
 		$changed=false;
+		
+		$this->name=$ev->parent_name;
+		$this->context=&$ev->context;
+		$this->oid=$ev->context[$ev->long_name]['oid'];
+		
 		$total_count_id=$ev->context[$ev->parent_name]['total_count_id'];
 		if($ev->rem_name=='fltr')
 		{
@@ -1836,6 +1918,11 @@ class query_result_viewer_codessel extends dom_any
 			print "\$i('".js_escape($ev->context[$ev->parent_name]['ed_offset_id'])."').value='0';";
 			print "\$i('".js_escape($ev->context[$ev->parent_name]['ed_offset_id'])."').oldval='0';";
 			$changed=true;
+		}
+		if(preg_match('/^speed$|^density$|^ipp_host$|^ipp_printer$/',$ev->rem_name))
+		{
+			$settings=new settings_tool;
+			$sql->query($settings->set_query(-1,$ev->long_name,$_SESSION['uid'],0,$_POST['val']));
 		}
 		if($ev->rem_name=='ed_count')
 		{

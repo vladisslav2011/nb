@@ -309,10 +309,16 @@ settings_array[oid][setting]
 	
 	function setting_val($oid,$setting,$defval)
 	{
-		if(! is_array($this->settings_array))return $defval;
-		if(! is_array($this->settings_array[$oid]))return $defval;
-		if(! isset($this->settings_array[$oid][$setting]))return $defval;
-		return $this->settings_array[$oid][$setting];
+		global $sql;
+		
+		if(! is_array($this->settings_array))$qod=true;
+		elseif(! is_array($this->settings_array[$oid]))$qod=true;
+		elseif(! isset($this->settings_array[$oid][$setting]))$qod=true;
+		else  return $this->settings_array[$oid][$setting];
+		$settings_tool=new settings_tool;
+		$res=$sql->q1($settings_tool->single_query($oid,$setting,$_SESSION['uid'],0));
+		if(!isset($res))return $defval;
+		else return $res;
 	}
 	
 	function out($s)

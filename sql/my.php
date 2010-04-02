@@ -58,7 +58,7 @@ class sql
 	}
 	function fetch1($r)
 	{
-		if($r)
+		if(isset($r))
 		{
 			if($r===TRUE) return NULL;
 			$a=$this->fetchn($r);
@@ -162,12 +162,13 @@ class sql
 	//return single result
 	function q1($q)
 	{
+
 		$res=$this->query($q);
 		if($res===TRUE) return $res;
 		if($res===FALSE) return $res;//is it real? Or always undef if failed
 		if(!isset($res))return NULL;
-		$ret=Array();
-		if($row=$this->fetch1($res))
+		$row=$this->fetch1($res);
+		if(isset($row))
 		{
 			$this->free($res);
 			return $row;
