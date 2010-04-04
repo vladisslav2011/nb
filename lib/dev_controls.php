@@ -2131,6 +2131,7 @@ class filters_m extends dom_div
 		$this->editor_names['meta_query_gen']='emeta_query_gen';
 		$this->editor_names['fm_set_expression']='efm_set_expression';
 		
+		$this->js_en=new dom_js("chse.debug=true;");$this->append_child($this->js_en);
 		
 	}
 	
@@ -2258,6 +2259,7 @@ class filters_m extends dom_div
 		$object=$this->fetch($this);
 		$this->keys=Array('path'=>'');
 		$this->create_editor_for($object,'');
+		$this->js_en->html();
 		
 	}
 	
@@ -2302,7 +2304,7 @@ class filters_m extends dom_div
 		print "var nya=\$i('".js_escape($tgtid)."');";
 		print "try{nya.innerHTML='";
 		$reloader->firstinner('output_children');
-		print "}catch(e){/* window.location.reload(true);*/};\n";
+		print "}catch(e){window.location.reload(true);};\n";
 	}
 	
 	function del_node($obj,$path)
@@ -2361,6 +2363,10 @@ class filters_m extends dom_div
 		$this->long_name=$ev->parent_name;
 		$this->oid=$this->context[$this->long_name]['oid'];
 		$obj=$this->fetch($this);
+		$path=$ev->keys['path'];
+		$path_e=explode('/',$path);
+		$last=array_pop($path_e);
+		$obk=$this->find($obj,implode('/',$path_e));
 		if(preg_match('/\\.-$/',$ev->rem_name))
 		{
 			if($this->del_node($obj,$ev->keys['path']))
@@ -3701,6 +3707,7 @@ class ed_tree_main extends dom_div
 	function html_inner()
 	{
 		$this->rootnode->endscripts[]="(function(){var a=\$i('".js_escape($this->ctl->id_gen())."');a.id_list=new Array();a.id_current=-1;a.send_static='".$this->ctl->send."';".
+		"a.fa_id='".$this->editors['fa_cnt']->in->id_gen()."';".
 		"var b=\$i('".js_escape($this->editors['clip']->id_gen())."');b.send_static='".$this->editors['clip']->send."';})();";
 		$this->editors['fa']->object=$this->fetch($this);
 		parent::html_inner();

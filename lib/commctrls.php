@@ -1514,8 +1514,7 @@ class editor_text_autosuggest extends dom_void
 			print '$i(\''.js_escape($htmlid).'\').as_objects=['.$js.'];';
 			print '$i(\''.js_escape($htmlid).'\').as_id = null;';*/
 		}
-		print "/*\nln:".$ev->long_name.';rn:'.$ev->rem_name.';pn:'.$ev->parent_name.';n:'.$ev->name.";*/\n";
-		if($ev->rem_name=='text')
+ 		if($ev->rem_name=='text')
 		{
 			//child node targeted event
 			
@@ -1534,7 +1533,7 @@ class editor_text_autosuggest extends dom_void
 			$r->etype=$ev->parent_type;
 			$r->text_inp=$htmlid;
 			$r->bootstrap();
-			print "var nya=\$i('".js_escape($customid)."');".
+			print "(function(){var nya=\$i('".js_escape($customid)."');".
 			"if(!nya.hide_timeout && chse.ismonitored(\$i('".js_escape($htmlid)."')))".
 			"{".
 			"try{nya.innerHTML=";
@@ -1553,7 +1552,7 @@ class editor_text_autosuggest extends dom_void
 			//exit;
 		//}
 		//editor_text::handle_event($ev);
-		print 'chse.bgifc(\''.js_escape($ev->context[$ev->long_name]['htmlid']).'\',\'\');';
+		print 'chse.bgifc(\''.js_escape($ev->context[$ev->long_name]['htmlid']).'\',\'\');})();';
 		return;
 		if($ev->rem_type==$this->etype)//always stop propagation of self targeted events
 			return;

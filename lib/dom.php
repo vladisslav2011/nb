@@ -653,9 +653,10 @@ class dom_th extends dom_any
 
 class dom_js extends dom_any
 {
-	function __construct()
+	function __construct($script=NULL)
 	{
 		dom_any::__construct('script');
+		if(isset($script))$this->script=$script;
 	}
 	function html()
 	{

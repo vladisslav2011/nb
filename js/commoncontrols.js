@@ -94,6 +94,31 @@ chse.safe_alert=function(a,b){if($i('debug'))$i('debug').value += (b + '\\n ');}
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+
+function my_scroll_into_view(i,o)
+{
+	var co=o.offsetTop;
+	if(i.offsetParent != o.offsetParent)
+	{
+		var m=i;
+		while(m.offsetParent != o.offsetParent)
+		{
+			m=m.offsetParent;
+			co-=m.offsetTop;
+		};
+	};
+	//test if top border of i is less than o.scrollTop
+	var b=i.offsetTop;
+	if(b<o.scrollTop+co)o.scrollTop=b-co;
+	//test if botom border of i is greater than o.scrollTop+o.clientHeight
+	b+=i.offsetHeight;
+	if(b>o.scrollTop+o.clientHeight+co)o.scrollTop=b-o.clientHeight-co;
+	//my be it is better to scroll outer element to the top border of inner than to the bottom in case i.offsetHeight>o.clientHeight???
+}
+
+
+
 function editor_text_autosuggest_keypress(object,event,inp_id,dst_id,div_id)
 {
 	var mkc=event_to_mkc(event);
@@ -129,10 +154,7 @@ function editor_text_autosuggest_keypress(object,event,inp_id,dst_id,div_id)
 				s.color='white';
 				if(inp_id==dst_id)div.style.display='block';
 				//o.scrollIntoView();
-				var sctop=o.offsetTop;
-				if(sctop<div.scrollTop)div.scrollTop=sctop;
-				if(sctop>div.scrollTop+div.clientHeight)div.scrollTop=(o.offsetTop+o.offsetHeight)-div.clientHeight;
-				//div.scrollTop=(sctop<div.scrollTop)?sctop;
+				my_scroll_into_view(o,div);
 			}else{
 				if(inp_id==dst_id)div.style.display='none';
 			}
@@ -166,17 +188,7 @@ function editor_text_autosuggest_keypress(object,event,inp_id,dst_id,div_id)
 				s.color='white';
 				if(inp_id==dst_id)div.style.display='block';
 				//o.scrollIntoView();
-				var sctop=(o.offsetTop+o.offsetHeight)-div.clientHeight;
-				if(sctop<0)sctop=0;
-				if(sctop>div.scrollTop)div.scrollTop=sctop;
-				if(sctop+div.clientHeight<div.scrollTop)div.scrollTop=0;
-				//div.scrollTop=(sctop>0)?sctop:0;
-				
-				//from up handler
-				var sctop=o.offsetTop;
-				if(sctop<div.scrollTop)div.scrollTop=sctop;
-				if(sctop>div.scrollTop+div.clientHeight)div.scrollTop=(o.offsetTop+o.offsetHeight)-div.clientHeight;
-				//from up handler
+				my_scroll_into_view(o,div);
 				
 			}else{
 				if(inp_id==dst_id)div.style.display='none';
@@ -296,10 +308,7 @@ function editor_dropdown_button_keypress(object,event,div_id)
 				s.backgroundColor='blue';
 				s.color='white';
 				//o.scrollIntoView();
-				var sctop=o.offsetTop;
-				if(sctop<div.scrollTop)div.scrollTop=sctop;
-				if(sctop>div.scrollTop+div.clientHeight)div.scrollTop=(o.offsetTop+o.offsetHeight)-div.clientHeight;
-				//div.scrollTop=(sctop<div.scrollTop)?sctop;
+				my_scroll_into_view(o,div);
 			}
 			
 		}
@@ -330,16 +339,7 @@ function editor_dropdown_button_keypress(object,event,div_id)
 				s.backgroundColor='blue';
 				s.color='white';
 				//o.scrollIntoView();
-				var sctop=(o.offsetTop+o.offsetHeight)-div.clientHeight;
-				if(sctop<0)sctop=0;
-				if(sctop>div.scrollTop)div.scrollTop=sctop;
-				if(sctop+div.clientHeight<div.scrollTop)div.scrollTop=0;
-				//div.scrollTop=(sctop>0)?sctop:0;
-				
-				//from up handler
-				var sctop=o.offsetTop;
-				if(sctop<div.scrollTop)div.scrollTop=sctop;
-				if(sctop>div.scrollTop+div.clientHeight)div.scrollTop=(o.offsetTop+o.offsetHeight)-div.clientHeight;
+				my_scroll_into_view(o,div);
 				//from up handler
 				
 			}
@@ -898,8 +898,10 @@ function ed_tree_main_ctl_k(event,object,t)
 		
 		if(object.id_current!=-1)
 		{
-			$i(object.id_list[object.id_current].cid).style.backgroundColor='#d0d0ff';
-			$i(object.id_list[object.id_current].cid).scrollIntoView();
+			var i=$i(object.id_list[object.id_current].cid);
+			i.style.backgroundColor='#d0d0ff';
+			my_scroll_into_view(i,$i(object.fa_id));
+			//$i(object.id_list[object.id_current].cid).scrollIntoView();
 			ed_tree_item_act(object);
 		}
 		return stop_event(event);
@@ -914,8 +916,9 @@ function ed_tree_main_ctl_k(event,object,t)
 		
 		if(object.id_current!=-1)
 		{
-			$i(object.id_list[object.id_current].cid).style.backgroundColor='#d0d0ff';
-			$i(object.id_list[object.id_current].cid).scrollIntoView();
+			var i=$i(object.id_list[object.id_current].cid);
+			i.style.backgroundColor='#d0d0ff';
+			my_scroll_into_view(i,$i(object.fa_id));
 			ed_tree_item_act(object);
 		}
 		return stop_event(event);
