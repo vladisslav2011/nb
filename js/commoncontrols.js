@@ -105,6 +105,7 @@ function my_scroll_into_view(i,o)
 		while(m.offsetParent != o.offsetParent)
 		{
 			m=m.offsetParent;
+			//compensate offset. Another way is to increment b...
 			co-=m.offsetTop;
 		};
 	};

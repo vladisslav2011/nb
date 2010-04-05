@@ -1819,6 +1819,8 @@ class editor_m_object_variants extends dom_div
 		$this->d2->css_style['background']='white';
 		$this->d2->css_style['border']='1px solid red';
 		$this->d2->css_style['margin-left']='1em';
+		$this->d2->css_style['cursor']='default';
+		$this->d1->css_style['cursor']='default';
 	}
 	
 	function html_inner()
@@ -4347,8 +4349,8 @@ class ed_tree_meta_editor extends ed_tree_item_editor//virtual component injecto
 		case 'fm_set_expression':
 			break;
 		case 'fm_limit':
-			$this->field_add($obj,'count','count',new editor_m_object);
-			$this->field_add($obj,'offset','offset',new editor_m_object);
+			$this->field_add($obj,'count','count',new editor_text);
+			$this->field_add($obj,'offset','offset',new editor_text);
 			break;
 		case 'meta_query_gen':
 			break;
@@ -4456,6 +4458,10 @@ class ed_tree_main_test extends dom_div
 	{
 		//$a=new meta_query_gen;
 		//$a->oid=$this->oid;
+		$n=new meta_query_gen;
+		$n->oid=$this->oid;
+		$_SESSION['ed_tree_main_fortest']=serialize($n);
+		return;
 		$this->oplist=Array('+','*','%','&','|');
 		$a=new fm_logical_expression;
 		$c=new fm_text_constant;
@@ -4485,9 +4491,9 @@ class ed_tree_main_test extends dom_div
 			$this->set_new();
 		#$this->args['filters_m']=unserialize($_SESSION['filters_m_test']);
 		$prev=unserialize($_SESSION['ed_tree_main_fortest']);
-		//$qg=$prev->to_show();
-		//if(is_object($qg))$this->result_text->text=$qg->result();
-		//else
+		$qg=$prev->to_show();
+		if(is_object($qg))$this->result_text->text=$qg->result();
+		else
 		 $this->result_text->text='undef';
 		parent::html_inner();
 	}
@@ -4506,10 +4512,10 @@ class ed_tree_main_test extends dom_div
 		$after=unserialize($_SESSION['ed_tree_main_fortest']);
 		if($prev->rev != $after->rev)
 		{
-		//	$qg=$after->to_show();
+			$qg=$after->to_show();
 			
-		//	if(is_object($qg))print "\$i('".$result_div_id."').textContent='".js_escape($qg->result())."';";
-		//	else
+			if(is_object($qg))print "\$i('".$result_div_id."').textContent='".js_escape($qg->result())."';";
+			else
 			 print "\$i('".$result_div_id."').textContent='undef';";
 		}
 	}

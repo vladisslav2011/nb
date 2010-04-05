@@ -443,7 +443,6 @@ class meta_query_gen
 		$this->filter_def=$this->children[2];
 		$this->sort_def=$this->children[3];
 		$this->limit=$this->children[4];
-		
 		if($this->oid==-1)return NULL;
 		$this->qg=new query_gen_ext;
 		$this->alias_c=0;
