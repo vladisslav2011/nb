@@ -3298,8 +3298,22 @@ class codes_import extends dom_div
 		parent::__construct();
 		$this->etype=get_class($this);
 		#editor_generic::addeditor('file_picker',new editor_text);
+		
+		$tbl=new dom_table;$this->append_child($tbl);
+		$tr=new dom_tr;$td1=new dom_td; $td2=new dom_td;
+		$tbl->append_child($tr);$tr->append_child($td1);$tr->append_child($td2);
+		$td1->append_child(new dom_statictext('file'));$td2->append_child(new dom_statictext('task'));
+		unset($tr->id);unset($td1->id);unset($td2->id);
+		$tr=new dom_tr;$td1=new dom_td; $td2=new dom_td;
+		$tbl->append_child($tr);$tr->append_child($td1);$tr->append_child($td2);
+		unset($tr->id);unset($td1->id);unset($td2->id);
+		
 		editor_generic::addeditor('file_picker',new file_pick_or_upload);
-		$this->append_child($this->editors['file_picker']);
+		$td1->append_child($this->editors['file_picker']);
+		editor_generic::addeditor('task',new editor_text);
+		$td2->append_child($this->editors['task']);
+		
+		
 		$this->file_contents=new codes_import_xdiv;
 		editor_generic::addeditor('file_contents',$this->file_contents);
 		$this->append_child($this->file_contents);
@@ -3333,6 +3347,7 @@ class codes_import extends dom_div
 		$this->context[$this->long_name]['dbg']=$this->dbg->id_gen();
 		$this->context[$this->long_name.'.file_contents']['var']='file_picker';
 		$this->context[$this->long_name.'.file_picker']['var']='file_picker';
+		$this->context[$this->long_name.'.task']['var']='task';
 		foreach($this->editors as $e)
 		{
 			$e->args=&$this->args;
@@ -3347,6 +3362,7 @@ class codes_import extends dom_div
 	function html_inner()
 	{
 		$this->args['file_picker']=$this->rootnode->setting_val($this->oid,$this->long_name.'!file','');
+		$this->args['task']=$this->rootnode->setting_val($this->oid,$this->long_name.'!task','0');
 		
 		parent::html_inner();
 	}
@@ -3373,9 +3389,9 @@ class codes_import extends dom_div
 				if($rs>0)
 				{
 					if($add)
-						$res=$sql->query("INSERT INTO barcodes_print(id,task,`count`,printed) VALUES(".$rs.",0,".$values[1].",0) ON DUPLICATE KEY UPDATE task=0, `count`=`count`+".$values[1]);
+						$res=$sql->query("INSERT INTO barcodes_print(id,task,`count`,printed) VALUES(".$rs.",".intval($this->task).",".$values[1].",0) ON DUPLICATE KEY UPDATE task=0, `count`=`count`+".$values[1]);
 					else
-						$res=$sql->query("INSERT INTO barcodes_print(id,task,`count`,printed) VALUES(".$rs.",0,".$values[1].",0) ON DUPLICATE KEY UPDATE task=0, `count`=".$values[1]);
+						$res=$sql->query("INSERT INTO barcodes_print(id,task,`count`,printed) VALUES(".$rs.",".intval($this->task).",".$values[1].",0) ON DUPLICATE KEY UPDATE task=0, `count`=".$values[1]);
 				}
 				if(!$res)print "/*".$sql->err().'*/';
 			}
@@ -3430,8 +3446,13 @@ class codes_import extends dom_div
 		#$customid=$ev->context[$ev->parent_name]['htmlid'];
 		$setting_tool=new settings_tool;
 		$file_val=$sql->fetch1($sql->query($setting_tool->single_query($oid,$ev->parent_name.'!file',$_SESSION['uid'],0)));
+		$this->task=$sql->fetch1($sql->query($setting_tool->single_query($oid,$ev->parent_name.'!task',$_SESSION['uid'],0)));
 		switch($ev->rem_name)
 		{
+		case 'task':
+				$val=$_POST['val'];
+				$sql->query($setting_tool->set_query($oid,$ev->parent_name.'!task',$_SESSION['uid'],0,intval($val)));
+				break;
 		case 'file_picker':
 				$file_val=$_POST['val'];
 				$sql->query($setting_tool->set_query($oid,$ev->parent_name.'!file',$_SESSION['uid'],0,$file_val));
@@ -3455,6 +3476,7 @@ class codes_import extends dom_div
 		{
 			
 			$this->args['file_picker']=$file_val;
+			$this->args['task']=$this->task;
 			$customid=$ev->context[$ev->parent_name]['file_contents_id'];
 			$oid=$ev->context[$ev->parent_name]['oid'];
 			//$htmlid=$ev->context[$ev->long_name]['htmlid'];
@@ -3564,7 +3586,7 @@ class codes_import_xdiv extends dom_div
 				$this->editors['m_del']->css_style['display']='none';
 			}
 
-			$oc=$sql->fetch1($sql->query("SELECT `count` FROM barcodes_print WHERE id = '".$sql->esc($rs)."' AND task=0"));
+			$oc=$sql->fetch1($sql->query("SELECT `count` FROM barcodes_print WHERE id = '".$sql->esc($rs)."' AND task=".intval($this->args['task'])));
 			if($oc == $values[1])$this->count_td->css_style['background']='green';
 			if($oc != $values[1])$this->count_td->css_style['background']='red';
 			if($oc == 0)$this->count_td->css_style['background']='yellow';

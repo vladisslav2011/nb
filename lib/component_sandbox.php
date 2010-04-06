@@ -856,7 +856,7 @@ class csv2vcard_1 extends dom_div
 			fclose($this->win_fd);
 			print "\$i('".js_escape($ev->context[$ev->parent_name]['res_id'])."').innerHTML='".
 				js_escape(
-					"<div>".htmlspecialchars($in)."</div".
+					"<div>".htmlspecialchars($in)."</div>".
 					"<a href='../uploads/utf8.vcf'>utf-8</a> ".
 					"<a href='../uploads/cp1251.vcf'>cp1251</a> "
 				)."';";
