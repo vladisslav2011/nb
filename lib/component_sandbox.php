@@ -685,7 +685,7 @@ class test_multi_exec extends dom_div
 					print "\$i('".js_escape($id)."').innerHTML='';";
 				for($k=0;$k<$nn;$k++)
 				{
-					//if(($ev->rem_name=='this') && ($k!=$s))continue;
+					if(($ev->rem_name=='this') && ($k!=$s))continue;
 					$res=new query_result_viewer_multiline;
 					$res->show_nulls=true;
 					$res->css_style['border-collapse']='collapse';
@@ -695,7 +695,7 @@ class test_multi_exec extends dom_div
 					print "\$i('".js_escape($id)."').innerHTML+='".js_escape('<div>'.htmlspecialchars($res->compiled).'</div>')."';";
 	
 					print "\$i('".js_escape($id)."').innerHTML+=";
-					reload_object($res);
+						reload_object($res);
 				}
 		}
 		editor_generic::handle_event($ev);
