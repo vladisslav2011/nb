@@ -541,7 +541,7 @@ class sql_subquery
 
 class sql_expression
 {
-	public $exprs=NULL,$alias='';
+	public $exprs=Array(),$alias='';
 	public $operator='AND';
 	public $error=NULL;
 	public $nopar=false;
@@ -671,7 +671,7 @@ class sql_expression
 
 class sql_list
 {
-	public $func=NULL,$exprs=NULL;
+	public $func=NULL,$exprs=Array();
 	public $delimiter=',',$alias='';
 	public $error=NULL;
 	public $nopar=false;
@@ -831,7 +831,7 @@ class sql_order extends sql_list
 
 class sql_joins
 {
-	public $exprs=NULL;
+	public $exprs=Array();
 	public $error=NULL;
 	public $nopar=false;
 	

@@ -3604,6 +3604,49 @@ class ref_listx extends dom_div
 
 
 
+class ed_tree_null_manipulator
+{
+	function find($obj,$path)//find node from $obj by $path
+	{
+		return NULL;//if nothing was found
+	}
+	
+	function del_node($obj,$path)//delete node from $obj by $path
+	{
+		return true;//if deleted
+	}
+	
+	function pick_node($obj,$path)//find node and mark for cleanup
+	//TODO: maybe better to implement move method???
+	{
+		return true;//if deleted and marked as picked
+	}
+	
+	function add_node($obj,$path,$new)//add node from $new into $obj before $path
+	{
+	}
+	
+	function cleanup_picked($obj)//walk tree and delete picked
+	{
+	}
+	
+	function children($obj)//return array with children
+	{
+		return NULL;//array with children
+	}
+	
+	function text($obj)//return short text to display in tree node for item $obj
+	{
+		return "_undefined_needs_override_";
+	}
+	
+	function item_editor()//return customized item editor class name
+	{
+		return "ed_tree_item_editor";
+	}
+	
+}
+
 
 class ed_tree_main extends dom_div
 {
@@ -3624,17 +3667,7 @@ class ed_tree_main extends dom_div
 		
 		editor_generic::addeditor('clip',new ed_tree_main_cv);
 		
-			//TODO: localization
-		$add_d_cont=Array(
-			'text_constant'=>'<tc>',
-			'logical_expression'=>'<le>',
-			'list'=>'<li>',
-			'logical_group'=>'<lg>',
-			'meta_object'=>'<mo>',
-			'set_expression'=>'<se>'
-			);
-		foreach($add_d_cont as $nn => $vv)
-			editor_generic::addeditor($nn,new ed_tree_main_nd($vv));
+		$this->add_menu(NULL);//overridable
 		
 		
 		$tbl=new dom_table;
@@ -3650,8 +3683,7 @@ class ed_tree_main extends dom_div
 		
 		$ltd->append_child($this->ctl);
 		$ltd->append_child($this->editors['clip']);
-		foreach($add_d_cont as $nn => $vv)
-			$ltd->append_child($this->editors[$nn]);
+		$this->add_menu($ltd);//overridable
 		
 		
 		$ltd->append_child($this->editors['fa_cnt']);
@@ -3675,11 +3707,6 @@ class ed_tree_main extends dom_div
 			"return ed_tree_clip_mov(event,this);";
 		$this->editors['clip']->attributes['onmouseout']=
 			"return ed_tree_clip_mou(event,this);";
-		foreach($add_d_cont as $nn => $vv)
-		{
-			$this->editors[$nn]->css_style['cursor']='default';
-			$this->editors[$nn]->attributes['onmousedown']="resizer.create_ghost(event,this,{t:'".$nn."',d:''});return false;";
-		}
 		
 		
 	}
@@ -3711,23 +3738,535 @@ class ed_tree_main extends dom_div
 		$this->rootnode->endscripts[]="(function(){var a=\$i('".js_escape($this->ctl->id_gen())."');a.id_list=new Array();a.id_current=-1;a.send_static='".$this->ctl->send."';".
 		"a.fa_id='".$this->editors['fa_cnt']->in->id_gen()."';".
 		"var b=\$i('".js_escape($this->editors['clip']->id_gen())."');b.send_static='".$this->editors['clip']->send."';})();";
-		$this->editors['fa']->object=$this->fetch($this);
+		$this->editors['fa']->object=$this->fetch();
+		$this->editors['fa']->ma=$this->manipulator();
+		$this->editors['clip']->ma=$this->manipulator();
 		parent::html_inner();
 	}
 	
-	function fetch($obj)
+	/* overridables */
+	function add_menu($to)
 	{
-		print "needs override!";
-		return $obj->args[$obj->context[$obj->long_name]['var']];
+		print 'needs override';
 	}
 	
-	function store($obj,$new)
+	function fetch()
+	{
+		print "needs override!";
+		return $this->args[$this->context[$this->long_name]['var']];
+	}
+	
+	function store($new)
 	{
 		print "needs override!";
 		//do something!
 	}
 	
+	function manipulator()
+	{
+		print "needs override!";
+		return new ed_tree_null_manipulator;
+	}
 	
+	/* end overridables */
+	
+	
+	function handle_event($ev)
+	{
+		$this->oid=$ev->context[$ev->long_name]['oid'];
+		$this->long_name=$ev->parent_name;
+		$this->context=&$ev->context;
+		$this->keys=&$ev->keys;
+		$obj=$this->fetch();
+		$ma=$this->manipulator();
+		if($ev->keys['!']=='o')
+		{
+			$current=$ma->find($obj,$ev->keys['path']);
+			$n=$ev->rem_name;
+			$current->$n=$_POST['val'];
+			print "\$i('".$ev->context[$ev->parent_name]['cid']."').innerHTML='".js_escape($ma->text($current))."';";
+			$do_store=true;
+		}
+		if($ev->rem_name=='tracker')
+		{
+			//$this->editors['fa']->handle_event($ev);
+			$this->context=&$ev->context;
+			$this->long_name=$ev->parent_name;
+			global $clipboard;
+			switch($_POST['val'])
+			{
+			case 'moveti':
+				//$node=$this->find($obj,$_POST['path']);
+				//$this->del_node($obj,$_POST['path']);
+				if(substr($_POST['before'],0,strlen($_POST['path']))==$_POST['path'])
+				{
+					print "alert('Failed to move an object into itself');";
+					return;
+				}
+				$ma->add_node($obj,$_POST['before'],$ma->pick_node($obj,$_POST['path']));
+				$ma->cleanup_picked($obj);
+				$reload_fa=true;
+				$do_store=true;
+				break;
+			case 'copyti':
+				$node=$ma->find($obj,$_POST['path']);
+				$node=clone $node;
+				$ma->add_node($obj,$_POST['before'],$node);
+				$reload_fa=true;
+				$do_store=true;
+				break;
+			case 'pastecl':
+				$new=$clipboard->fetch();
+				if(!isset($new))return;
+				if(!method_exists($new,'text_short'))return;
+				$ma->add_node($obj,$_POST['before'],$new);
+				$reload_fa=true;
+				$do_store=true;
+				break;
+			case 'movecl':
+				$node=$ma->find($obj,$_POST['path']);
+				$ma->del_node($obj,$_POST['path']);
+				$clipboard->store($node);
+				$ma->store($this,$obj);
+				$reload_fa=true;
+				$reload_clip=true;
+				$do_store=true;
+				break;
+			case 'copycl':
+				$node=$ma->find($obj,$_POST['path']);
+				$clipboard->store($node);
+				$reload_clip=true;
+				$do_store=true;
+				break;
+			case 'pastenew':
+				$cn=$_POST['n'];
+				if(class_exists($cn))$new=new $cn;
+				else return;
+				$ma->add_node($obj,$_POST['before'],$new);
+				$reload_fa=true;
+				$do_store=true;
+				break;
+			case 'del':
+				$ma->del_node($obj,$_POST['path']);
+				$reload_fa=true;
+				$do_store=true;
+				break;
+			case 'activate':
+				$current=$ma->find($obj,$_POST['path']);
+				$reload_right=true;
+				$do_store=false;
+				break;
+			}
+		}
+			if($do_store)$this->store($obj);
+			
+			if($reload_right)
+			{
+				$rt=$ma->item_editor();
+				$r=new $rt;
+				$r->context=&$ev->context;
+				$r->context[$ev->parent_name.'.fa']['button_id']=$ev->context[$ev->parent_name]['ctl_id'];
+				$r->context[$ev->parent_name]['cid']=$_POST['cid'];
+				$r->keys=&$ev->keys;
+				$r->keys['path']=$_POST['path'];
+				$r->keys['!']='o';
+				$r->oid=$this->oid;
+				$r->name=$ev->parent_name;
+				$r->etype=$ev->parent_type;
+				$r->configure($current);
+				print "(function(){";
+				print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['right_id'])."');";
+				print "try{nya.innerHTML=";
+				reload_object($r,true);
+				print "}catch(e){ window.location.reload(true);};";
+				print "})();";
+			}
+			if($reload_fa)
+			{
+				$r=$this->editors['fa'];
+				unset($r->com_parent);
+				$r->object=$obj;
+				$r->ma=$ma;
+				$r->context=&$ev->context;
+				$r->context[$ev->parent_name.'.fa']['button_id']=$ev->context[$ev->parent_name]['ctl_id'];
+				$r->keys=&$ev->keys;
+				$r->oid=$this->oid;
+				$r->name=$ev->parent_name.'.fa';
+				$r->etype=$ev->parent_type.'.'.$r->etype;
+				print "(function(){var a=\$i('".js_escape($ev->context[$ev->parent_name]['ctl_id'])."');a.id_list=new Array();a.id_current=-1;";
+				print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['fa_id'])."');";
+				print "try{nya.innerHTML=";
+				reload_object($r,true);
+				print "nya.scrollTop=0;}catch(e){ window.location.reload(true);};";
+				print "\$i('".js_escape($ev->context[$ev->parent_name]['right_id'])."').innerHTML='';";
+				print "})();";
+			};
+			if($reload_clip)
+			{
+				$r=$this->editors['clip'];
+				unset($r->com_parent);
+				$r->context=&$ev->context;
+				$r->keys=&$ev->keys;
+				$r->oid=$this->oid;
+				$r->name=$ev->parent_name.'.clip';
+				$r->etype=$ev->parent_type.'.'.$r->etype;
+				$r->ma=$this->manipulator();
+				print "(function(){";
+				print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['clip_id'])."');";
+				print "try{nya.innerHTML=";
+				reload_object($r,true);
+				print "nya.style.backgroundColor='';";
+				print "}catch(e){ window.location.reload(true);};";
+				print "})();";
+			}
+			//print 'window.location.reload(true);';
+		
+			editor_generic::handle_event($ev);
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+class ed_tree_main_cv extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->txt=new dom_statictext;
+		$this->append_child($this->txt);
+		$this->css_style['display']='inline-block';
+		$this->css_style['border']='1px solid blue';
+	}
+	
+	function bootstrap()
+	{
+//		editor_generic::bootstrap_part();
+	}
+	
+	function html_inner()
+	{
+		global $clipboard;
+		$r=$clipboard->fetch();
+		if(!isset($r))
+		{
+			//TODO: translate
+			//TODO: add 'title'
+			$this->txt->text='Empty';
+			parent::html_inner();
+			return;
+		}
+		$this->txt->text=$this->ma->text($r);
+		parent::html_inner();
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+class ed_tree_main_nd extends dom_div
+{
+	function __construct($n)
+	{
+		parent::__construct();
+		$this->txt=new dom_statictext($n);
+		$this->append_child($this->txt);
+		$this->css_style['display']='inline-block';
+		$this->css_style['border']='1px solid blue';
+	}
+	
+	function bootstrap()
+	{
+//		editor_generic::bootstrap_part();
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+class ed_tree_tracker extends dom_any
+{
+	function __construct()
+	{
+		parent::__construct('button');
+		$this->main=$this;
+		$this->etype=get_class($this);
+	}
+	
+	function bootstrap()
+	{
+		
+		editor_generic::bootstrap_part(false);
+		//$this->attributes['onclick']="chse.send_or_push({static:'".$this->send."',val:".$this->val_js.",c_id:this.id});";
+		$this->attributes['onfocus']='';
+		$this->attributes['onblur']='';
+		// focus persistence test
+		if(!isset($this->no_restore_focus))editor_generic::add_focus_restore();
+	}
+	
+	function after_build_before_children()
+	{
+		$this->rootnode->scripts['settings.js']='../settings/settings.js';
+		$this->rootnode->scripts['core.js']='../js/core.js';
+		$this->rootnode->scripts['commoncontrols.js']='/js/commoncontrols.js';
+
+	}
+}
+
+
+
+
+
+#####################################################################################################
+#####################################################################################################
+#####################################################################################################
+#####################################################################################################
+
+class ed_tree_nofa extends dom_div
+{
+/* in:
+	$this->object	- Object
+	$this->ma		- Object manipulator
+*/
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		$this->normal=new dom_div;
+		$this->normal->main_div=new dom_div;
+		$this->normal->append_child($this->normal->main_div);
+		$this->normal->txt=new dom_statictext;
+		$this->normal->main_div->append_child($this->normal->txt);
+		
+		$this->normal->main_div->css_style['cursor']='default';
+		
+		$this->normal->children_container=new dom_div;
+		$this->normal->append_child($this->normal->children_container);
+		$this->normal->children_container->css_style['padding-left']='1em';
+		
+		$this->undef=new dom_div;
+		$this->undef->main_div=new dom_div;
+		$this->undef->append_child($this->undef->main_div);
+		$this->undef->txt=new dom_statictext('++');
+		$this->undef->main_div->append_child($this->undef->txt);
+		
+		$this->undef->main_div->css_style['cursor']='default';
+		$this->append_child($this->undef);
+		$this->append_child($this->normal);
+		
+	}
+	
+	function opene($e)
+	{
+		$e->html_head();
+		$e->main_div->html();
+		if(isset($e->children_container))$e->children_container->html_head();
+	}
+	
+	function closee($e)
+	{
+		if(isset($e->children_container))$e->children_container->html_tail();
+		$e->html_tail();
+	}
+	
+	
+	
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		
+		$this->context[$this->long_name]['oid']=$this->oid;
+		$this->button_id=$this->context[$this->long_name]['button_id'];
+		/*foreach($this->editors as $i => $e)
+		{
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+			$e->oid=$this->oid;
+		}
+		foreach($this->editors as $i => $e)
+			$e->bootstrap();
+			*/
+	}
+	
+	
+	function create_editor_for($current,$ref)
+	{
+		$got=true;
+		if(preg_match('/[0-9]+/',$ref))
+		{
+		//index into main array
+			//$obj=$current->children[$ref];
+			$ca=$this->ma->children($current);
+			$obj=is_array($ca)?$ca[$ref]:NULL;
+			if(is_object($obj))
+			{
+				$this->ed=$this->normal;
+			}else{
+				if(isset($obj))
+				{
+					//Text field. Impossible. Objects should handle them themselves. Nothing to do except a debug message.
+					$this->rootnode->out('Damn. Got raw field instead of object at ['.$this->keys['path'].']+'.$ref.', "'.htmlspecialchars($obj).'"');
+					return;
+				}else{
+					$this->ed=$this->undef;
+					$got=false;
+				}
+			}
+//			if(count($current->children)<=$ref)$this->ed=$this->editors['ed_tree_undef'];
+		}else{
+			if($ref==='')
+				$obj=$current;
+			else
+				$obj=$current->$ref;
+			if(is_object($obj))
+			{
+				$this->ed=$this->normal;
+			}else{
+			//Text field. Impossible. Objects should handle them themselves. Nothing to do except a debug message.
+				$this->rootnode->out('Damn. Got raw field instead of object at ['.$this->keys['path'].']+'.$ref.', "'.htmlspecialchars($obj).'"');
+				return;
+			}
+		}
+		$ed=$this->ed;
+		$cid=$this->children_id;
+		$oldpath=$this->path;
+		
+		if($ref !=='')$this->path.='/'.$ref;
+		$this->ed->id_alloc();
+		
+		$this->rootnode->endscripts[]="\$i('".js_escape($this->button_id)."').id_list.push({keys:'".js_escape($this->path)."',cid:'".js_escape($this->ed->main_div->id_gen())."',pcid:'".js_escape($cid)."'});";
+		$this->ed->main_div->attributes['onclick']=
+			"return ed_tree_fa_item_click('".js_escape($this->button_id)."','".js_escape($this->path)."');";
+		if($got)
+			$this->ed->main_div->attributes['onmousedown']="resizer.create_ghost(event,this,{t:'ti',d:'".js_escape($this->path)."'});return false;";
+		
+		$this->ed->main_div->attributes['onmouseup']=
+			"return ed_tree_fa_item_up(event,'".js_escape($this->button_id)."','".js_escape($this->path)."');";
+		$this->ed->main_div->attributes['onmousemove']=
+			"return ed_tree_fa_item_mov(event,'".js_escape($this->button_id)."','".js_escape($this->path)."',this);";
+		$this->ed->main_div->attributes['onmouseout']=
+			"return ed_tree_fa_item_mou(event,'".js_escape($this->button_id)."','".js_escape($this->path)."',this);";
+		if($got)
+			$this->ed->txt->text=$this->ma->text($obj);
+		$this->opene($this->ed);
+		if(isset($this->ed->children_container))
+			$this->children_id=$this->ed->children_container->id_gen();
+		$ca=$this->ma->children($obj);
+		if(is_array($ca))
+				for($k=0;$k<=count($ca);$k++)
+					$this->create_editor_for($obj,$k);
+		//restore $this->ed ids here if needed
+		$this->ed=$ed;
+		$this->closee($ed);
+		$this->path=$oldpath;
+		$this->children_id=$cid;
+	}
+	
+	
+	function html_inner()
+	{
+		$object=$this->object;
+		$this->path='';
+		$this->create_editor_for($object,'');
+		
+	}
+	
+	function handle_event($ev)
+	{
+		$this->context=&$ev->context;
+		$this->long_name=$ev->parent_name;
+		$this->oid=$this->context[$this->long_name]['oid'];
+		return;
+		editor_generic::handle_event($ev);
+	}
+}
+
+####################################################################################################
+class ed_tree_item_editor extends dom_div//virtual component injector
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		$this->tbl=new dom_table;
+		$this->append_child($this->tbl);
+		
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		if(!is_array($this->editors))return;
+		foreach($this->editors as $i => $e)
+		{
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+			$e->oid=$this->oid;
+		}
+		foreach($this->editors as $i => $e)
+			$e->bootstrap();
+	}
+	
+	function field_add($obj,$name,$hrname,$ed)
+	{
+			editor_generic::addeditor($name,$ed);
+			$tr=new dom_tr;
+			$this->tbl->append_child($tr);
+			$td=new dom_td;
+			$tr->append_child($td);
+			$txt=new dom_statictext($hrname);
+			$l=new dom_any('label');
+			$td->append_child($l);
+			$l->append_child($txt);
+			$l->attributes['title']=$name;
+			$td=new dom_td;
+			$tr->append_child($td);
+			$td->append_child($this->editors[$name]);
+			$this->args[$name]=$obj->$name;
+			$l->attributes['for']=$this->editors[$name]->id_gen();
+	}
+	
+	function title_add($hrname,$title)
+	{
+			$tr=new dom_tr;
+			$this->tbl->append_child($tr);
+			$td=new dom_td;
+			$tr->append_child($td);
+			$txt=new dom_statictext($hrname);
+			$td->append_child($txt);
+			$td->attributes['title']=$title;
+			$td->attributes['colspan']='2';
+			$td->css_style['text-align']='center';
+			$td->css_style['font-weight']='bold';
+	}
+	
+	function configure($obj)//virtual method
+	{
+		
+	}
+	
+	
+	function handle_event($ev)//parent handles events
+	{
+		editor_generic::handle_event($ev);
+	}
+}
+
+
+
+
+/*
+##################################################################################	
+	Implement methods for meta_query editor
+##################################################################################	
+*/
+
+
+class meta_query_manipulator
+{
 	function find($obj,$path)
 	{
 		$found=$obj;
@@ -3835,478 +4374,24 @@ class ed_tree_main extends dom_div
 		}
 	}
 	
-	
-	function handle_event($ev)
+	function children($obj)
 	{
-		$this->oid=$ev->context[$ev->long_name]['oid'];
-		$obj=$this->fetch($this);
-		if($ev->keys['!']=='o')
-		{
-			$current=$this->find($obj,$ev->keys['path']);
-			$n=$ev->rem_name;
-			$current->$n=$_POST['val'];
-			print "\$i('".$ev->context[$ev->parent_name]['cid']."').innerHTML='".js_escape((method_exists($current,'text_short'))?$current->text_short():'undef?')."';";
-			$do_store=true;
-		}
-		if($ev->rem_name=='tracker')
-		{
-			//$this->editors['fa']->handle_event($ev);
-			$this->context=&$ev->context;
-			$this->long_name=$ev->parent_name;
-			global $clipboard;
-			switch($_POST['val'])
-			{
-			case 'moveti':
-				//$node=$this->find($obj,$_POST['path']);
-				//$this->del_node($obj,$_POST['path']);
-				if(substr($_POST['before'],0,strlen($_POST['path']))==$_POST['path'])
-				{
-					print "alert('Failed to move an object into itself');";
-					return;
-				}
-				$this->add_node($obj,$_POST['before'],$this->pick_node($obj,$_POST['path']));
-				$this->cleanup_picked($obj);
-				$reload_fa=true;
-				$do_store=true;
-				break;
-			case 'copyti':
-				$node=$this->find($obj,$_POST['path']);
-				$node=clone $node;
-				$this->add_node($obj,$_POST['before'],$node);
-				$reload_fa=true;
-				$do_store=true;
-				break;
-			case 'pastecl':
-				$new=$clipboard->fetch();
-				if(!isset($new))return;
-				if(!method_exists($new,'text_short'))return;
-				$this->add_node($obj,$_POST['before'],$new);
-				$reload_fa=true;
-				$do_store=true;
-				break;
-			case 'movecl':
-				$node=$this->find($obj,$_POST['path']);
-				$this->del_node($obj,$_POST['path']);
-				$clipboard->store($node);
-				$this->store($this,$obj);
-				$reload_fa=true;
-				$reload_clip=true;
-				$do_store=true;
-				break;
-			case 'copycl':
-				$node=$this->find($obj,$_POST['path']);
-				$clipboard->store($node);
-				$reload_clip=true;
-				$do_store=true;
-				break;
-			case 'pastenew':
-				$cn='fm_'.$_POST['n'];
-				if(class_exists($cn))$new=new $cn;
-				else return;
-				$this->add_node($obj,$_POST['before'],$new);
-				$reload_fa=true;
-				$do_store=true;
-				break;
-			case 'del':
-				$this->del_node($obj,$_POST['path']);
-				$reload_fa=true;
-				$do_store=true;
-				break;
-			case 'activate':
-				$current=$this->find($obj,$_POST['path']);
-				$reload_right=true;
-				$do_store=false;
-				break;
-			}
-		}
-			if($do_store)$this->store($this,$obj);
-			
-			if($reload_right)
-			{
-				$r=new ed_tree_meta_editor;
-				$r->context=&$ev->context;
-				$r->context[$ev->parent_name.'.fa']['button_id']=$ev->context[$ev->parent_name]['ctl_id'];
-				$r->context[$ev->parent_name]['cid']=$_POST['cid'];
-				$r->keys=&$ev->keys;
-				$r->keys['path']=$_POST['path'];
-				$r->keys['!']='o';
-				$r->oid=$this->oid;
-				$r->name=$ev->parent_name;
-				$r->etype=$ev->parent_type;
-				$r->configure($current);
-				print "(function(){";
-				print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['right_id'])."');";
-				print "try{nya.innerHTML=";
-				reload_object($r,true);
-				print "}catch(e){ window.location.reload(true);};";
-				print "})();";
-			}
-			if($reload_fa)
-			{
-				$r=$this->editors['fa'];
-				unset($r->com_parent);
-				$r->object=$obj;
-				$r->context=&$ev->context;
-				$r->context[$ev->parent_name.'.fa']['button_id']=$ev->context[$ev->parent_name]['ctl_id'];
-				$r->keys=&$ev->keys;
-				$r->oid=$this->oid;
-				$r->name=$ev->parent_name.'.fa';
-				$r->etype=$ev->parent_type.'.'.$r->etype;
-				print "(function(){var a=\$i('".js_escape($ev->context[$ev->parent_name]['ctl_id'])."');a.id_list=new Array();a.id_current=-1;";
-				print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['fa_id'])."');";
-				print "try{nya.innerHTML=";
-				reload_object($r,true);
-				print "nya.scrollTop=0;}catch(e){ window.location.reload(true);};";
-				print "\$i('".js_escape($ev->context[$ev->parent_name]['right_id'])."').innerHTML='';";
-				print "})();";
-			};
-			if($reload_clip)
-			{
-				$r=$this->editors['clip'];
-				unset($r->com_parent);
-				$r->context=&$ev->context;
-				$r->keys=&$ev->keys;
-				$r->oid=$this->oid;
-				$r->name=$ev->parent_name.'.clip';
-				$r->etype=$ev->parent_type.'.'.$r->etype;
-				print "(function(){";
-				print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['clip_id'])."');";
-				print "try{nya.innerHTML=";
-				reload_object($r,true);
-				print "nya.style.backgroundColor='';";
-				print "}catch(e){ window.location.reload(true);};";
-				print "})();";
-			}
-			//print 'window.location.reload(true);';
-		
-			editor_generic::handle_event($ev);
+		return $obj->children;
 	}
+	
+	function text($obj)
+	{
+		return (method_exists($obj,'text_short'))?$obj->text_short():'undef?';
+	}
+	
+	function item_editor()
+	{
+		return 'ed_tree_meta_editor';
+	}
+	
 }
 
-
-////////////////////////////////////////////////////////////////////////////////////////
-
-class ed_tree_main_cv extends dom_div
-{
-	function __construct()
-	{
-		parent::__construct();
-		$this->txt=new dom_statictext;
-		$this->append_child($this->txt);
-		$this->css_style['display']='inline-block';
-		$this->css_style['border']='1px solid blue';
-	}
-	
-	function bootstrap()
-	{
-//		editor_generic::bootstrap_part();
-	}
-	
-	function html_inner()
-	{
-		global $clipboard;
-		$r=$clipboard->fetch();
-		if(!isset($r))
-		{
-			$this->txt->text='Empty';
-			parent::html_inner();
-			return;
-		}
-		if(method_exists($r,'text_short'))
-			$this->txt->text=$r->text_short();
-		else	
-			$this->txt->text='Unknown';
-			parent::html_inner();
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-
-class ed_tree_main_nd extends dom_div
-{
-	function __construct($n)
-	{
-		parent::__construct();
-		$this->txt=new dom_statictext($n);
-		$this->append_child($this->txt);
-		$this->css_style['display']='inline-block';
-		$this->css_style['border']='1px solid blue';
-	}
-	
-	function bootstrap()
-	{
-//		editor_generic::bootstrap_part();
-	}
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-class ed_tree_tracker extends dom_any
-{
-	function __construct()
-	{
-		parent::__construct('button');
-		$this->main=$this;
-		$this->etype=get_class($this);
-	}
-	
-	function bootstrap()
-	{
-		
-		editor_generic::bootstrap_part(false);
-		//$this->attributes['onclick']="chse.send_or_push({static:'".$this->send."',val:".$this->val_js.",c_id:this.id});";
-		$this->attributes['onfocus']='';
-		$this->attributes['onblur']='';
-		// focus persistence test
-		if(!isset($this->no_restore_focus))editor_generic::add_focus_restore();
-	}
-	
-	function after_build_before_children()
-	{
-		$this->rootnode->scripts['settings.js']='../settings/settings.js';
-		$this->rootnode->scripts['core.js']='../js/core.js';
-		$this->rootnode->scripts['commoncontrols.js']='/js/commoncontrols.js';
-
-	}
-}
-
-
-
-
-
-#####################################################################################################
-#####################################################################################################
-#####################################################################################################
-#####################################################################################################
-
-class ed_tree_nofa extends dom_div
-{
-	function __construct()
-	{
-		parent::__construct();
-		$this->etype=get_class($this);
-		$this->normal=new dom_div;
-		$this->normal->main_div=new dom_div;
-		$this->normal->append_child($this->normal->main_div);
-		$this->normal->txt=new dom_statictext;
-		$this->normal->main_div->append_child($this->normal->txt);
-		
-		$this->normal->main_div->css_style['cursor']='default';
-		
-		$this->normal->children_container=new dom_div;
-		$this->normal->append_child($this->normal->children_container);
-		$this->normal->children_container->css_style['padding-left']='1em';
-		
-		$this->undef=new dom_div;
-		$this->undef->main_div=new dom_div;
-		$this->undef->append_child($this->undef->main_div);
-		$this->undef->txt=new dom_statictext('++');
-		$this->undef->main_div->append_child($this->undef->txt);
-		
-		$this->undef->main_div->css_style['cursor']='default';
-		$this->append_child($this->undef);
-		$this->append_child($this->normal);
-		
-	}
-	
-	function opene($e)
-	{
-		$e->html_head();
-		$e->main_div->html();
-		if(isset($e->children_container))$e->children_container->html_head();
-	}
-	
-	function closee($e)
-	{
-		if(isset($e->children_container))$e->children_container->html_tail();
-		$e->html_tail();
-	}
-	
-	
-	
-	
-	function bootstrap()
-	{
-		$this->long_name=editor_generic::long_name();
-		
-		$this->context[$this->long_name]['oid']=$this->oid;
-		$this->button_id=$this->context[$this->long_name]['button_id'];
-		/*foreach($this->editors as $i => $e)
-		{
-			$this->context[$this->long_name.'.'.$i]['var']=$i;
-			$e->context=&$this->context;
-			$e->keys=&$this->keys;
-			$e->args=&$this->args;
-			$e->oid=$this->oid;
-		}
-		foreach($this->editors as $i => $e)
-			$e->bootstrap();
-			*/
-	}
-	
-	
-	function create_editor_for($current,$ref)
-	{
-		$got=true;
-		if(preg_match('/[0-9]+/',$ref))
-		{
-		//index into main array
-			$obj=$current->children[$ref];
-			if(is_object($obj))
-			{
-				$this->ed=$this->normal;
-			}else{
-				if(isset($obj))
-				{
-					//Text field. Impossible. Objects should handle them themselves. Nothing to do except a debug message.
-					$this->rootnode->out('Damn. Got raw field instead of object at ['.$this->keys['path'].']+'.$ref.', "'.htmlspecialchars($obj).'"');
-					return;
-				}else{
-					$this->ed=$this->undef;
-					$got=false;
-				}
-			}
-//			if(count($current->children)<=$ref)$this->ed=$this->editors['ed_tree_undef'];
-		}else{
-			if($ref==='')
-				$obj=$current;
-			else
-				$obj=$current->$ref;
-			if(is_object($obj))
-			{
-				$this->ed=$this->normal;
-			}else{
-			//Text field. Impossible. Objects should handle them themselves. Nothing to do except a debug message.
-				$this->rootnode->out('Damn. Got raw field instead of object at ['.$this->keys['path'].']+'.$ref.', "'.htmlspecialchars($obj).'"');
-				return;
-			}
-		}
-		$ed=$this->ed;
-		$cid=$this->children_id;
-		$oldpath=$this->path;
-		
-		if($ref !=='')$this->path.='/'.$ref;
-		$this->ed->id_alloc();
-		
-		$this->rootnode->endscripts[]="\$i('".js_escape($this->button_id)."').id_list.push({keys:'".js_escape($this->path)."',cid:'".js_escape($this->ed->main_div->id_gen())."',pcid:'".js_escape($cid)."'});";
-		$this->ed->main_div->attributes['onclick']=
-			"return ed_tree_fa_item_click('".js_escape($this->button_id)."','".js_escape($this->path)."');";
-		if($got)
-			$this->ed->main_div->attributes['onmousedown']="resizer.create_ghost(event,this,{t:'ti',d:'".js_escape($this->path)."'});return false;";
-		
-		$this->ed->main_div->attributes['onmouseup']=
-			"return ed_tree_fa_item_up(event,'".js_escape($this->button_id)."','".js_escape($this->path)."');";
-		$this->ed->main_div->attributes['onmousemove']=
-			"return ed_tree_fa_item_mov(event,'".js_escape($this->button_id)."','".js_escape($this->path)."',this);";
-		$this->ed->main_div->attributes['onmouseout']=
-			"return ed_tree_fa_item_mou(event,'".js_escape($this->button_id)."','".js_escape($this->path)."',this);";
-		if($got)
-			$this->ed->txt->text=(method_exists($obj,'text_short'))?$obj->text_short():'undef?';
-		$this->opene($this->ed);
-		if(isset($this->ed->children_container))
-			$this->children_id=$this->ed->children_container->id_gen();
-		if(is_array($obj->children))
-		//	if(count($obj->children)>0)
-				for($k=0;$k<=count($obj->children);$k++)
-					$this->create_editor_for($obj,$k);
-		//restore $this->ed ids here if needed
-		$this->ed=$ed;
-		$this->closee($ed);
-		$this->path=$oldpath;
-		$this->children_id=$cid;
-	}
-	
-	
-	function html_inner()
-	{
-		$object=$this->object;
-		$this->path='';
-		$this->create_editor_for($object,'');
-		
-	}
-	
-	function handle_event($ev)
-	{
-		$this->context=&$ev->context;
-		$this->long_name=$ev->parent_name;
-		$this->oid=$this->context[$this->long_name]['oid'];
-		return;
-		editor_generic::handle_event($ev);
-	}
-}
-
-####################################################################################################
-class ed_tree_item_editor extends dom_div//virtual component injector
-{
-	function __construct()
-	{
-		parent::__construct();
-		$this->etype=get_class($this);
-		$this->tbl=new dom_table;
-		$this->append_child($this->tbl);
-		
-	}
-	
-	function bootstrap()
-	{
-		$this->long_name=editor_generic::long_name();
-		if(!is_array($this->editors))return;
-		foreach($this->editors as $i => $e)
-		{
-			$this->context[$this->long_name.'.'.$i]['var']=$i;
-			$e->context=&$this->context;
-			$e->keys=&$this->keys;
-			$e->args=&$this->args;
-			$e->oid=$this->oid;
-		}
-		foreach($this->editors as $i => $e)
-			$e->bootstrap();
-	}
-	
-	function field_add($obj,$name,$hrname,$ed)
-	{
-			editor_generic::addeditor($name,$ed);
-			$tr=new dom_tr;
-			$this->tbl->append_child($tr);
-			$td=new dom_td;
-			$tr->append_child($td);
-			$txt=new dom_statictext($hrname);
-			$l=new dom_any('label');
-			$td->append_child($l);
-			$l->append_child($txt);
-			$l->attributes['title']=$name;
-			$td=new dom_td;
-			$tr->append_child($td);
-			$td->append_child($this->editors[$name]);
-			$this->args[$name]=$obj->$name;
-			$l->attributes['for']=$this->editors[$name]->id_gen();
-	}
-	
-	function title_add($hrname,$title)
-	{
-			$tr=new dom_tr;
-			$this->tbl->append_child($tr);
-			$td=new dom_td;
-			$tr->append_child($td);
-			$txt=new dom_statictext($hrname);
-			$td->append_child($txt);
-			$td->attributes['title']=$title;
-			$td->attributes['colspan']='2';
-			$td->css_style['text-align']='center';
-			$td->css_style['font-weight']='bold';
-	}
-	
-	function configure($obj)//virtual method
-	{
-		
-	}
-	
-	
-	function handle_event($ev)//parent handles events
-	{
-		editor_generic::handle_event($ev);
-	}
-}
+##################################################################################	
 
 class ed_tree_meta_editor extends ed_tree_item_editor//virtual component injector
 {
@@ -4369,26 +4454,60 @@ class ed_tree_meta_editor extends ed_tree_item_editor//virtual component injecto
 
 
 #####################################################################################################
-#####################################################################################################
 
 
 
-class ed_tree_main_t extends ed_tree_main
+class ed_tree_main_meta extends ed_tree_main
 {
-	function fetch($obj)
+	
+	function fetch()
 	{
 		return unserialize($_SESSION['ed_tree_main_fortest']);
 	}
 	
-	function store($obj,$new)
+	function store($new)
 	{
 		if(! isset($new->rev))$new->rev=0;
 		else $new->rev++;
 		$_SESSION['ed_tree_main_fortest']=serialize($new);
 	}
+	
+	function manipulator()
+	{
+		return new meta_query_manipulator;
+	}
+	
+	function add_menu($to)
+	{
+			//TODO: localization
+		$add_d_cont=Array(
+			'fm_text_constant'=>'<tc>',
+			'fm_logical_expression'=>'<le>',
+			'fm_list'=>'<li>',
+			'fm_logical_group'=>'<lg>',
+			'fm_meta_object'=>'<mo>',
+			'fm_set_expression'=>'<se>'
+			);
+		if(!isset($to))
+		{
+			foreach($add_d_cont as $nn => $vv)
+				editor_generic::addeditor($nn,new ed_tree_main_nd($vv));
+		}elseif(is_object($to)){
+			foreach($add_d_cont as $nn => $vv)
+			{
+				$to->append_child($this->editors[$nn]);
+				$this->editors[$nn]->css_style['cursor']='default';
+				$this->editors[$nn]->attributes['onmousedown']="resizer.create_ghost(event,this,{t:'".$nn."',d:''});return false;";
+			}
+		}
+	}
 }
 
-
+/*
+##################################################################################	
+		test for ed_tree_main_meta
+##################################################################################	
+*/
 
 class ed_tree_main_test extends dom_div
 {
@@ -4399,7 +4518,7 @@ class ed_tree_main_test extends dom_div
 		editor_generic::addeditor('r',new editor_button);
 		$this->append_child($this->editors['r']);
 		$this->editors['r']->attributes['value']='x';
-		editor_generic::addeditor('m',new ed_tree_main_t);
+		editor_generic::addeditor('m',new ed_tree_main_meta);
 		$this->append_child($this->editors['m']);
 		$this->result=new dom_div;
 		$this->result_text=new dom_statictext;
@@ -4523,6 +4642,388 @@ class ed_tree_main_test extends dom_div
 
 $tests_m_array[]='ed_tree_main_test';
 
+
+/*
+##################################################################################	
+	Implement methods for query_gen_ext editor
+##################################################################################	
+*/
+
+
+class query_gen_ext_manipulator
+{
+	function find($obj,$path)
+	{
+		$found=$obj;
+		$path_e=explode('/',$path);
+		$c=count($path_e);
+		for($k=0;$k<$c;$k++)
+			if($path_e[$k]!=='')
+			{
+				$ch=$this->children($found);
+				if(preg_match('/[0-9]+/',$path_e[$k]))
+					$found=$ch[$path_e[$k]];
+				else
+					$found=$found->{$path_e[$k]};
+			}
+		return $found;
+	}
+	
+	function del_node($obj,$path)
+	{
+		$path_e=explode('/',$path);
+		$last=array_pop($path_e);
+		$obk=$this->find($obj,implode('/',$path_e));
+		if(get_class($obk)=='query_gen_ext')return;
+		if(preg_match('/[0-9]+/',$last))
+		{
+			if($obk->static_children)
+			{
+				$obk->exprs[$last]=new sql_null;
+				return true;
+			}
+			$a=Array();
+			foreach($obk->exprs as $k => $v)
+				if($k !=$last)$a[]=$v;
+			$obk->exprs=$a;
+		}else{
+			
+			#$obk->$last=new fm_undefined;
+			return false;
+		}
+		return true;
+	}
+	
+	function pick_node($obj,$path)
+	{
+		$path_e=explode('/',$path);
+		$last=array_pop($path_e);
+		$obk=$this->find($obj,implode('/',$path_e));
+		if(get_class($obk)=='query_gen_ext')$obk->static_exprs=true;
+		$chl=$this->children($obk);
+		if(preg_match('/[0-9]+/',$last))
+		{
+			foreach($chl as $k => $v)
+				if($k==$last)
+				{
+					$found=$v;
+					if(!$obk->static_exprs)
+						$obk->exprs[$k]='Picked';
+					break;
+				}
+				return $found;
+		}
+		return true;
+	}
+	
+	function add_node($obj,$path,$new)
+	{
+		$path_e=explode('/',$path);
+		$last=array_pop($path_e);
+		$obk=$this->find($obj,implode('/',$path_e));
+		if(get_class($obk)=='query_gen_ext')$obk->static_exprs=true;
+		if(preg_match('/[0-9]+/',$last))
+		{
+			if($obk->static_exprs)
+			{
+				//$obk->exprs[$last]=$new;
+				return;
+			}
+			$a=Array();
+			if(is_array($obk->exprs))
+				foreach($obk->exprs as $k => $v)
+				{
+					if($k ==$last)$a[]=$new;
+					$a[]=$v;
+				}
+			if(($last>=count($obk->exprs))|| !is_array($obk->exprs))$a[]=$new;
+			$obk->exprs=$a;
+		}else{
+			
+			if($last != '')$obk->$last=$new;
+		}
+	}
+	
+	function cleanup_picked($obj)
+	{
+		$ch=$this->children($obj);
+		if(is_array($ch))
+		{
+			$a=Array();
+			$found=false;
+			foreach($ch as $v)
+			{
+				if($v==='Picked')$found=true;
+				if($v!=='Picked')
+				{
+					$a[]=$v;
+					if(is_array($this->children($v)))$this->cleanup_picked($v);
+				}
+			}
+			if($found && isset($obj->exprs))$obj->exprs=$a;
+		}
+	}
+	
+	function children($obj)
+	{
+		if(get_class($obj)=='query_gen_ext')
+		{
+			return Array($obj->what,$obj->from,$obj->joins,$obj->where,$obj->group,$obj->order,$obj->having);
+		}
+		if(is_array($obj->exprs))return $obj->exprs;
+		return NULL;
+	}
+	
+	function text($obj)
+	{
+		switch(get_class($obj))
+		{
+		case 'sql_null':return 'Null'.(($obj->alias!='')?" as ".$obj->alias:'');
+		case 'sql_immed':return "'".$obj->val."'".(($obj->alias!='')?" as ".$obj->alias:'');
+		case 'sql_var':return "@'".$obj->val."'".(($obj->alias!='')?" as ".$obj->alias:'');
+		case 'sql_subquery':return "subquery".(($obj->alias!='')?" as ".$obj->alias:'');
+		case 'sql_expression':return "<".$obj->operator.">:".count($obj->exprs).(($obj->alias!='')?" as ".$obj->alias:'');
+		case 'sql_list':return "".$obj->func."(..):".count($obj->exprs).(($obj->alias!='')?" as ".$obj->alias:'');
+		case 'sql_column':return	"c: ".(($obj->db!='')?"`".$obj->db."`.":"").
+									(($obj->tbl!='')?"`".$obj->tbl."`.":"").
+									(($obj->col!='')?"`".$obj->col."`":"").
+									(($obj->alias!='')?" as ".$obj->alias:'');
+		case 'sql_order':return "order:".count($obj->exprs).(($obj->alias!='')?" as ".$obj->alias:'');
+		case 'sql_joins':return "joins:".count($obj->exprs).(($obj->alias!='')?" as ".$obj->alias:'');
+		case 'query_gen_ext':return "query:";
+		}
+		return "unknown";
+	}
+	
+	function item_editor()
+	{
+		return 'ed_query_gen_ext_editor';
+	}
+}
+
+##################################################################################	
+
+class ed_query_gen_ext_editor extends ed_tree_item_editor//virtual component injector
+{
+	
+	function configure($obj)//virtual method
+	{
+		$type=get_class($obj);
+		$this->title_add($type,$type);
+		switch($type)
+		{
+		case 'sql_null':
+			break;
+		case 'sql_immed':
+			//TODO: localization
+			$this->field_add($obj,'val','Значение',new editor_text);
+			$this->field_add($obj,'alias','alias',new editor_text);
+			$this->field_add($obj,'to_variable','Переменная',new editor_text);
+			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
+			break;
+		case 'sql_var':
+			//TODO: localization
+			$this->field_add($obj,'val','Значение',new editor_text);
+			$this->field_add($obj,'alias','alias',new editor_text);
+			$this->field_add($obj,'to_variable','Переменная',new editor_text);
+			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
+			break;
+		case 'sql_subquery':
+			//TODO: localization
+			$this->field_add($obj,'alias','alias',new editor_text);
+			$this->field_add($obj,'to_variable','Переменная',new editor_text);
+			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
+			break;
+		case 'sql_expression':
+			//TODO: localization
+			$this->field_add($obj,'operator','operator',new editor_text);
+			$this->field_add($obj,'alias','alias',new editor_text);
+			$this->field_add($obj,'to_variable','Переменная',new editor_text);
+			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
+			break;
+		case 'sql_list':
+			$this->field_add($obj,'func','function',new editor_text);
+			$this->field_add($obj,'alias','alias',new editor_text);
+			$this->field_add($obj,'to_variable','Переменная',new editor_text);
+			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
+			break;
+		case 'sql_column':
+			$this->field_add($obj,'db','db',new editor_text);
+			$this->field_add($obj,'tbl','tbl',new editor_text);
+			$this->field_add($obj,'col','col',new editor_text);
+			$this->field_add($obj,'alias','alias',new editor_text);
+			$this->field_add($obj,'to_variable','Переменная',new editor_text);
+			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
+			break;
+		case 'sql_order':
+			$this->field_add($obj,'function','function',new editor_text);
+			$this->field_add($obj,'alias','alias',new editor_text);
+			$this->field_add($obj,'to_variable','Переменная',new editor_text);
+			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
+			break;
+		case 'sql_joins':
+			break;
+		case 'query_gen_ext':
+			$this->field_add($obj,'count','count',new editor_text);
+			$this->field_add($obj,'offset','offset',new editor_text);
+			break;
+		}
+	}
+	
+	
+	function handle_event($ev)//parent handles events
+	{
+		editor_generic::handle_event($ev);
+	}
+}
+
+
+
+
+
+#####################################################################################################
+
+
+
+class ed_tree_main_query_gen_ext extends ed_tree_main
+{
+	
+	function fetch()
+	{
+		return unserialize($_SESSION['ed_tree_main_query_gen_ext_test']);
+	}
+	
+	function store($new)
+	{
+		if(! isset($new->rev))$new->rev=0;
+		else $new->rev++;
+		$_SESSION['ed_tree_main_query_gen_ext_test']=serialize($new);
+	}
+	
+	function manipulator()
+	{
+		return new query_gen_ext_manipulator;
+	}
+	
+	function add_menu($to)
+	{
+			//TODO: localization
+		$add_d_cont=Array(
+			'sql_null'=>'<nul>',
+			'sql_immed'=>'<im>',
+			'sql_var'=>'<va>',
+			'sql_column'=>'<col>',
+			'sql_expression'=>'<ex>',
+			'sql_list'=>'<li>',
+			'sql_subquery'=>'<sq>'
+			);
+		if(!isset($to))
+		{
+			foreach($add_d_cont as $nn => $vv)
+				editor_generic::addeditor($nn,new ed_tree_main_nd($vv));
+		}elseif(is_object($to)){
+			foreach($add_d_cont as $nn => $vv)
+			{
+				$to->append_child($this->editors[$nn]);
+				$this->editors[$nn]->css_style['cursor']='default';
+				$this->editors[$nn]->attributes['onmousedown']="resizer.create_ghost(event,this,{t:'".$nn."',d:''});return false;";
+			}
+		}
+	}
+}
+
+/*
+##################################################################################	
+		test for ed_tree_main_query_gen_ext
+##################################################################################	
+*/
+
+class ed_tree_main_query_gen_ext_test extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		editor_generic::addeditor('r',new editor_button);
+		$this->append_child($this->editors['r']);
+		$this->editors['r']->attributes['value']='x';
+		editor_generic::addeditor('m',new ed_tree_main_query_gen_ext);
+		$this->append_child($this->editors['m']);
+		$this->result=new dom_div;
+		$this->result_text=new dom_statictext;
+		$this->append_child($this->result);
+		$this->result->append_child($this->result_text);
+		$this->result->css_style['border']='1px solid green';
+		
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		if(!is_array($this->editors))return;
+		$this->args=Array();
+		$this->context=Array();
+		$this->keys=Array();
+		$this->oid=96;
+		$this->context[$this->long_name]['result_div_id']=$this->result->id_gen();
+		$this->context[$this->long_name]['oid']=$this->oid;
+		foreach($this->editors as $i => $e)
+		{
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+			$e->oid=$this->oid;
+		}
+		foreach($this->editors as $i => $e)
+			$e->bootstrap();
+			
+			
+	}
+	
+	
+	function set_new()
+	{
+		//$a=new meta_query_gen;
+		//$a->oid=$this->oid;
+		$n=new query_gen_ext;
+		$n->oid=$this->oid;
+		$_SESSION['ed_tree_main_query_gen_ext_test']=serialize($n);
+		return;
+	}
+	
+	function html_inner()
+	{
+		if(!isset($_SESSION['ed_tree_main_query_gen_ext_test']))
+			$this->set_new();
+		#$this->args['filters_m']=unserialize($_SESSION['filters_m_test']);
+		$prev=unserialize($_SESSION['ed_tree_main_query_gen_ext_test']);
+		$this->result_text->text=$prev->result();
+		parent::html_inner();
+	}
+	
+	function handle_event($ev)
+	{
+		$result_div_id=$ev->context[$ev->parent_name]['result_div_id'];
+		if($ev->rem_name=='r')
+		{
+			$this->oid=$ev->context[$ev->parent_name]['oid'];
+			$this->set_new();
+			print "window.location.reload(true);";
+		}
+		$prev=unserialize($_SESSION['ed_tree_main_query_gen_ext_test']);
+		editor_generic::handle_event($ev);
+		$after=unserialize($_SESSION['ed_tree_main_query_gen_ext_test']);
+		if($prev->rev != $after->rev)
+		{
+			
+			print "\$i('".$result_div_id."').textContent='".js_escape($after->result())."';";
+			//print "\$i('".$result_div_id."').textContent='undef';";
+		}
+	}
+}
+
+$tests_m_array[]='ed_tree_main_query_gen_ext_test';
 
 
 
