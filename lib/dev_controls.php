@@ -4190,6 +4190,7 @@ class ed_tree_item_editor extends dom_div//virtual component injector
 		$this->etype=get_class($this);
 		$this->tbl=new dom_table;
 		$this->append_child($this->tbl);
+		$this->title_add(" "," ");
 		
 	}
 	
@@ -4240,6 +4241,14 @@ class ed_tree_item_editor extends dom_div//virtual component injector
 			$td->attributes['colspan']='2';
 			$td->css_style['text-align']='center';
 			$td->css_style['font-weight']='bold';
+			if(!isset($this->title_hr)){$this->title_hr=$hrname;$txt->text=&$this->title_hr;};
+			if(!isset($this->title_hint)){$this->title_hint=$title;$td->attributes['title']=&$this->title_hint;};
+	}
+	
+	function title_set($hrname,$title)
+	{
+		$this->title_hr=$hrname;
+		$this->title_hint=$title;
 	}
 	
 	function configure($obj)//virtual method
@@ -4398,7 +4407,7 @@ class ed_tree_meta_editor extends ed_tree_item_editor//virtual component injecto
 	function configure($obj)//virtual method
 	{
 		$type=get_class($obj);
-		$this->title_add($type,$type);
+		$this->title_set($type,$type);
 		switch($type)
 		{
 		case 'fm_undefined':
@@ -4821,7 +4830,7 @@ class ed_query_gen_ext_editor extends ed_tree_item_editor//virtual component inj
 	function configure($obj)//virtual method
 	{
 		$type=get_class($obj);
-		$this->title_add($type,$type);
+		$this->title_set($type,$type);
 		switch($type)
 		{
 		case 'sql_null':
@@ -4883,8 +4892,8 @@ class ed_query_gen_ext_editor extends ed_tree_item_editor//virtual component inj
 		if(isset($obj->on) && isset($obj->what) && preg_match('/join/i',$obj->type))
 		{
 			$this->field_add($obj,'type','type',new editor_text);
+			$this->title_set('join','join');
 		}
-		
 	}
 	
 	
