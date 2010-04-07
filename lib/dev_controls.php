@@ -3784,7 +3784,7 @@ class ed_tree_main extends dom_div
 			$current=$ma->find($obj,$ev->keys['path']);
 			$n=$ev->rem_name;
 			$current->$n=$_POST['val'];
-			print "\$i('".$ev->context[$ev->parent_name]['cid']."').innerHTML='".js_escape($ma->text($current))."';";
+			print "\$i('".$ev->context[$ev->parent_name]['cid']."')[text_content]='".js_escape($ma->text($current))."';";
 			$do_store=true;
 		}
 		if($ev->rem_name=='tracker')
@@ -3818,7 +3818,7 @@ class ed_tree_main extends dom_div
 			case 'pastecl':
 				$new=$clipboard->fetch();
 				if(!isset($new))return;
-				if(!method_exists($new,'text_short'))return;
+				//if(!method_exists($new,'text_short'))return;
 				$ma->add_node($obj,$_POST['before'],$new);
 				$reload_fa=true;
 				$do_store=true;
@@ -3827,7 +3827,6 @@ class ed_tree_main extends dom_div
 				$node=$ma->find($obj,$_POST['path']);
 				$ma->del_node($obj,$_POST['path']);
 				$clipboard->store($node);
-				$ma->store($this,$obj);
 				$reload_fa=true;
 				$reload_clip=true;
 				$do_store=true;
@@ -4722,6 +4721,14 @@ class query_gen_ext_manipulator
 		$last=array_pop($path_e);
 		$obk=$this->find($obj,implode('/',$path_e));
 		if(get_class($obk)=='query_gen_ext')$obk->static_exprs=true;
+		if(isset($obk->on) && isset($obk->what) && preg_match('/join/i',$obk->type))$obk->static_exprs=true;
+		if(get_class($obk)=='sql_joins')
+		{
+			unset($new);
+			$new->type='LEFT INNER JOIN';
+			$new->on=new sql_expression('AND');
+			$new->what=new sql_list;
+		}
 		if(preg_match('/[0-9]+/',$last))
 		{
 			if($obk->static_exprs)
@@ -4770,6 +4777,10 @@ class query_gen_ext_manipulator
 		{
 			return Array($obj->what,$obj->from,$obj->joins,$obj->where,$obj->group,$obj->order,$obj->having);
 		}
+		if(isset($obj->on) && isset($obj->what) && preg_match('/join/i',$obj->type))
+		{
+			return Array($obj->what,$obj->on);
+		}
 		if(is_array($obj->exprs))return $obj->exprs;
 		return NULL;
 	}
@@ -4792,6 +4803,7 @@ class query_gen_ext_manipulator
 		case 'sql_joins':return "joins:".count($obj->exprs).(($obj->alias!='')?" as ".$obj->alias:'');
 		case 'query_gen_ext':return "query:";
 		}
+		if(isset($obj->on) && isset($obj->what))return $obj->type;
 		return "unknown";
 	}
 	
@@ -4868,6 +4880,11 @@ class ed_query_gen_ext_editor extends ed_tree_item_editor//virtual component inj
 			$this->field_add($obj,'offset','offset',new editor_text);
 			break;
 		}
+		if(isset($obj->on) && isset($obj->what) && preg_match('/join/i',$obj->type))
+		{
+			$this->field_add($obj,'type','type',new editor_text);
+		}
+		
 	}
 	
 	
