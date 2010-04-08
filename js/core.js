@@ -116,6 +116,18 @@ function findPosX(obj)
     return curtop;
 }
 
+function findPosXY(obj)
+{
+    var r={x:0,y:0};
+    while (obj)
+    {
+        r.y += obj.offsetTop;
+        r.x += obj.offsetLeft;
+        obj = obj.offsetParent;
+    }
+    return r;
+}
+
 
 function async_post(uri,data,callback)
 {

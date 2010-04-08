@@ -183,7 +183,7 @@ class editor_generic extends dom_any
 	
 	
 	
-	function bootstrap_part($r=true)
+	function bootstrap_part($lgi=true)
 	{
 	$this->long_name=editor_generic::long_name();
 
@@ -212,7 +212,7 @@ class editor_generic extends dom_any
 #	'&name='.urlencode($this->long_name).
 	'&name='.	urlencode(editor_generic::effective_name()).
 	'&type='.urlencode(editor_generic::long_type());
-	if($r)$send.="&last_generated_id=' + last_generated_id + '";
+	if($lgi)$send.="&last_generated_id=' + last_generated_id + '";
 	$send.="&val";
 	$this->send=&$send;
 	//$this->postargs=&$postargs;
@@ -784,7 +784,7 @@ class editor_text extends dom_any
 		$this->append_child($this->failure_viewer);
 		$this->main=$this->ed;
 		$this->ed->attributes['type']='text';
-		$this->ed->attributes['onmouseover']='opera_fix(this);';
+		$this->main->attributes['onmouseover']='opera_fix(this);';
 		//$this->keys;
 		//$this->args
 	}
@@ -794,8 +794,11 @@ class editor_text extends dom_any
 #		$this->custom_id=$this->ed->id_gen();
 		editor_generic::bootstrap();
 #		unset($this->custom_id);
-		$this->ed->attributes=$this->attributes;//?????
-		unset($this->attributes);
+		//$this->ed->attributes=$this->attributes;//?????
+		$this->main->attributes['onfocus']=$this->attributes['onfocus'];
+		$this->main->attributes['onblur']=$this->attributes['onblur'];
+		unset($this->attributes['onfocus']);
+		unset($this->attributes['onblur']);
 //		$this->long_name=editor_generic::long_name();
 		$this->ed->attributes['onfocus'].=
 			';this.failure_viewer=\''.js_escape($this->failure_viewer->id_gen()).'\';'.
@@ -845,7 +848,8 @@ class editor_pass extends editor_text
 	
 	function html()
 	{
-		$this->ed->attributes['value']='';
+		$this->main->attributes['value']='';
+		$this->main->attributes['type']='password';
 		parent::html();
 	}
 }

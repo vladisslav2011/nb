@@ -3667,7 +3667,7 @@ class ed_tree_main extends dom_div
 		
 		editor_generic::addeditor('clip',new ed_tree_main_cv);
 		
-		$this->add_menu(NULL);//overridable
+		$this->add_menu(NULL);//overridable, create editors only
 		
 		
 		$tbl=new dom_table;
@@ -3683,7 +3683,7 @@ class ed_tree_main extends dom_div
 		
 		$ltd->append_child($this->ctl);
 		$ltd->append_child($this->editors['clip']);
-		$this->add_menu($ltd);//overridable
+		$this->add_menu($ltd);//overridable, link editors into div
 		
 		
 		$ltd->append_child($this->editors['fa_cnt']);
@@ -3703,8 +3703,10 @@ class ed_tree_main extends dom_div
 		
 		$this->editors['clip']->attributes['onmouseup']=
 			"return ed_tree_clip_up(event,\$i('".$this->ctl->id_gen()."'));";
+		$this->editors['clip']->attributes['onmouseover']=
+			"return ed_tree_clip_mov(event,this,'".$this->ctl->id_gen()."');";
 		$this->editors['clip']->attributes['onmousemove']=
-			"return ed_tree_clip_mov(event,this);";
+			"return ed_tree_clip_mov(event,this,'');";
 		$this->editors['clip']->attributes['onmouseout']=
 			"return ed_tree_clip_mou(event,this);";
 		
@@ -3855,6 +3857,10 @@ class ed_tree_main extends dom_div
 				$reload_right=true;
 				$do_store=false;
 				break;
+			case 'clipboard_clear':
+				$clipboard->store(NULL);
+				$reload_clip=true;
+				break;
 			}
 		}
 			if($do_store)$this->store($obj);
@@ -3877,6 +3883,7 @@ class ed_tree_main extends dom_div
 				print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['right_id'])."');";
 				print "try{nya.innerHTML=";
 				reload_object($r,true);
+				if(($_POST['mouse']==1) && isset($r->first_editor))print "\$i('".js_escape($r->first_editor->main->id_gen())."').focus();";
 				print "}catch(e){ window.location.reload(true);};";
 				print "})();";
 			}
@@ -4134,7 +4141,7 @@ class ed_tree_nofa extends dom_div
 		if($ref !=='')$this->path.='/'.$ref;
 		$this->ed->id_alloc();
 		
-		$this->rootnode->endscripts[]="\$i('".js_escape($this->button_id)."').id_list.push({keys:'".js_escape($this->path)."',cid:'".js_escape($this->ed->main_div->id_gen())."',pcid:'".js_escape($cid)."'});";
+		$this->rootnode->endscripts['ed_tree_nofa'].="\$i('".js_escape($this->button_id)."').id_list.push({keys:'".js_escape($this->path)."',cid:'".js_escape($this->ed->main_div->id_gen())."',pcid:'".js_escape($cid)."'});";
 		$this->ed->main_div->attributes['onclick']=
 			"return ed_tree_fa_item_click('".js_escape($this->button_id)."','".js_escape($this->path)."');";
 		if($got)
@@ -4213,6 +4220,7 @@ class ed_tree_item_editor extends dom_div//virtual component injector
 	function field_add($obj,$name,$hrname,$ed)
 	{
 			editor_generic::addeditor($name,$ed);
+			if(!isset($this->first_editor))$this->first_editor=$this->editors[$name];
 			$tr=new dom_tr;
 			$this->tbl->append_child($tr);
 			$td=new dom_td;

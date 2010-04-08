@@ -903,7 +903,7 @@ function ed_tree_main_ctl_k(event,object,t)
 			i.style.backgroundColor='#d0d0ff';
 			my_scroll_into_view(i,$i(object.fa_id));
 			//$i(object.id_list[object.id_current].cid).scrollIntoView();
-			ed_tree_item_act(object);
+			ed_tree_item_act(object,false);
 		}
 		return stop_event(event);
 		
@@ -920,7 +920,7 @@ function ed_tree_main_ctl_k(event,object,t)
 			var i=$i(object.id_list[object.id_current].cid);
 			i.style.backgroundColor='#d0d0ff';
 			my_scroll_into_view(i,$i(object.fa_id));
-			ed_tree_item_act(object);
+			ed_tree_item_act(object,false);
 		}
 		return stop_event(event);
 	case 46://del
@@ -934,6 +934,13 @@ function ed_tree_main_ctl_k(event,object,t)
 				'&last_generated_id=' + last_generated_id +
 				'&path='+
 				encodeURIComponent(object.id_list[object.id_current].keys)+'&n',val:'',c_id:object.id});
+			return stop_event(event);
+		}
+		if(m.m==m.CTRL)//clear
+		{
+			chse.send_or_push({static:object.send_static+'=clipboard_clear'+
+				'&last_generated_id=' + last_generated_id +
+				'&n',val:'',c_id:object.id});
 			return stop_event(event);
 		}
 		chse.send_or_push({static:object.send_static+'=del&path='+
@@ -975,17 +982,18 @@ function ed_tree_fa_item_click(object_id,path)
 	$i(object_id).id_current=k;
 	$i(id_list[k].cid).style.backgroundColor='#d0d0ff';
 	$i(object_id).focus();
-	ed_tree_item_act($i(object_id));
+	ed_tree_item_act($i(object_id),true);
 	
 }
 
-function ed_tree_item_act(object)
+function ed_tree_item_act(object,mouse)
 {
 	if(object.id_current==-1)return;
 	if(object.act_timeout)clearTimeout(object.act_timeout);
 	object.act_timeout=setTimeout(function(){
 		chse.send_or_push({static:object.send_static+'=activate&path='+
 			encodeURIComponent(object.id_list[object.id_current].keys)+
+			'&mouse='+(mouse?1:0)+
 			'&cid='+
 			encodeURIComponent(object.id_list[object.id_current].cid)+
 			'&last_generated_id=' + last_generated_id +
@@ -1066,12 +1074,43 @@ function ed_tree_clip_up(event,object)
 	}
 }
 
-function ed_tree_clip_mov(event,object)
+function ed_tree_clip_mov(event,object,ctl_id)
 {
 	if(resizer.drag_context.active)
 	{
 		if(event.ctrlKey)resizer.drag_context.plus.style.display='block';else resizer.drag_context.plus.style.display='none';
 		object.style.backgroundColor='#ffeeee';
+	}else{
+		if(object.hint_displayed)
+		{
+			clearTimeout(object.hint_hide_timeout);
+			return true;
+		}else{
+			if(ctl_id=='')return true;
+			object.hint_div=document.createElement('div');
+			object.hint_div.style.position='absolute';
+			object.hint_div.style.backgroundColor='white';
+			object.hint_div.style.border='1px solid grey';
+			var img=document.createElement('img');
+			img.style.width='20px';
+			img.style.height='20px';
+			img.setAttribute('src','/i/cancel-delete.png');
+			img.setAttribute('alt','clear');
+			img.setAttribute('title','Clear clipboard(Ctrl_Del)');
+			img.setAttribute('onclick',
+			'chse.send_or_push({static:$i("'+ctl_id+'").send_static+"=clipboard_clear&last_generated_id=" + last_generated_id +"&n",val:"",c_id:"'+ctl_id+'"});');
+			img.setAttribute('onmouseover','clearTimeout($i("'+object.id+'").hint_hide_timeout);');
+			img.setAttribute('onmouseout','remove_hint($i("'+object.id+'"));');
+			object.hint_div.appendChild(img);
+			document.body.appendChild(object.hint_div);
+			object.hint_displayed=true;
+			var r=findPosXY(object);
+			var nl=r.x+object.offsetWidth-object.hint_div.offsetWidth;
+			if(nl<0)nl=0;
+			object.hint_div.style.top=(r.y+object.offsetHeight)+'px';
+			object.hint_div.style.left="-100px";
+			setTimeout(function(){object.hint_div.style.left=(nl)+'px';},0);
+		}
 	}
 	return true;
 }
@@ -1083,8 +1122,24 @@ function ed_tree_clip_mou(event,object)
 		resizer.drag_context.plus.style.display='none';
 		object.style.backgroundColor='';
 	}
+	if(object.hint_displayed)
+	{
+		remove_hint(object);
+		return true;
+	}
 	return true;
 }
+
+function remove_hint(object)
+{
+	object.hint_hide_timeout=setTimeout(function()
+		{
+			object.hint_div.parentNode.removeChild(object.hint_div);
+			delete object.hint_div;
+			object.hint_displayed=false;
+		},200);
+}
+
 
 //------------------------- Keyboard support functions
 //------------------------- Move from this file later
