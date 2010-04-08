@@ -3844,6 +3844,7 @@ class ed_tree_main extends dom_div
 				if(class_exists($cn))$new=new $cn;
 				else return;
 				$ma->add_node($obj,$_POST['before'],$new);
+				$patha=$_POST['before'];//try to activate after paste?
 				$reload_fa=true;
 				$do_store=true;
 				break;
@@ -3899,11 +3900,13 @@ class ed_tree_main extends dom_div
 				$r->oid=$this->oid;
 				$r->name=$ev->parent_name.'.fa';
 				$r->etype=$ev->parent_type.'.'.$r->etype;
-				print "(function(){var a=\$i('".js_escape($ev->context[$ev->parent_name]['ctl_id'])."');a.id_list=new Array();a.id_current=-1;";
+				print "(function(){var a=\$i('".js_escape($ev->context[$ev->parent_name]['ctl_id'])."');a.id_list=new Array();var b=a.id_current;a.id_current=-1;";
 				print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['fa_id'])."');";
 				print "try{nya.innerHTML=";
 				reload_object($r,true);
 				print "nya.scrollTop=0;}catch(e){ window.location.reload(true);};";
+				if(isset($patha))
+					print "ed_tree_fa_item_click('".$ev->context[$ev->parent_name]['ctl_id']."','".js_escape($patha)."');";
 				print "\$i('".js_escape($ev->context[$ev->parent_name]['right_id'])."').innerHTML='';";
 				print "})();";
 			};
