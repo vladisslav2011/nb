@@ -406,12 +406,12 @@ class test_urlencode extends dom_div
 	{
 		$this->long_name=editor_generic::long_name();
 		
+		$this->editors['transform']->options['>h']="> htmlspecialchars";
+		$this->editors['transform']->options['<h']="< htmlspecialchars";
 		$this->editors['transform']->options['>u']="> Urlencode";
 		$this->editors['transform']->options['<u']="< Urlencode";
 		$this->editors['transform']->options['>b']="> BASE64";
 		$this->editors['transform']->options['<b']="< BASE64";
-		$this->editors['transform']->options['>h']="> htmlspecialchars";
-		$this->editors['transform']->options['<h']="< htmlspecialchars";
 		
 		$this->resend->attributes['onclick']="var nya=\$i('".$this->editors['txt']->id_gen()."');nya.focus();nya.oldval += ' ';";
 		$this->moveback->attributes['onclick']=
@@ -421,6 +421,7 @@ class test_urlencode extends dom_div
 		
 		$this->context[$this->long_name]['t']=$this->t->id_gen();
 		$this->context[$this->long_name.'.transform']['var']='tr';
+		if($_SESSION['test_urlencode->tr']=='')$_SESSION['test_urlencode->tr']='>h';
 		$this->args['tr']=$_SESSION['test_urlencode->tr'];
 		foreach($this->editors as $e)
 		{
