@@ -96,34 +96,61 @@ function js2php(o)
 
 function findPosY(obj)
 {
-    var curtop = 0;
-    while (obj)
+    var cur = 0;
+    var m=obj;
+    while (m)
     {
-        curtop += obj.offsetTop;
-        obj = obj.offsetParent;
+        cur += m.offsetTop;
+        m = m.offsetParent;
     }
-    return curtop;
+    var m=obj;
+    while (m!=document.body)
+    {
+    	if(typeof(m.scrollTop)!='undefined')
+	        cur -= m.scrollTop;
+        m = m.parentNode;
+    }
+    return cur;
 }
 
 function findPosX(obj)
 {
-    var curtop = 0;
-    while (obj)
+    var cur = 0;
+    var m=obj;
+    while (m)
     {
-        curtop += obj.offsetLeft;
-        obj = obj.offsetParent;
+        cur += m.offsetLeft;
+        m = m.offsetParent;
     }
-    return curtop;
+    var m=obj;
+    while (m!=document.body)
+    {
+    	if(typeof(m.scrollLeft)!='undefined')
+	        cur -= m.scrollLeft;
+        m = m.parentNode;
+    }
+    return cur;
 }
 
 function findPosXY(obj)
 {
     var r={x:0,y:0};
-    while (obj)
+    var m=obj;
+    while (m)
     {
-        r.y += obj.offsetTop;
-        r.x += obj.offsetLeft;
-        obj = obj.offsetParent;
+        r.y += m.offsetTop;
+        r.x += m.offsetLeft;
+        m = m.offsetParent;
+    }
+    var m=obj;
+    while (m!=document.body)
+    {
+    	if(typeof(m.scrollTop)!='undefined')
+    	{
+	        r.y -= m.scrollTop;
+    	    r.x -= m.scrollLeft;
+    	}
+        m = m.parentNode;
     }
     return r;
 }

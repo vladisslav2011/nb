@@ -4152,8 +4152,10 @@ class ed_tree_nofa extends dom_div
 		
 		$this->ed->main_div->attributes['onmouseup']=
 			"return ed_tree_fa_item_up(event,'".js_escape($this->button_id)."','".js_escape($this->path)."');";
+		$this->ed->main_div->attributes['onmouseover']=
+			"return ed_tree_fa_item_mov(event,'".js_escape($this->button_id)."','".js_escape($this->path)."',this,false);";
 		$this->ed->main_div->attributes['onmousemove']=
-			"return ed_tree_fa_item_mov(event,'".js_escape($this->button_id)."','".js_escape($this->path)."',this);";
+			"return ed_tree_fa_item_mov(event,'".js_escape($this->button_id)."','".js_escape($this->path)."',this,true);";
 		$this->ed->main_div->attributes['onmouseout']=
 			"return ed_tree_fa_item_mou(event,'".js_escape($this->button_id)."','".js_escape($this->path)."',this);";
 		if($got)

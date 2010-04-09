@@ -1037,12 +1037,38 @@ function ed_tree_fa_item_up(event,object_id,path)
 	}
 }
 
-function ed_tree_fa_item_mov(event,object_id,path,s)
+function ed_tree_fa_item_mov(event,object_id,path,s,move)
 {
 	if(resizer.drag_context.active)
 	{
 		if(event.ctrlKey)resizer.drag_context.plus.style.display='block';else resizer.drag_context.plus.style.display='none';
 		s.style.backgroundColor='#ffeeee';
+		return true;
+	}
+	var object=$i(object_id);
+	if((object.hint_path==path) &&object.hint_displayed)
+	{
+		clearTimeout(object.hint_hide_timeout);
+		return true;
+	}else{
+		if(move)return true;
+		if((object.hint_path!=path) && object.hint_displayed)
+		{
+			object.hint_div.parentNode.removeChild(object.hint_div);
+			delete object.hint_div;
+			object.hint_displayed=false;
+		}
+		for(var k=0;k<object.id_list.length;k++)if(object.id_list[k].keys==path)break;
+		try_show_hint(object,s,Array(
+			{	src:'/i/cancel-delete.png',
+				alt:'delete',
+				title:'Delete object',
+				onclick:'remove_hint($i("'+object_id+'"));chse.send_or_push({static:$i("'+object_id+'").send_static+"=del'+
+				'&path='+encodeURIComponent(path)+
+				'&parent_id='+encodeURIComponent(object.id_list[k].pcid)+
+				'&last_generated_id=" + last_generated_id +"&n",val:"",c_id:"'+object_id+'"});'
+			}));
+		object.hint_path=path;
 	}
 	return true;
 }
@@ -1053,6 +1079,12 @@ function ed_tree_fa_item_mou(event,object_id,path,s)
 	{
 		resizer.drag_context.plus.style.display='none';
 		s.style.backgroundColor='';
+	}
+	var object=$i(object_id);
+	if(object.hint_displayed)
+	{
+		remove_hint(object);
+		return true;
 	}
 	return true;
 }
@@ -1087,7 +1119,13 @@ function ed_tree_clip_mov(event,object,ctl_id)
 			return true;
 		}else{
 			if(ctl_id=='')return true;
-			object.hint_div=document.createElement('div');
+			try_show_hint(object,object,Array(
+				{	src:'/i/cancel-delete.png',
+					alt:'clear',
+					title:'Clear clipboard(Ctrl_Del)',
+					onclick:'chse.send_or_push({static:$i("'+ctl_id+'").send_static+"=clipboard_clear&last_generated_id=" + last_generated_id +"&n",val:"",c_id:"'+ctl_id+'"});'
+				}));
+/*			object.hint_div=document.createElement('div');
 			object.hint_div.style.position='absolute';
 			object.hint_div.style.backgroundColor='white';
 			object.hint_div.style.border='1px solid grey';
@@ -1109,11 +1147,15 @@ function ed_tree_clip_mov(event,object,ctl_id)
 			if(nl<0)nl=0;
 			object.hint_div.style.top=(r.y+object.offsetHeight)+'px';
 			object.hint_div.style.left="-100px";
-			setTimeout(function(){object.hint_div.style.left=(nl)+'px';},0);
+			setTimeout(function(){object.hint_div.style.left=(nl)+'px';},0);*/
 		}
 	}
 	return true;
 }
+
+
+
+
 
 function ed_tree_clip_mou(event,object)
 {
@@ -1140,6 +1182,45 @@ function remove_hint(object)
 		},200);
 }
 
+function try_show_hint(object,bind,struct)
+{
+	object.hint_div=document.createElement('div');
+	object.hint_div.style.position='absolute';
+	object.hint_div.style.backgroundColor='white';
+	object.hint_div.style.border='1px solid grey';
+	for(var k=0;k<struct.length;k++)
+	{
+		if(typeof(struct[k].href)!='undefined')
+		{
+			var a=document.createElement('a');
+			var img=document.createElement('img');
+			a.appendChild(img);
+			a.setAttribute('href',struct[k].href);
+			var d=a;
+		}else{
+			var img=document.createElement('img');
+			var d=img;
+		}
+			
+		if(typeof(struct[k].width)=='undefined')img.style.width='20px';else img.style.width=struct[k].width;
+		if(typeof(struct[k].height)=='undefined')img.style.height='20px';else img.style.height=struct[k].height;
+		if(typeof(struct[k].src)=='undefined')img.setAttribute('src','/i/unknown.png');else img.setAttribute('src',struct[k].src);
+		if(typeof(struct[k].alt)=='undefined')img.setAttribute('alt',' ');else img.setAttribute('alt',struct[k].alt);
+		if(typeof(struct[k].title)!='undefined')img.setAttribute('title',struct[k].title);
+		if(typeof(struct[k].onclick)!='undefined')img.setAttribute('onclick',struct[k].onclick);
+		img.setAttribute('onmouseover','clearTimeout($i("'+object.id+'").hint_hide_timeout);');
+		img.setAttribute('onmouseout','remove_hint($i("'+object.id+'"));');
+		object.hint_div.appendChild(d);
+	}
+	document.body.appendChild(object.hint_div);
+	object.hint_displayed=true;
+	var r=findPosXY(bind);
+	var nl=r.x+bind.offsetWidth-object.hint_div.offsetWidth;
+	if(nl<0)nl=0;
+	object.hint_div.style.top=(r.y+bind.offsetHeight)+'px';
+	object.hint_div.style.left="-100px";
+	setTimeout(function(){object.hint_div.style.left=(nl)+'px';},0);
+}
 
 //------------------------- Keyboard support functions
 //------------------------- Move from this file later
