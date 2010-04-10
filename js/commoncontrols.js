@@ -1046,6 +1046,7 @@ function ed_tree_fa_item_mov(event,object_id,path,s,move)
 		return true;
 	}
 	var object=$i(object_id);
+	s.style.outline='2px solid blue';
 	if((object.hint_path==path) &&object.hint_displayed)
 	{
 		clearTimeout(object.hint_hide_timeout);
@@ -1060,6 +1061,20 @@ function ed_tree_fa_item_mov(event,object_id,path,s,move)
 		}
 		for(var k=0;k<object.id_list.length;k++)if(object.id_list[k].keys==path)break;
 		try_show_hint(object,s,Array(
+			{	src:'/i/copy.png',
+				alt:'copy',
+				title:'Copy to clipboard(Ctrl+Ins)',
+				onclick:'chse.send_or_push({static:$i("'+object_id+'").send_static+"=copycl'+
+				'&path='+encodeURIComponent(path)+
+				'&last_generated_id=" + last_generated_id +"&n",val:"",c_id:"'+object_id+'"});'
+			},
+			{	src:'/i/paste.png',
+				alt:'paste',
+				title:'Paste from clipboard before this element(Ctrl+Ins)',
+				onclick:'chse.send_or_push({static:$i("'+object_id+'").send_static+"=pastecl'+
+				'&before='+encodeURIComponent(path)+
+				'&last_generated_id=" + last_generated_id +"&n",val:"",c_id:"'+object_id+'"});'
+			},
 			{	src:'/i/cancel-delete.png',
 				alt:'delete',
 				title:'Delete object',
@@ -1081,6 +1096,7 @@ function ed_tree_fa_item_mou(event,object_id,path,s)
 		s.style.backgroundColor='';
 	}
 	var object=$i(object_id);
+	s.style.outline='';
 	if(object.hint_displayed)
 	{
 		remove_hint(object);
@@ -1124,7 +1140,8 @@ function ed_tree_clip_mov(event,object,ctl_id)
 					alt:'clear',
 					title:'Clear clipboard(Ctrl_Del)',
 					onclick:'chse.send_or_push({static:$i("'+ctl_id+'").send_static+"=clipboard_clear&last_generated_id=" + last_generated_id +"&n",val:"",c_id:"'+ctl_id+'"});'
-				}));
+				}
+				));
 /*			object.hint_div=document.createElement('div');
 			object.hint_div.style.position='absolute';
 			object.hint_div.style.backgroundColor='white';
@@ -1176,8 +1193,11 @@ function remove_hint(object)
 {
 	object.hint_hide_timeout=setTimeout(function()
 		{
-			object.hint_div.parentNode.removeChild(object.hint_div);
-			delete object.hint_div;
+			if(typeof(object.hint_div)!='undefined')
+			{
+				object.hint_div.parentNode.removeChild(object.hint_div);
+				delete object.hint_div;
+			};
 			object.hint_displayed=false;
 		},200);
 }
@@ -1217,7 +1237,7 @@ function try_show_hint(object,bind,struct)
 	var r=findPosXY(bind);
 	var nl=r.x+bind.offsetWidth-object.hint_div.offsetWidth;
 	if(nl<0)nl=0;
-	object.hint_div.style.top=(r.y+bind.offsetHeight)+'px';
+	object.hint_div.style.top=(r.y+bind.offsetHeight-3)+'px';
 	object.hint_div.style.left="-100px";
 	setTimeout(function(){object.hint_div.style.left=(nl)+'px';},0);
 }
