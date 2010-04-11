@@ -1046,7 +1046,6 @@ function ed_tree_fa_item_mov(event,object_id,path,s,move)
 		return true;
 	}
 	var object=$i(object_id);
-	s.style.outline='2px solid blue';
 	if((object.hint_path==path) &&object.hint_displayed)
 	{
 		clearTimeout(object.hint_hide_timeout);
@@ -1096,7 +1095,6 @@ function ed_tree_fa_item_mou(event,object_id,path,s)
 		s.style.backgroundColor='';
 	}
 	var object=$i(object_id);
-	s.style.outline='';
 	if(object.hint_displayed)
 	{
 		remove_hint(object);
@@ -1228,8 +1226,8 @@ function try_show_hint(object,bind,struct)
 		if(typeof(struct[k].alt)=='undefined')img.setAttribute('alt',' ');else img.setAttribute('alt',struct[k].alt);
 		if(typeof(struct[k].title)!='undefined')img.setAttribute('title',struct[k].title);
 		if(typeof(struct[k].onclick)!='undefined')img.setAttribute('onclick',struct[k].onclick);
-		img.setAttribute('onmouseover','clearTimeout($i("'+object.id+'").hint_hide_timeout);');
-		img.setAttribute('onmouseout','remove_hint($i("'+object.id+'"));');
+		img.setAttribute('onmouseover','clearTimeout($i("'+object.id+'").hint_hide_timeout);$i("'+bind.id+'").style.outline="2px solid blue";');
+		img.setAttribute('onmouseout','remove_hint($i("'+object.id+'"));$i("'+bind.id+'").style.outline="";');
 		object.hint_div.appendChild(d);
 	}
 	document.body.appendChild(object.hint_div);
@@ -1239,7 +1237,7 @@ function try_show_hint(object,bind,struct)
 	if(nl<0)nl=0;
 	object.hint_div.style.top=(r.y+bind.offsetHeight-3)+'px';
 	object.hint_div.style.left="-100px";
-	setTimeout(function(){object.hint_div.style.left=(nl)+'px';},0);
+	setTimeout(function(){if(object.hint_div)object.hint_div.style.left=(nl)+'px';},0);
 }
 
 //------------------------- Keyboard support functions

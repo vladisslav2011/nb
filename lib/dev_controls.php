@@ -4743,6 +4743,12 @@ class query_gen_ext_manipulator
 		$last=array_pop($path_e);
 		$obk=$this->find($obj,implode('/',$path_e));
 		if(get_class($obk)=='query_gen_ext')$obk->static_exprs=true;
+		if(get_class($new)=='query_gen_ext')
+		{
+			$sq=new sql_subquery;
+			$sq->subquery=$new;
+			$new=$sq;
+		}
 		if(isset($obk->on) && isset($obk->what) && preg_match('/join/i',$obk->type))$obk->static_exprs=true;
 		if(get_class($obk)=='sql_joins')
 		{
@@ -4798,6 +4804,10 @@ class query_gen_ext_manipulator
 		if(get_class($obj)=='query_gen_ext')
 		{
 			return Array($obj->what,$obj->from,$obj->joins,$obj->where,$obj->group,$obj->order,$obj->having);
+		}
+		if(get_class($obj)=='sql_subquery')
+		{
+			return Array($obj->subquery);
 		}
 		if(isset($obj->on) && isset($obj->what) && preg_match('/join/i',$obj->type))
 		{
