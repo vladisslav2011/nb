@@ -1057,7 +1057,9 @@ function ed_tree_fa_item_mov(event,object_id,path,s,move)
 			object.hint_div.parentNode.removeChild(object.hint_div);
 			delete object.hint_div;
 			object.hint_displayed=false;
+			clearTimeout(object.hint_hide_timeout);
 		}
+		object.hint_path=path;
 		for(var k=0;k<object.id_list.length;k++)if(object.id_list[k].keys==path)break;
 		try_show_hint(object,s,Array(
 			{	src:'/i/copy.png',
@@ -1082,7 +1084,7 @@ function ed_tree_fa_item_mov(event,object_id,path,s,move)
 				'&parent_id='+encodeURIComponent(object.id_list[k].pcid)+
 				'&last_generated_id=" + last_generated_id +"&n",val:"",c_id:"'+object_id+'"});'
 			}));
-		object.hint_path=path;
+//		object.hint_path=path;
 	}
 	return true;
 }
@@ -1196,7 +1198,7 @@ function remove_hint(object)
 				object.hint_div.parentNode.removeChild(object.hint_div);
 				delete object.hint_div;
 			};
-			object.hint_displayed=false;
+			if(object.hint_displayed)object.hint_displayed=false;
 		},200);
 }
 
@@ -1206,6 +1208,11 @@ function try_show_hint(object,bind,struct)
 	object.hint_div.style.position='absolute';
 	object.hint_div.style.backgroundColor='white';
 	object.hint_div.style.border='1px solid grey';
+	object.hint_div.style.zIndex='1000';
+	var omover='clearTimeout($i("'+object.id+'").hint_hide_timeout);$i("'+bind.id+'").style.color="red";';
+	var omout='remove_hint($i("'+object.id+'"));$i("'+bind.id+'").style.color="";';
+	object.hint_div.setAttribute('onmouseover',omover);
+	object.hint_div.setAttribute('onmouseout',omout);
 	for(var k=0;k<struct.length;k++)
 	{
 		if(typeof(struct[k].href)!='undefined')
@@ -1226,8 +1233,8 @@ function try_show_hint(object,bind,struct)
 		if(typeof(struct[k].alt)=='undefined')img.setAttribute('alt',' ');else img.setAttribute('alt',struct[k].alt);
 		if(typeof(struct[k].title)!='undefined')img.setAttribute('title',struct[k].title);
 		if(typeof(struct[k].onclick)!='undefined')img.setAttribute('onclick',struct[k].onclick);
-		img.setAttribute('onmouseover','clearTimeout($i("'+object.id+'").hint_hide_timeout);$i("'+bind.id+'").style.outline="2px solid blue";');
-		img.setAttribute('onmouseout','remove_hint($i("'+object.id+'"));$i("'+bind.id+'").style.outline="";');
+		//img.setAttribute('onmouseover',omover);
+		//img.setAttribute('onmouseout',omout);
 		object.hint_div.appendChild(d);
 	}
 	document.body.appendChild(object.hint_div);
