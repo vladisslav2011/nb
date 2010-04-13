@@ -91,7 +91,25 @@ function js2php(o)
 	return 'a:'+c+':{'+com+'}';
 }
 
+function has_css_class(item,className)
+{
+	if(item.className==className)return true;
+	var m=new regexp("^(?:.* )*"+className+"(?:.* )*$","");
+	return m.test(item.className);
+}
 
+function add_css_class(item,className)
+{
+	if(has_css_class(item,className))return;
+	item.className+=(" "+className);
+}
+
+function remove_css_class(item,className)
+{
+	var repl=new RegExp("^((?:.* )*)"+className+"((?: .*)*)$","");
+	var n=t1.replace(item.className,"$1$2").replace(/  /,' ');
+	item.className=n;
+}
 
 
 function findPosY(obj)

@@ -3667,7 +3667,9 @@ class ed_tree_main extends dom_div
 		
 		editor_generic::addeditor('clip',new ed_tree_main_cv);
 		
-		$this->add_menu(NULL);//overridable, create editors only
+		$this->add_menu();//overridable, create editors only
+		foreach($this->add_item_list as $nn => $vv)
+			editor_generic::addeditor($nn,new ed_tree_main_nd($vv));
 		
 		
 		$tbl=new dom_table;
@@ -3683,7 +3685,13 @@ class ed_tree_main extends dom_div
 		
 		$ltd->append_child($this->ctl);
 		$ltd->append_child($this->editors['clip']);
-		$this->add_menu($ltd);//overridable, link editors into div
+		//add object menu items
+		foreach($this->add_item_list as $nn => $vv)
+		{
+			$ltd->append_child($this->editors[$nn]);
+			$this->editors[$nn]->css_style['cursor']='default';
+			$this->editors[$nn]->attributes['onmousedown']="resizer.create_ghost(event,this,{t:'".$nn."',d:''});return false;";
+		}
 		
 		
 		$ltd->append_child($this->editors['fa_cnt']);
@@ -4498,10 +4506,10 @@ class ed_tree_main_meta extends ed_tree_main
 		return new meta_query_manipulator;
 	}
 	
-	function add_menu($to)
+	function add_menu()
 	{
 			//TODO: localization
-		$add_d_cont=Array(
+		$this->add_item_list=Array(
 			'fm_text_constant'=>'<tc>',
 			'fm_logical_expression'=>'<le>',
 			'fm_list'=>'<li>',
@@ -4509,18 +4517,6 @@ class ed_tree_main_meta extends ed_tree_main
 			'fm_meta_object'=>'<mo>',
 			'fm_set_expression'=>'<se>'
 			);
-		if(!isset($to))
-		{
-			foreach($add_d_cont as $nn => $vv)
-				editor_generic::addeditor($nn,new ed_tree_main_nd($vv));
-		}elseif(is_object($to)){
-			foreach($add_d_cont as $nn => $vv)
-			{
-				$to->append_child($this->editors[$nn]);
-				$this->editors[$nn]->css_style['cursor']='default';
-				$this->editors[$nn]->attributes['onmousedown']="resizer.create_ghost(event,this,{t:'".$nn."',d:''});return false;";
-			}
-		}
 	}
 }
 
@@ -4954,10 +4950,10 @@ class ed_tree_main_query_gen_ext extends ed_tree_main
 		return new query_gen_ext_manipulator;
 	}
 	
-	function add_menu($to)
+	function add_menu()
 	{
 			//TODO: localization
-		$add_d_cont=Array(
+		$this->add_item_list=Array(
 			'sql_null'=>'<nul>',
 			'sql_immed'=>'<im>',
 			'sql_var'=>'<va>',
@@ -4966,18 +4962,6 @@ class ed_tree_main_query_gen_ext extends ed_tree_main
 			'sql_list'=>'<li>',
 			'sql_subquery'=>'<sq>'
 			);
-		if(!isset($to))
-		{
-			foreach($add_d_cont as $nn => $vv)
-				editor_generic::addeditor($nn,new ed_tree_main_nd($vv));
-		}elseif(is_object($to)){
-			foreach($add_d_cont as $nn => $vv)
-			{
-				$to->append_child($this->editors[$nn]);
-				$this->editors[$nn]->css_style['cursor']='default';
-				$this->editors[$nn]->attributes['onmousedown']="resizer.create_ghost(event,this,{t:'".$nn."',d:''});return false;";
-			}
-		}
 	}
 }
 
