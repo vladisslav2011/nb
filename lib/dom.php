@@ -210,7 +210,8 @@ class dom_node
 	{
 		$res='';
 		if(isset($this->id))$res=" id='".$this->id_gen()."'";
-		if(isset($this->css_class))$res.=" class='".$this->css_class."'";
+		if(isset($this->css_class))
+			$res.=" class='".(is_array($this->css_class)?implode(' ',$this->css_class):$this->css_class)."'";
 		if(isset($this->css_style))
 			if(is_array($this->css_style))
 			{
