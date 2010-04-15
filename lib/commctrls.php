@@ -584,7 +584,7 @@ class editor_href extends dom_any
 {
 	function __construct()
 	{
-		dom_any_noterm::__construct('a');
+		parent::__construct('a');
 		$this->etype=get_class($this);
 		$this->main=$this;
 		//$this->keys;
