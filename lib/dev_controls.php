@@ -4052,7 +4052,8 @@ class ed_tree_nofa extends dom_div
 		$this->normal->append_child($this->normal->main_div);
 		$this->normal->txt=new dom_statictext;
 		$this->normal->main_div->append_child($this->normal->txt);
-		
+		$this->normal->main_div->css_style['list-style-type']='square';
+		$this->normal->main_div->css_style['display']='list-item';
 		$this->normal->main_div->css_style['cursor']='default';
 		
 		$this->normal->children_container=new dom_div;
@@ -4061,8 +4062,11 @@ class ed_tree_nofa extends dom_div
 		
 		$this->undef=new dom_div;
 		$this->undef->main_div=new dom_div;
+		$this->undef->main_div->css_style['border-top']='0.2em dotted gray';
+		$this->undef->main_div->css_style['margin-top']='0.1em';
+		$this->undef->main_div->css_style['height']='0.3em';
 		$this->undef->append_child($this->undef->main_div);
-		$this->undef->txt=new dom_statictext('++');
+		$this->undef->txt=new dom_statichtml('&nbsp;');
 		$this->undef->main_div->append_child($this->undef->txt);
 		
 		$this->undef->main_div->css_style['cursor']='default';
@@ -4904,8 +4908,8 @@ class ed_query_gen_ext_editor extends ed_tree_item_editor//virtual component inj
 		case 'sql_joins':
 			break;
 		case 'query_gen_ext':
-			$this->field_add($obj,'count','count',new editor_text);
-			$this->field_add($obj,'offset','offset',new editor_text);
+			$this->field_add($obj,'lim_count','count',new editor_text);
+			$this->field_add($obj,'lim_offset','offset',new editor_text);
 			break;
 		}
 		if(isset($obj->on) && isset($obj->what) && preg_match('/join/i',$obj->type))
