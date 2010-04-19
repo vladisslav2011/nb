@@ -4991,7 +4991,11 @@ class ed_tree_main_query_gen_ext_test extends dom_div
 		$this->append_child($this->result);
 		$this->result->append_child($this->result_text);
 		$this->result->css_style['border']='1px solid green';
-		
+		editor_generic::addeditor('x',new editor_button);
+		$this->editors['x']->attributes['value']='exec';
+		$this->append_child($this->editors['x']);
+		$this->query_result=new dom_div;
+		$this->append_child($this->query_result);
 	}
 	
 	function bootstrap()
@@ -5003,6 +5007,7 @@ class ed_tree_main_query_gen_ext_test extends dom_div
 		$this->keys=Array();
 		$this->oid=96;
 		$this->context[$this->long_name]['result_div_id']=$this->result->id_gen();
+		$this->context[$this->long_name]['query_result_div_id']=$this->query_result->id_gen();
 		$this->context[$this->long_name]['oid']=$this->oid;
 		foreach($this->editors as $i => $e)
 		{
@@ -5041,6 +5046,7 @@ class ed_tree_main_query_gen_ext_test extends dom_div
 	
 	function handle_event($ev)
 	{
+		global $sql;
 		$result_div_id=$ev->context[$ev->parent_name]['result_div_id'];
 		if($ev->rem_name=='r')
 		{
@@ -5049,6 +5055,13 @@ class ed_tree_main_query_gen_ext_test extends dom_div
 			print "window.location.reload(true);";
 		}
 		$prev=unserialize($_SESSION['ed_tree_main_query_gen_ext_test']);
+		if($ev->rem_name=='x')
+		{
+			$tbl=new query_result_v;
+			$tbl->query=$prev->result();
+			print "\$i('".$ev->context[$ev->parent_name]['query_result_div_id']."').innerHTML=";
+			reload_object($tbl,true);
+		}
 		editor_generic::handle_event($ev);
 		$after=unserialize($_SESSION['ed_tree_main_query_gen_ext_test']);
 		if($prev->rev != $after->rev)
