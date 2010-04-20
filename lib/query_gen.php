@@ -72,7 +72,7 @@ class sql_csv_set
 
 
 
-class query_gen
+class query_gen_off
 {
 function __construct($type='select')
 {
