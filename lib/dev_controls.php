@@ -4862,33 +4862,33 @@ class ed_query_gen_ext_editor extends ed_tree_item_editor//virtual component inj
 			//TODO: localization
 			$this->field_add($obj,'val','Значение',new editor_text);
 			$this->field_add($obj,'alias','alias',new editor_text);
-			$this->field_add($obj,'to_variable','Переменная',new editor_text);
+			$this->field_add($obj,'variable','Переменная',new editor_text);
 			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
 			break;
 		case 'sql_var':
 			//TODO: localization
 			$this->field_add($obj,'val','Значение',new editor_text);
 			$this->field_add($obj,'alias','alias',new editor_text);
-			$this->field_add($obj,'to_variable','Переменная',new editor_text);
+			$this->field_add($obj,'variable','Переменная',new editor_text);
 			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
 			break;
 		case 'sql_subquery':
 			//TODO: localization
 			$this->field_add($obj,'alias','alias',new editor_text);
-			$this->field_add($obj,'to_variable','Переменная',new editor_text);
+			$this->field_add($obj,'variable','Переменная',new editor_text);
 			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
 			break;
 		case 'sql_expression':
 			//TODO: localization
 			$this->field_add($obj,'operator','operator',new editor_text);
 			$this->field_add($obj,'alias','alias',new editor_text);
-			$this->field_add($obj,'to_variable','Переменная',new editor_text);
+			$this->field_add($obj,'variable','Переменная',new editor_text);
 			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
 			break;
 		case 'sql_list':
 			$this->field_add($obj,'func','function',new editor_text);
 			$this->field_add($obj,'alias','alias',new editor_text);
-			$this->field_add($obj,'to_variable','Переменная',new editor_text);
+			$this->field_add($obj,'variable','Переменная',new editor_text);
 			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
 			break;
 		case 'sql_column':
@@ -4896,13 +4896,13 @@ class ed_query_gen_ext_editor extends ed_tree_item_editor//virtual component inj
 			$this->field_add($obj,'tbl','tbl',new editor_text);
 			$this->field_add($obj,'col','col',new editor_text);
 			$this->field_add($obj,'alias','alias',new editor_text);
-			$this->field_add($obj,'to_variable','Переменная',new editor_text);
+			$this->field_add($obj,'variable','Переменная',new editor_text);
 			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
 			break;
 		case 'sql_order':
 			$this->field_add($obj,'function','function',new editor_text);
 			$this->field_add($obj,'alias','alias',new editor_text);
-			$this->field_add($obj,'to_variable','Переменная',new editor_text);
+			$this->field_add($obj,'variable','Переменная',new editor_text);
 			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
 			break;
 		case 'sql_joins':

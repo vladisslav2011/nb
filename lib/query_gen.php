@@ -373,6 +373,8 @@ class sql_immed
 			$res=' \''.sql::esc($this->val).'\'';
 		if($this->alias != '')
 			$res.=' AS `'.sql::esc($this->alias).'`';
+		if($this->variable !='')
+			$res=' @`'.sql::esc($this->variable).'` :='.$res;
 		return $res;
 	}
 	
@@ -406,6 +408,8 @@ class sql_var
 			$res=' @`'.sql::esc($this->val).'`';
 		if($this->alias != '')
 			$res.=' AS `'.sql::esc($this->alias).'`';
+		if($this->variable !='')
+			$res=' @`'.sql::esc($this->variable).'` :='.$res;
 		return $res;
 	}
 	
@@ -456,6 +460,8 @@ class sql_column
 			$res.=' AS `'.sql::esc($this->alias).'`';
 		}
 		
+		if($this->variable !='')
+			$res=' @`'.sql::esc($this->variable).'` :='.$res;
 		
 		return $res;
 	}
@@ -513,9 +519,9 @@ class sql_subquery
 		//check for dupplicate alias/ambigous column
 		$res=' ('.$this->subquery->result().')';
 		if($this->alias != '')
-		{
 			$res.=' AS `'.sql::esc($this->alias).'`';
-		}
+		if($this->variable !='')
+			$res=' @`'.sql::esc($this->variable).'` :='.$res;
 		return $res;
 	}
 	function __clone()
@@ -605,6 +611,8 @@ class sql_expression
 		{
 			$res.=' AS `'.sql::esc($this->alias).'`';
 		}
+		if($this->variable !='')
+			$res=' @`'.sql::esc($this->variable).'` :='.$res;
 		return $res;
 	}
 	function __clone()
@@ -719,6 +727,8 @@ class sql_list
 		{
 			$res.=' AS `'.sql::esc($this->alias).'`';
 		}
+		if($this->variable !='')
+			$res=' @`'.sql::esc($this->variable).'` :='.$res;
 		return $res;
 	}
 	
@@ -931,11 +941,13 @@ function __construct($type='select')
 	$this->group->nopar=true;
 	$this->having=new sql_expression;
 
-	$this->into=new sql_list;
+	//$this->into=new sql_list;
+	$this->into=&$this->from;
 	$this->set=new sql_list;
 	$this->set->nopar=true;
-	$this->update=new sql_list;
-	$this->update->nopar=true;
+	//$this->update=new sql_list;
+	//$this->update->nopar=true;
+	$this->update=&$this->set;
 	$this->union_order = new sql_list;
 	//$this->select; - for insert select
 }
@@ -948,9 +960,11 @@ function __clone()
 	if(is_object($this->order))$this->order = clone $this->order; else $this->order=new sql_order;
 	if(is_object($this->group))$this->group = clone $this->group; else $this->group=new sql_order;
 	if(is_object($this->having))$this->having = clone $this->having; else $this->having=new sql_expression;
-	if(is_object($this->into))$this->into = clone $this->into; else $this->into=new sql_list;
+	$this->into=&$this->from;
+	//if(is_object($this->into))$this->into = clone $this->into; else $this->into=new sql_list;
 	if(is_object($this->set))$this->set = clone $this->set; else $this->set=new sql_list;
-	if(is_object($this->update))$this->update = clone $this->update; else $this->update=new sql_list;
+	$this->update=&$this->set;
+	//if(is_object($this->update))$this->update = clone $this->update; else $this->update=new sql_list;
 	if(is_object($this->union_order))$this->union_order = clone $this->union_order; else $this->union_order = new sql_list;
 	if(is_object($this->joins))$this->joins = clone $this->joins; else $this->joins=new sql_joins;
 	if(is_object($this->select))$this->select = clone $this->select; else unset($this->select);
