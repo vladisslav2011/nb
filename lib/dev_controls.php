@@ -4546,6 +4546,10 @@ class ed_tree_main_test extends dom_div
 		$this->append_child($this->result);
 		$this->result->append_child($this->result_text);
 		$this->result->css_style['border']='1px solid green';
+		editor_generic::addeditor('push',new editor_button);
+		$this->editors['push']->main->attributes['value']='push result to ed_tree_main_query_gen_ext_test';
+		$this->append_child($this->editors['push']);
+		
 		
 	}
 	
@@ -4648,6 +4652,10 @@ class ed_tree_main_test extends dom_div
 			print "window.location.reload(true);";
 		}
 		$prev=unserialize($_SESSION['ed_tree_main_fortest']);
+		if($ev->rem_name=='push')
+		{
+			$_SESSION['ed_tree_main_query_gen_ext_test']=serialize($prev->to_show());
+		}
 		editor_generic::handle_event($ev);
 		$after=unserialize($_SESSION['ed_tree_main_fortest']);
 		if($prev->rev != $after->rev)
@@ -4803,7 +4811,7 @@ class query_gen_ext_manipulator
 	{
 		if(get_class($obj)=='query_gen_ext')
 		{
-			return Array($obj->what,$obj->from,$obj->joins,$obj->where,$obj->group,$obj->order,$obj->having);
+			return Array($obj->what,$obj->set,$obj->update,$obj->from,$obj->into,$obj->joins,$obj->where,$obj->group,$obj->order,$obj->having);
 		}
 		if(get_class($obj)=='sql_subquery')
 		{
@@ -4817,7 +4825,7 @@ class query_gen_ext_manipulator
 		return NULL;
 	}
 	
-	function text($obj)
+	function text($obj,$path=NULL)
 	{
 		switch(get_class($obj))
 		{
@@ -4825,8 +4833,8 @@ class query_gen_ext_manipulator
 		case 'sql_immed':return "'".$obj->val."'".(($obj->alias!='')?" as ".$obj->alias:'');
 		case 'sql_var':return "@'".$obj->val."'".(($obj->alias!='')?" as ".$obj->alias:'');
 		case 'sql_subquery':return "subquery".(($obj->alias!='')?" as ".$obj->alias:'');
-		case 'sql_expression':return "<".$obj->operator.">:".count($obj->exprs).(($obj->alias!='')?" as ".$obj->alias:'');
-		case 'sql_list':return "".$obj->func."(..):".count($obj->exprs).(($obj->alias!='')?" as ".$obj->alias:'');
+		case 'sql_expression':return $obj->operator."():".count($obj->exprs).(($obj->alias!='')?" as ".$obj->alias:'');
+		case 'sql_list':return ($obj->func=='' ? '(a,b,..)' : $obj->func.'(x)').":".count($obj->exprs).(($obj->alias!='')?" as ".$obj->alias:'');
 		case 'sql_column':return	"c: ".(($obj->db!='')?"`".$obj->db."`.":"").
 									(($obj->tbl!='')?"`".$obj->tbl."`.":"").
 									(($obj->col!='')?"`".$obj->col."`":"").
@@ -4908,6 +4916,14 @@ class ed_query_gen_ext_editor extends ed_tree_item_editor//virtual component inj
 		case 'sql_joins':
 			break;
 		case 'query_gen_ext':
+			$this->field_add($obj,'type','type',new editor_select);
+			$this->editors['type']->options=Array(
+				"SELECT"=>"SELECT",
+				"INSERT"=>"INSERT",
+				"INSERT UPDATE"=>"INSERT UPDATE",
+				"UPDATE"=>"UPDATE",
+				"DELETE"=>"DELETE",
+				);
 			$this->field_add($obj,'lim_count','count',new editor_text);
 			$this->field_add($obj,'lim_offset','offset',new editor_text);
 			break;
