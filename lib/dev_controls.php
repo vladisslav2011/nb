@@ -5096,7 +5096,324 @@ $tests_m_array[]='ed_tree_main_query_gen_ext_test';
 
 
 
+/*
+##################################################################################	
+	Implement methods for htm editor
+##################################################################################	
+*/
 
+
+class htm_manipulator
+{
+	function find($obj,$path)
+	{
+		$found=$obj;
+		$path_e=explode('/',$path);
+		$c=count($path_e);
+		for($k=0;$k<$c;$k++)
+			if($path_e[$k]!=='')
+			{
+				$ch=$this->children($found);
+				if(preg_match('/[0-9]+/',$path_e[$k]))
+					$found=$ch[$path_e[$k]];
+				else
+					$found=$found->{$path_e[$k]};
+			}
+		return $found;
+	}
+	
+	function del_node($obj,$path)
+	{
+		$path_e=explode('/',$path);
+		$last=array_pop($path_e);
+		$obk=$this->find($obj,implode('/',$path_e));
+		#if(get_class($obk)=='query_gen_ext')return;
+		if(preg_match('/[0-9]+/',$last))
+		{
+			if($obk->static_children)
+			{
+				$obk->exprs[$last]=new sql_null;
+				return true;
+			}
+			$a=Array();
+			foreach($obk->exprs as $k => $v)
+				if($k !=$last)$a[]=$v;
+			$obk->exprs=$a;
+		}else{
+			
+			#$obk->$last=new fm_undefined;
+			return false;
+		}
+		return true;
+	}
+	
+	function pick_node($obj,$path)
+	{
+		$path_e=explode('/',$path);
+		$last=array_pop($path_e);
+		$obk=$this->find($obj,implode('/',$path_e));
+		#if(get_class($obk)=='query_gen_ext')$obk->static_exprs=true;
+		$chl=$this->children($obk);
+		if(preg_match('/[0-9]+/',$last))
+		{
+			foreach($chl as $k => $v)
+				if($k==$last)
+				{
+					$found=$v;
+					if(!$obk->static_exprs)
+						$obk->exprs[$k]='Picked';
+					break;
+				}
+				return $found;
+		}
+		return true;
+	}
+	
+	function add_node($obj,$path,$new)
+	{
+		$path_e=explode('/',$path);
+		$last=array_pop($path_e);
+		$obk=$this->find($obj,implode('/',$path_e));
+		#if(get_class($obk)=='query_gen_ext')$obk->static_exprs=true;
+		if(preg_match('/[0-9]+/',$last))
+		{
+			if($obk->static_exprs)
+			{
+				//$obk->exprs[$last]=$new;
+				return;
+			}
+			$a=Array();
+			if(is_array($obk->exprs))
+				foreach($obk->exprs as $k => $v)
+				{
+					if($k ==$last)$a[]=$new;
+					$a[]=$v;
+				}
+			if(($last>=count($obk->exprs))|| !is_array($obk->exprs))$a[]=$new;
+			$obk->exprs=$a;
+		}else{
+			
+			if($last != '')$obk->$last=$new;
+		}
+	}
+	
+	function cleanup_picked($obj)
+	{
+		$ch=$this->children($obj);
+		if(is_array($ch))
+		{
+			$a=Array();
+			$found=false;
+			foreach($ch as $v)
+			{
+				if($v==='Picked')$found=true;
+				if($v!=='Picked')
+				{
+					$a[]=$v;
+					if(is_array($this->children($v)))$this->cleanup_picked($v);
+				}
+			}
+			if($found && isset($obj->exprs))$obj->exprs=$a;
+		}
+	}
+	
+	function children($obj)
+	{
+		if(is_array($obj->exprs))return $obj->exprs;
+		return NULL;
+	}
+	
+	function text($obj,$path=NULL)
+	{
+		switch(get_class($obj))
+		{
+		case 'htm_node':return 'htm_node';
+		}
+		return "unknown";
+	}
+	
+	function item_editor()
+	{
+		return 'ed_htm_editor';
+	}
+}
+
+##################################################################################	
+
+class ed_htm_editor extends ed_tree_item_editor//virtual component injector
+{
+	
+	function configure($obj)//virtual method
+	{
+		$type=get_class($obj);
+		$this->title_set($type,$type);
+		switch($type)
+		{
+		case 'htm_node':
+			//TODO: localization
+			$this->field_add($obj,'tag','tag',new editor_text);
+			$this->field_add($obj,'title','title',new editor_text);
+			break;
+		}
+	}
+	
+	
+	function handle_event($ev)//parent handles events
+	{
+		editor_generic::handle_event($ev);
+	}
+}
+
+
+
+
+
+#####################################################################################################
+
+
+
+class ed_tree_main_htm extends ed_tree_main
+{
+	
+	function fetch()
+	{
+		return unserialize($_SESSION['ed_tree_main_htm_test']);
+	}
+	
+	function store($new)
+	{
+		if(! isset($new->rev))$new->rev=0;
+		else $new->rev++;
+		$_SESSION['ed_tree_main_htm_test']=serialize($new);
+	}
+	
+	function manipulator()
+	{
+		return new query_gen_ext_manipulator;
+	}
+	
+	function add_menu()
+	{
+			//TODO: localization
+		$this->add_item_list=Array(
+			'htm_node'=>'htm_node',
+			);
+	}
+}
+
+/*
+##################################################################################	
+		test for ed_tree_main_query_gen_ext
+##################################################################################	
+*/
+
+class ed_tree_main_htm_test extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		editor_generic::addeditor('r',new editor_button);
+		$this->append_child($this->editors['r']);
+		$this->editors['r']->attributes['value']='x';
+		editor_generic::addeditor('m',new ed_tree_main_htm);
+		$this->append_child($this->editors['m']);
+		$this->result=new dom_div;
+		$this->result_text=new dom_statictext;
+		$this->append_child($this->result);
+		$this->result->append_child($this->result_text);
+		$this->result->css_style['border']='1px solid green';
+		editor_generic::addeditor('x',new editor_button);
+		$this->editors['x']->attributes['value']='exec';
+		$this->append_child($this->editors['x']);
+		$this->query_result=new dom_div;
+		$this->append_child($this->query_result);
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		if(!is_array($this->editors))return;
+		$this->args=Array();
+		$this->context=Array();
+		$this->keys=Array();
+		$this->oid=96;
+		$this->context[$this->long_name]['result_div_id']=$this->result->id_gen();
+		$this->context[$this->long_name]['query_result_div_id']=$this->query_result->id_gen();
+		$this->context[$this->long_name]['oid']=$this->oid;
+		foreach($this->editors as $i => $e)
+		{
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+			$e->oid=$this->oid;
+		}
+		foreach($this->editors as $i => $e)
+			$e->bootstrap();
+			
+			
+	}
+	
+	
+	function set_new()
+	{
+		//$a=new meta_query_gen;
+		//$a->oid=$this->oid;
+		$n=new htm_node;
+		$n->oid=$this->oid;
+		$_SESSION['ed_tree_main_htm_test']=serialize($n);
+		return;
+	}
+	
+	function html_inner()
+	{
+		if(!isset($_SESSION['ed_tree_main_htm_test']))
+			$this->set_new();
+		#$this->args['filters_m']=unserialize($_SESSION['filters_m_test']);
+		$prev=unserialize($_SESSION['ed_tree_main_htm_test']);
+		$this->result_text->text=$prev->result();
+		parent::html_inner();
+	}
+	
+	function handle_event($ev)
+	{
+		global $sql;
+		$result_div_id=$ev->context[$ev->parent_name]['result_div_id'];
+		if($ev->rem_name=='r')
+		{
+			$this->oid=$ev->context[$ev->parent_name]['oid'];
+			$this->set_new();
+			print "window.location.reload(true);";
+		}
+		$prev=unserialize($_SESSION['ed_tree_main_htm_test']);
+		if($ev->rem_name=='x')
+		{
+			$tbl=new query_result_v;
+			$tbl->query=$prev->result();
+			print "\$i('".$ev->context[$ev->parent_name]['query_result_div_id']."').innerHTML=";
+			reload_object($tbl,true);
+		}
+		editor_generic::handle_event($ev);
+		$after=unserialize($_SESSION['ed_tree_main_htm_test']);
+		if($prev->rev != $after->rev)
+		{
+			
+			print "\$i('".$result_div_id."').textContent='".js_escape($after->result())."';";
+			//print "\$i('".$result_div_id."').textContent='undef';";
+		}
+	}
+}
+---
+$tests_m_array[]='ed_tree_main_htm_test';
+
+class htm_node
+{
+	function result()
+	{
+		return 'htm_node';
+	}
+}
 
 
 
