@@ -5406,6 +5406,59 @@ class ed_tree_main_htm_test extends dom_div
 }
 $tests_m_array[]='ed_tree_main_htm_test';
 
+class ed_imm_qv extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		editor_generic::addeditor('imm',new editor_text);
+		editor_generic::addeditor('qv',new editor_text_autosuggest);
+		$this->modeswitch=new dom_any_noterm('img');
+		$this->modeswitch->attributes['src']='/i/ed_imm_qv_i.png';
+		$this->append_child($this->modeswitch);
+		$this->append_child($this->editors['imm']);
+		$this->append_child($this->editors['qv']);
+	}
+	
+	function bootstrap()
+	{
+	}
+		
+	function handle_event($ev)
+	{
+		editor_generic::handle_event($ev);
+	}
+}
+
+
+class ed_css_editor extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+	}
+	
+	function bootstrap()
+	{
+	}
+		
+	function handle_event($ev)
+	{
+		editor_generic::handle_event($ev);
+	}
+}
+
+
+
+
+
+
+
+
+
+
 class htm_node
 {
 	function __construct()
@@ -5415,6 +5468,7 @@ class htm_node
 	
 	function result($p)
 	{
+		if($this->tag=='')$this->tag='div';
 		$n=new dom_any($this->tag);
 		$p->append_child($n);
 		
@@ -5435,6 +5489,7 @@ class htm_node_nc
 	
 	function result($p)
 	{
+		if($this->tag=='')$this->tag='br';
 		$n=new dom_any($this->tag);
 		$p->append_child($n);
 		if($this->title != '')$n->attributes['title']=$this->title;
