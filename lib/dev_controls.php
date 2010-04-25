@@ -5227,7 +5227,11 @@ class htm_manipulator
 	{
 		switch(get_class($obj))
 		{
-		case 'htm_node':return 'htm_node';
+		case 'htm_node_nc':
+		case 'htm_node':
+			return '<'.$obj->tag.'>';
+		case 'htm_text':
+			return "'".$obj->text."'";
 		}
 		return "unknown";
 	}
@@ -5250,9 +5254,15 @@ class ed_htm_editor extends ed_tree_item_editor//virtual component injector
 		switch($type)
 		{
 		case 'htm_node':
+		case 'htm_node_nc':
 			//TODO: localization
 			$this->field_add($obj,'tag','tag',new editor_text);
 			$this->field_add($obj,'title','title',new editor_text);
+			$this->field_add($obj,'css_class','css_class',new editor_text);
+			$this->field_add($obj,'css_style','css_style',new editor_text);
+			break;
+		case 'htm_text':
+			$this->field_add($obj,'text','text',new editor_text);
 			break;
 		}
 	}
@@ -5289,7 +5299,7 @@ class ed_tree_main_htm extends ed_tree_main
 	
 	function manipulator()
 	{
-		return new query_gen_ext_manipulator;
+		return new htm_manipulator;
 	}
 	
 	function add_menu()
@@ -5297,13 +5307,15 @@ class ed_tree_main_htm extends ed_tree_main
 			//TODO: localization
 		$this->add_item_list=Array(
 			'htm_node'=>'htm_node',
+			'htm_node_nc'=>'htm_node_nc',
+			'htm_text'=>'htm_text',
 			);
 	}
 }
 
 /*
 ##################################################################################	
-		test for ed_tree_main_query_gen_ext
+		test for ed_tree_main_htm
 ##################################################################################	
 */
 
@@ -5319,15 +5331,8 @@ class ed_tree_main_htm_test extends dom_div
 		editor_generic::addeditor('m',new ed_tree_main_htm);
 		$this->append_child($this->editors['m']);
 		$this->result=new dom_div;
-		$this->result_text=new dom_statictext;
 		$this->append_child($this->result);
-		$this->result->append_child($this->result_text);
 		$this->result->css_style['border']='1px solid green';
-		editor_generic::addeditor('x',new editor_button);
-		$this->editors['x']->attributes['value']='exec';
-		$this->append_child($this->editors['x']);
-		$this->query_result=new dom_div;
-		$this->append_child($this->query_result);
 	}
 	
 	function bootstrap()
@@ -5339,7 +5344,6 @@ class ed_tree_main_htm_test extends dom_div
 		$this->keys=Array();
 		$this->oid=96;
 		$this->context[$this->long_name]['result_div_id']=$this->result->id_gen();
-		$this->context[$this->long_name]['query_result_div_id']=$this->query_result->id_gen();
 		$this->context[$this->long_name]['oid']=$this->oid;
 		foreach($this->editors as $i => $e)
 		{
@@ -5372,7 +5376,7 @@ class ed_tree_main_htm_test extends dom_div
 			$this->set_new();
 		#$this->args['filters_m']=unserialize($_SESSION['filters_m_test']);
 		$prev=unserialize($_SESSION['ed_tree_main_htm_test']);
-		$this->result_text->text=$prev->result();
+		$prev->result($this->result);
 		parent::html_inner();
 	}
 	
@@ -5387,31 +5391,69 @@ class ed_tree_main_htm_test extends dom_div
 			print "window.location.reload(true);";
 		}
 		$prev=unserialize($_SESSION['ed_tree_main_htm_test']);
-		if($ev->rem_name=='x')
-		{
-			$tbl=new query_result_v;
-			$tbl->query=$prev->result();
-			print "\$i('".$ev->context[$ev->parent_name]['query_result_div_id']."').innerHTML=";
-			reload_object($tbl,true);
-		}
 		editor_generic::handle_event($ev);
 		$after=unserialize($_SESSION['ed_tree_main_htm_test']);
 		if($prev->rev != $after->rev)
 		{
 			
-			print "\$i('".$result_div_id."').textContent='".js_escape($after->result())."';";
+			$m=new dom_div;
+			$after->result($m);
+			print "\$i('".$result_div_id."').innerHTML=";
+			reload_object($m,true);
 			//print "\$i('".$result_div_id."').textContent='undef';";
 		}
 	}
 }
----
 $tests_m_array[]='ed_tree_main_htm_test';
 
 class htm_node
 {
-	function result()
+	function __construct()
 	{
-		return 'htm_node';
+		$this->exprs=Array();
+	}
+	
+	function result($p)
+	{
+		$n=new dom_any($this->tag);
+		$p->append_child($n);
+		
+		if($this->title != '')$n->attributes['title']=$this->title;
+		
+		//replace with correct
+		if($this->css_style != '')$n->attributes['style']=$this->css_style;
+		if($this->css_class != '')$n->attributes['class']=$this->css_class;
+		//replace with correct
+		
+		if(is_array($this->exprs) && count($this->exprs)>0)foreach($this->exprs as $e)
+			$e->result($n);
+	}
+}
+
+class htm_node_nc
+{
+	
+	function result($p)
+	{
+		$n=new dom_any($this->tag);
+		$p->append_child($n);
+		if($this->title != '')$n->attributes['title']=$this->title;
+		
+		//replace with correct
+		if($this->css_style != '')$n->attributes['style']=$this->css_style;
+		if($this->css_class != '')$n->attributes['class']=$this->css_class;
+		//replace with correct
+	}
+}
+
+class htm_text
+{
+	
+	function result($p)
+	{
+		$n=new dom_statictext;
+		$p->append_child($n);
+		$n->text=$this->text;
 	}
 }
 

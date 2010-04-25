@@ -16,7 +16,7 @@ function reload_object($obj,$inneronly=false)
 	$tr=new dom_root_reload;
 	$tr->append_child($obj);
 	//$tr->for_each_set('oid',-1);
-	$obj->bootstrap();
+	if(method_exists($obj,'bootstrap'))$obj->bootstrap();
 
 	$tr->collect_oids($settings_tool);
 	$tr->settings_array=$settings_tool->read_oids($sql);
@@ -34,7 +34,7 @@ function reload_object_create($obj)
 	$tr=new dom_root_reload;
 	$tr->append_child($obj);
 	//$tr->for_each_set('oid',-1);
-	$obj->bootstrap();
+	if(method_exists($obj,'bootstrap'))$obj->bootstrap();
 
 	$tr->collect_oids($settings_tool);
 	$tr->settings_array=$settings_tool->read_oids($sql);
