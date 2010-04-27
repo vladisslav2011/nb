@@ -5309,6 +5309,7 @@ class ed_tree_main_htm extends ed_tree_main
 			'htm_node'=>'htm_node',
 			'htm_node_nc'=>'htm_node_nc',
 			'htm_text'=>'htm_text',
+			'htm_group'=>'htm_group',
 			);
 	}
 }
@@ -5512,6 +5513,22 @@ class htm_text
 	}
 }
 
+class htm_group
+{
+	function __construct()
+	{
+		$this->exprs=Array();
+	}
+	
+	function result($p)
+	{
+		$n=new dom_statictext;
+		$p->append_child($n);
+		$n->text='htm_group stub. TODO: implement query iterator';
+		if(is_array($this->exprs) && count($this->exprs)>0)foreach($this->exprs as $e)
+			$e->result($n);
+	}
+}
 
 
 
