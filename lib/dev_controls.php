@@ -4111,7 +4111,7 @@ class ed_tree_nofa extends dom_div
 	}
 	
 	
-	function create_editor_for($current,$ref)
+	function create_editor_for($current,$ref,$xname=NULL)
 	{
 		$got=true;
 		if(preg_match('/[0-9]+/',$ref))
@@ -4171,14 +4171,14 @@ class ed_tree_nofa extends dom_div
 		$this->ed->main_div->attributes['onmouseout']=
 			"return ed_tree_fa_item_mou(event,'".js_escape($this->button_id)."','".js_escape($this->path)."',this);";
 		if($got)
-			$this->ed->txt->text=$this->ma->text($obj);
+			$this->ed->txt->text=$xname." ".$this->ma->text($obj);
 		$this->opene($this->ed);
 		if(isset($this->ed->children_container))
 			$this->children_id=$this->ed->children_container->id_gen();
 		$ca=$this->ma->children($obj);
 		if(is_array($ca))
 				for($k=0;$k<=count($ca);$k++)
-					$this->create_editor_for($obj,$k);
+					$this->create_editor_for($obj,$k,$this->ma->xname($obj,$k));
 		//restore $this->ed ids here if needed
 		$this->ed=$ed;
 		$this->closee($ed);
@@ -4420,6 +4420,11 @@ class meta_query_manipulator
 	function item_editor()
 	{
 		return 'ed_tree_meta_editor';
+	}
+	
+	function xname($obj,$ref)
+	{
+		return "xx";
 	}
 	
 }
@@ -4851,6 +4856,25 @@ class query_gen_ext_manipulator
 	{
 		return 'ed_query_gen_ext_editor';
 	}
+	
+	function xname($obj,$ref)
+	{
+		if(get_class($obj)=='query_gen_ext')
+		{
+			$a=Array('what','set','update','from','into','joins','where','group','order','having');
+			return $a[$ref];
+		}
+		if(get_class($obj)=='sql_subquery')
+		{
+			return 'subquery';
+		}
+		if(isset($obj->on) && isset($obj->what) && preg_match('/join/i',$obj->type))
+		{
+			$a=Array('what','on');
+			return $a[$ref];
+		}
+		return "";
+	}
 }
 
 ##################################################################################	
@@ -5010,6 +5034,11 @@ class ed_tree_main_query_gen_ext_test extends dom_div
 		editor_generic::addeditor('x',new editor_button);
 		$this->editors['x']->attributes['value']='exec';
 		$this->append_child($this->editors['x']);
+		$this->store_a=new dom_any('a');
+		$this->store_a->attributes['href']='#';
+		$txt=new dom_statictext('save csv');
+		$this->store_a->append_child($txt);
+		$this->append_child($this->store_a);
 		$this->query_result=new dom_div;
 		$this->append_child($this->query_result);
 	}
@@ -5024,6 +5053,7 @@ class ed_tree_main_query_gen_ext_test extends dom_div
 		$this->oid=96;
 		$this->context[$this->long_name]['result_div_id']=$this->result->id_gen();
 		$this->context[$this->long_name]['query_result_div_id']=$this->query_result->id_gen();
+		$this->context[$this->long_name]['store_a_id']=$this->store_a->id_gen();
 		$this->context[$this->long_name]['oid']=$this->oid;
 		foreach($this->editors as $i => $e)
 		{
@@ -5056,7 +5086,9 @@ class ed_tree_main_query_gen_ext_test extends dom_div
 			$this->set_new();
 		#$this->args['filters_m']=unserialize($_SESSION['filters_m_test']);
 		$prev=unserialize($_SESSION['ed_tree_main_query_gen_ext_test']);
+		$prev->strip_aliases();
 		$this->result_text->text=$prev->result();
+		$this->store_a->attributes['href']='/dump.php?n=edtmqgt.csv&d=,&e=UTF-8&q='.rawurlencode($this->result_text->text);
 		parent::html_inner();
 	}
 	
@@ -5073,6 +5105,7 @@ class ed_tree_main_query_gen_ext_test extends dom_div
 		$prev=unserialize($_SESSION['ed_tree_main_query_gen_ext_test']);
 		if($ev->rem_name=='x')
 		{
+			$prev->strip_aliases();
 			$tbl=new query_result_v;
 			$tbl->query=$prev->result();
 			print "\$i('".$ev->context[$ev->parent_name]['query_result_div_id']."').innerHTML=";
@@ -5083,6 +5116,7 @@ class ed_tree_main_query_gen_ext_test extends dom_div
 		if($prev->rev != $after->rev)
 		{
 			
+			$after->strip_aliases();
 			print "\$i('".$result_div_id."').textContent='".js_escape($after->result())."';";
 			//print "\$i('".$result_div_id."').textContent='undef';";
 		}

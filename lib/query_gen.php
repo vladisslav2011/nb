@@ -1392,6 +1392,70 @@ function result()
 	}
 }
 
+function strip_aliases($o=NULL,$skip=false)
+{
+	if($o==NULL)$o=$this;
+	if(get_class($o)=='query_gen_ext')
+	{
+		unset($o->what->alias);
+		unset($o->what->func);
+		if(is_array($o->what->exprs))
+			foreach($o->what->exprs as $e)
+				$this->strip_aliases($e,true);
+		unset($o->from->alias);
+		unset($o->from->func);
+		if(is_array($o->from->exprs))
+			foreach($o->from->exprs as $e)
+				$this->strip_aliases($e,true);
+		$this->strip_aliases($o->joins);
+		$o->where->operator='AND';
+		$this->strip_aliases($o->where);
+		unset($o->order->func);
+		$this->strip_aliases($o->order);
+		unset($o->group->func);
+		$this->strip_aliases($o->group);
+		$o->having->operator='AND';
+		$this->strip_aliases($o->having);
+		#$this->strip_aliases($o->unions);
+		
+		unset($o->into->func);
+		$this->strip_aliases($o->into);
+		unset($o->set->func);
+		$this->strip_aliases($o->set);
+		unset($o->update->func);
+		$this->strip_aliases($o->update);
+		unset($o->union_order->func);
+		$this->strip_aliases($o->union_order);
+		return;
+	}
+	if(get_class($o)=='sql_joins')
+	{
+		unset($o->alias);
+		if(is_array($o->exprs))
+			foreach($o->exprs as $e)
+			{
+				if(is_array($e->what->exprs) && (get_class($e->what)=='sql_list') && ($e->func==''))
+				{
+					unset($e->what->alias);
+					unset($o->what->func);
+					foreach($e->what->exprs as $x)
+						$this->strip_aliases($x,true);
+				}
+				$e->on->operator='AND';
+				$this->strip_aliases($e->on);
+			}
+		return;
+	}
+	if(get_class($o)=='sql_subquery')
+		$this->strip_aliases($o->subquery);
+	if(!$skip)unset($o->alias);
+	if(is_array($o->exprs))
+		foreach($o->exprs as $e)
+			$this->strip_aliases($e);
+}
+
+
+
 }
 
 
