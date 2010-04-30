@@ -5096,7 +5096,6 @@ class ed_tree_main_query_gen_ext_test extends dom_div
 	{
 		global $sql;
 		$result_div_id=$ev->context[$ev->parent_name]['result_div_id'];
-		$store_a_id=$ev->context[$ev->parent_name]['store_a_id'];
 		if($ev->rem_name=='r')
 		{
 			$this->oid=$ev->context[$ev->parent_name]['oid'];
@@ -5119,7 +5118,6 @@ class ed_tree_main_query_gen_ext_test extends dom_div
 			
 			$after->strip_aliases();
 			print "\$i('".$result_div_id."').textContent='".js_escape($after->result())."';";
-			print "\$i('".$store_a_id."').setAttribute('href','".js_escape('/dump.php?n=edtmqgt.csv&d=,&e=UTF-8&q='.rawurlencode($after->result()))."');";
 			//print "\$i('".$result_div_id."').textContent='undef';";
 		}
 	}

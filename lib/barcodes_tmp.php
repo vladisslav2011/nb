@@ -1841,9 +1841,17 @@ class query_result_viewer_codessel extends dom_any
 		$lim_ribbon=$sql->fetch1($sql->query("SELECT `current` FROM `barcodes_counters` WHERE `id`=1"));
 		$count=min($row['count'],min($lim_labels,$lim_ribbon));
 		$name=iconv('UTF-8','CP866',$row['name']);
-		$s1=substr($name,0,36);
-		$s2=substr($name,36,36);
-		$s3=substr($name,72,36);
+		if(strlen($name)<55)
+		{
+			$ln=27;
+			$s1=substr($name,0,$ln);
+			$s2=substr($name,$ln,$ln);
+		}else{
+			$ln=36;
+			$s1=substr($name,0,$ln);
+			$s2=substr($name,$ln,$ln);
+			$s3=substr($name,$ln*2,$ln);
+		}
 		$s1=preg_replace('/"/','\\"',preg_replace('/\\\\/','\\\\',$s1));
 		$s2=preg_replace('/"/','\\"',preg_replace('/\\\\/','\\\\',$s2));
 		$s3=preg_replace('/"/','\\"',preg_replace('/\\\\/','\\\\',$s3));
@@ -1852,13 +1860,23 @@ class query_result_viewer_codessel extends dom_any
 		$sql->query("UPDATE `barcodes_print` SET `printed`=".$count." WHERE `id`=".$row['id']." AND `task`=".$current_task);
 
 		
-		$print=	"N\n".
-				"I8,10,001\n".
-				"A7,10,0,2,1,1,N,\"".$s1."\"\n".
-				"A7,31,0,2,1,1,N,\"".$s2."\"\n".
-				"A7,52,0,2,1,1,N,\"".$s3."\"\n".
-				"B10,80,0,E30,4,4,120,B,\"".$barcode."\"\n".
-				"P".$count."\n";
+		if(strlen($name)<55)
+		{
+			$print=	"N\n".
+					"I8,10,001\n".
+					"A8,10,0,4,1,1,N,\"".$s1."\"\n".
+					"A8,39,0,4,1,1,N,\"".$s2."\"\n".
+					"B10,80,0,E30,4,4,120,B,\"".$barcode."\"\n".
+					"P".$count."\n";
+		}else{
+			$print=	"N\n".
+					"I8,10,001\n".
+					"A7,10,0,2,1,1,N,\"".$s1."\"\n".
+					"A7,31,0,2,1,1,N,\"".$s2."\"\n".
+					"A7,52,0,2,1,1,N,\"".$s3."\"\n".
+					"B10,80,0,E30,4,4,120,B,\"".$barcode."\"\n".
+					"P".$count."\n";
+		}
 		$this->print_job($print);
 		/*
 		$print=	"\nS0\n".
@@ -3389,9 +3407,9 @@ class codes_import extends dom_div
 				if($rs>0)
 				{
 					if($add)
-						$res=$sql->query("INSERT INTO barcodes_print(id,task,`count`,printed) VALUES(".$rs.",".intval($this->task).",".$values[1].",0) ON DUPLICATE KEY UPDATE task=0, `count`=`count`+".$values[1]);
+						$res=$sql->query("INSERT INTO barcodes_print(id,task,`count`,printed) VALUES(".$rs.",".intval($this->task).",".$values[1].",0) ON DUPLICATE KEY UPDATE task=".intval($this->task).", `count`=`count`+".$values[1]);
 					else
-						$res=$sql->query("INSERT INTO barcodes_print(id,task,`count`,printed) VALUES(".$rs.",".intval($this->task).",".$values[1].",0) ON DUPLICATE KEY UPDATE task=0, `count`=".$values[1]);
+						$res=$sql->query("INSERT INTO barcodes_print(id,task,`count`,printed) VALUES(".$rs.",".intval($this->task).",".$values[1].",0) ON DUPLICATE KEY UPDATE task=".intval($this->task).", `count`=".$values[1]);
 				}
 				if(!$res)print "/*".$sql->err().'*/';
 			}
