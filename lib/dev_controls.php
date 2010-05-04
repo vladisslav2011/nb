@@ -3794,7 +3794,8 @@ class ed_tree_main extends dom_div
 			$current=$ma->find($obj,$ev->keys['path']);
 			$n=$ev->rem_name;
 			$current->$n=$_POST['val'];
-			print "\$i('".$ev->context[$ev->parent_name]['cid']."')[text_content]='".js_escape($ma->text($current))."';";
+			//node has known structure, so we can access children[1] directly...
+			print "\$i('".$ev->context[$ev->parent_name]['cid']."').children[1][text_content]='".js_escape($ma->text($current))."';";
 			$do_store=true;
 		}
 		if($ev->rem_name=='tracker')
@@ -4050,8 +4051,14 @@ class ed_tree_nofa extends dom_div
 		$this->normal=new dom_div;
 		$this->normal->main_div=new dom_div;
 		$this->normal->append_child($this->normal->main_div);
-		$this->normal->txt=new dom_statictext;
-		$this->normal->main_div->append_child($this->normal->txt);
+		$this->normal->txts=new dom_statictext;
+		$this->normal->txtd=new dom_statictext;
+		$this->normal->ss=new dom_span;
+		$this->normal->sd=new dom_span;
+		$this->normal->ss->append_child($this->normal->txts);
+		$this->normal->sd->append_child($this->normal->txtd);
+		$this->normal->main_div->append_child($this->normal->ss);
+		$this->normal->main_div->append_child($this->normal->sd);
 		$this->normal->main_div->css_style['list-style-type']='square';
 		$this->normal->main_div->css_style['display']='list-item';
 		$this->normal->main_div->css_style['cursor']='default';
@@ -4171,7 +4178,10 @@ class ed_tree_nofa extends dom_div
 		$this->ed->main_div->attributes['onmouseout']=
 			"return ed_tree_fa_item_mou(event,'".js_escape($this->button_id)."','".js_escape($this->path)."',this);";
 		if($got)
-			$this->ed->txt->text=$xname." ".$this->ma->text($obj);
+		{
+			$this->ed->txts->text=$xname." ";
+			$this->ed->txtd->text=$this->ma->text($obj);
+		}
 		$this->opene($this->ed);
 		if(isset($this->ed->children_container))
 			$this->children_id=$this->ed->children_container->id_gen();
