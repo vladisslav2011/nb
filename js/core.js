@@ -941,7 +941,34 @@ this.send_async = function(d)//d={uri:uri,static:'var',val:'value'}
 			$i('errordump').innerHTML += htmlspecialchars(decodeURIComponent(d.static + '=' + d.val));
 			$i('errordump').cntr=tt;
 		}*/
-	xmlHttp.send(d.static + '=' + d.val);
+	var send_buffer='';
+	if(typeof(d.dynamic)!='undefined')
+	{
+		if(typeof(d.dynamic)=='string')
+			send_buffer+=d.dynamic;
+		else{
+			for(var key in d.dynamic)
+			{
+				if(send_buffer !='')send_buffer+='&';
+				send_buffer+=(encodeURIComponent(key)+'='+encodeURIComponent(d.dynamic[key]));
+			}
+		}
+		
+	}
+	if(typeof(d.static=='string'))
+	{
+		if(send_buffer !='')
+			send_buffer=d.static+'&'+send_buffer;
+		else
+			send_buffer=d.static;
+	}else{
+		alert('typeof(d.static) != string! Passing object in d.static is not implemented yet.');
+	}
+	if(typeof(d.val=='string'))
+	{
+		send_buffer+=('=' + d.val);
+	}
+	xmlHttp.send(send_buffer);
 	//async_post(this.callback_uri,d,this.callback);
 }
 

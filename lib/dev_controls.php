@@ -3795,7 +3795,7 @@ class ed_tree_main extends dom_div
 			$n=$ev->rem_name;
 			$current->$n=$_POST['val'];
 			//node has known structure, so we can access children[1] directly...
-			print "\$i('".$ev->context[$ev->parent_name]['cid']."').children[1][text_content]='".js_escape($ma->text($current))."';";
+			print "\$i('".$ev->context[$ev->parent_name]['cid']."').childNodes[1][text_content]='".js_escape($ma->text($current))."';";
 			$do_store=true;
 		}
 		if($ev->rem_name=='tracker')
@@ -5576,6 +5576,266 @@ class htm_group
 
 
 
+//###############################################################################################3
+//##################################   editor_txtasg definition  ######################3
+//###############################################################################################3
+
+
+class editor_txtasg extends dom_div
+{
+	function __construct()
+	{
+		$this->text=new dom_any_noterm('input');
+		$this->main=$this->text;
+		$this->text->attributes['type']='text';
+		$this->text->attributes['autocomplete']='off';
+		$this->etype=get_class($this);
+		$this->div=new dom_div;
+		$this->div->css_style['display']='none';
+		$this->div->css_style['position']='absolute';
+		$this->div->css_style['min-width']='50px';
+		$this->div->css_style['max-height']='200px';
+		$this->div->css_style['overflow']='auto';
+		$this->append_child($this->text);
+		$this->append_child($this->div);
+		$this->keys=Array();
+		$this->context=Array();
+	}
+	
+
+	function fetch_list()
+	{
+	}
+
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		$this->context[$this->long_name]['div_id']=$this->div->id_gen();
+		$this->context[$this->long_name]['text_id']=$this->text->id_gen();
+		$this->text->keys=&$this->keys;
+		$this->text->context=&$this->context;
+		$this->context[$this->long_name]['oid']=$this->oid;
+		
+		$this->custom_id=$this->text->id_gen();
+		editor_generic::bootstrap_part();
+		unset($this->custom_id);
+	}
+	
+	function html_inner()
+	{
+	$this->text->attributes['value']=$this->args[$this->context[$this->long_name]['var']];
+	$this->text->attributes['onfocus']="chse.activatemon({obj:this,objtype:'editor_text',static:'".$this->send."'});this.selectionStart=0;this.selectionEnd=this.value.length;clearTimeout(this.hide_timeout);chse.send_or_push({static:'".$this->send."',val:encodeURIComponent(this.value),c_id:this.id});";
+	$this->text->attributes['onfocus'].="\$i('".js_escape($this->div->id_gen())."').tabIndex=1000;";
+	$this->text->attributes['onblur']="chse.latedeactivate(this);if(this.refresh_timeout)clearTimeout(this.refresh_timeout);this.hide_timeout=setTimeout('\$i(\\'".js_escape($this->div->id_gen())."\\').style.display=\\'none\\';',200);";
+	
+//	$this->div->attributes['onmousedown']='this.style.backgroundColor=\'red\';event.preventDefault();event.stopPropagation();return false;$i(\''.js_escape($this->text->id_gen()).'\').focus();';
+	$this->div->attributes['onmousedown']='event.preventDefault();event.stopPropagation();return false;$i(\''.js_escape($this->text->id_gen()).'\').focus();';
+//	$this->div->attributes['onmouseup']='this.style.backgroundColor=\'blue\'';
+
+//	$this->text->attributes['onkeypress']="editor_text_autosuggest_keypress(object,event,inp_id,div_id);";
+	$this->text->attributes['onkeypress']="editor_text_autosuggest_keypress(this,event,'".js_escape($this->text->id_gen())."','".js_escape($this->text->id_gen())."','".js_escape($this->div->id_gen())."');";
+	//up=38,down=40,left=37,right=39,enter=13
+	//keynum = e.keyCode;
+	// focus persistence test
+	if(!isset($this->no_restore_focus))editor_generic::add_focus_restore($this->ed);
+	dom_void::html_inner();
+	}
+	
+	function handle_event($ev)
+	{
+		//print 'alert(\''.$ev->long_name.'\');';
+		// exit;
+			//handle root object events here
+		
+		if($ev->rem_type==$this->etype)//self targeted event
+		{
+			
+			$customid=$ev->context[$ev->long_name]['retid'];
+			//print $customid;exit;
+			$oid=$ev->context[$ev->long_name]['oid'];
+			$htmlid=$ev->context[$ev->long_name]['htmlid'];
+			$list_class=$ev->context[$ev->long_name]['list_class'];
+			
+/*			$r= new $list_class;
+			$r->context=&$ev->context;
+			$r->input_part=$_POST['val'];
+			$r->oid=$oid;
+			$r->name=$ev->parent_name;
+			$r->etype=$ev->parent_type;
+			$r->text_inp=$htmlid;
+			$r->bootstrap();
+			print "var a=\$i('".js_escape($customid)."');try{a.innerHTML=".reload_object($r).
+			"a.scrollTop=0;}catch(e){ window.location.reload(true);};";
+			print 'a.style.display=\'block\';';
+			$js='';
+			foreach($r->result_array as $v)
+			{
+				if($js!='')$js.=',';
+				$js.='{id:\''.js_escape($v->id).'\',val:\''.js_escape($v->val).'\'}';
+			}
+			print '$i(\''.js_escape($htmlid).'\').as_objects=['.$js.'];';
+			print '$i(\''.js_escape($htmlid).'\').as_id = null;';*/
+		}
+ 		if($ev->rem_name=='text')
+		{
+			//child node targeted event
+			
+			$customid=$ev->context[$ev->parent_name]['retid'];
+			$oid=$ev->context[$ev->long_name]['oid'];
+			$htmlid=$ev->context[$ev->long_name]['htmlid'];
+			$list_class=$ev->context[$ev->parent_name]['list_class'];
+		}
+			//common part
+			$r= new $list_class;
+			$r->context=&$ev->context;
+			$r->keys=&$ev->keys;
+			$r->input_part=$_POST['val'];
+			$r->oid=$oid;
+			$r->name=$ev->parent_name;
+			$r->etype=$ev->parent_type;
+			$r->text_inp=$htmlid;
+			$r->bootstrap();
+			print "(function(){var nya=\$i('".js_escape($customid)."');".
+			"if(!nya.hide_timeout && chse.ismonitored(\$i('".js_escape($htmlid)."')))".
+			"{".
+			"try{nya.innerHTML=";
+			reload_object($r);
+			print
+			"nya.scrollTop=0;}catch(e){ window.location.reload(true);};";
+			print 'nya.style.display=\'block\';';
+			$js='';
+			foreach($r->result_array as $v)
+			{
+				if($js!='')$js.=',';
+				$js.='{id:\''.js_escape($v->id).'\',val:\''.js_escape($v->val).'\'}';
+			}
+			print '$i(\''.js_escape($htmlid).'\').as_objects=['.$js.'];';
+			print '$i(\''.js_escape($htmlid).'\').as_id = null;};';
+			//exit;
+		//}
+		//editor_text::handle_event($ev);
+		print 'chse.bgifc(\''.js_escape($ev->context[$ev->long_name]['htmlid']).'\',\'\');})();';
+		return;
+		if($ev->rem_type==$this->etype)//always stop propagation of self targeted events
+			return;
+		
+		editor_generic::handle_event($ev);
+	}
+}
+
+
+
+class editor_txtasg_list extends dom_table
+{
+	function __construct()
+	{
+		dom_table::__construct();
+		$this->css_style['border']='1px solid blue';
+		$this->css_style['background']='white';
+		$this->tr=new dom_tr;
+		$this->tr->css_style['border']='1px solid gray';
+		$this->td=new dom_td;
+		$this->append_child($this->tr);
+		$this->tr->append_child($this->td);
+		editor_generic::addeditor('text',new editor_statichtml);
+		$this->td->append_child($this->editors['text']);
+		$this->etype='editor_text_autosuggest';
+		$this->args=Array();
+		$this->keys=Array();
+		$this->list_items=Array('this','is','example','of','editor_text_autosuggest','implementation.','you','forgot','to','set','editor_text_autosuggest::list_class','to','editor_text_autosuggest_list_example','implementation','or','set','editor_text_autosuggest_list_example::list_items,','damn','bastard','type','some','letters','to','see','filtered','list');
+	}
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		$this->context[$this->long_name.'.text']['var']='i';
+		foreach($this->editors as $e)
+		{
+			$e->args= &$this->args;
+			$e->keys= &$this->keys;
+			$e->context= &$this->context;
+		}
+		
+	}
+	
+	function setup_tr($it)
+	{
+		
+		$this->tr->attributes['onmouseover']=
+		"var text_inp=\$i('".js_escape($this->text_inp)."');".
+		"if(text_inp.as_objects)".
+		"{".
+			"if(text_inp.as_id || text_inp.as_id==0)".
+			"{".
+				"var s=\$i(text_inp.as_objects[text_inp.as_id].id).style;".
+				"s.backgroundColor='white';".
+				"s.color='';".
+			"};".
+			"text_inp.as_id='".js_escape($it)."';".
+			"if(text_inp.as_id || text_inp.as_id==0)".
+			"{".
+				"var s=\$i(text_inp.as_objects[text_inp.as_id].id).style;".
+				"s.backgroundColor='blue';".
+				"s.color='white';".
+			"}".
+		"}".
+		"";
+		$this->tr->attributes['onmouseout']=
+		"var text_inp=\$i('".js_escape($this->text_inp)."');".
+		"if(text_inp.as_objects)".
+		"{".
+			"if(text_inp.as_id || text_inp.as_id==0)".
+			"{".
+				"var s=\$i(text_inp.as_objects[text_inp.as_id].id).style;".
+				"s.backgroundColor='white';".
+				"s.color='';".
+			"};".
+			"text_inp.as_id=null;".
+		"}".
+		"";
+		//$this->tr->attributes['onclick']=
+		$click=
+		"var text_inp=\$i('".js_escape($this->text_inp)."');".
+		"if(text_inp.as_objects)".
+		"{".
+			"if(text_inp.as_id || text_inp.as_id==0)".
+				"text_inp.value=text_inp.as_objects[text_inp.as_id].val;".
+			"text_inp.focus();".
+		"}".
+		"";
+		$this->tr->attributes['onmousedown']="event.preventDefault();\$i('".js_escape($this->text_inp)."').focus();";
+		$this->tr->attributes['onmouseup']="\$i('".js_escape($this->text_inp)."').focus();$click";
+		$this->tr->css_style['cursor']='pointer';
+
+	}
+	
+	function html_inner()
+	{
+		$a=Array();
+		foreach($this->list_items as $v)
+		{
+			if(!isset($this->nofilter))
+				if(!preg_match('/'.preg_quote($this->input_part,'/').'/',$v))continue;
+			if($this->input_part=='')
+			{
+				$this->args['i']=htmlspecialchars($v);
+			}else{
+				$v1=htmlspecialchars($this->input_part);
+				$v2=htmlspecialchars($v);
+				$this->args['i']=preg_replace('/'.preg_quote($v1,'/').'/','<span style=\'font-size:1.2em;\'>'.$v1.'</span>',$v2);
+			}
+			$this->id_alloc();
+			foreach($this->editors as $e)$e->bootstrap();
+			unset($it);
+			$it->id=$this->tr->id_gen();
+			$it->val=$v;
+			$this->setup_tr(count($a));
+			$a[]=$it;
+			$this->tr->html();
+		}
+		$this->result_array=&$a;
+	}
+
+}
 
 
 
