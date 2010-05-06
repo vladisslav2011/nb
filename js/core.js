@@ -91,6 +91,28 @@ function js2php(o)
 	return 'a:'+c+':{'+com+'}';
 }
 
+function object_serialize(o)
+{
+	var a;var r="{";
+	for(a in o)
+	{
+		if(r!="{")r+=",";
+		r+=(a+":'"+(o[a]+'').replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0')+"'");
+	}
+	return r+"}";
+}
+
+function object_merge(a,b)
+{
+	var x;var r={};
+	for(x in a)
+		r[x]=a[x];
+	for(x in b)
+		r[x]=b[x];
+	return r;
+}
+
+
 function has_css_class(item,className)
 {
 	if(item.className==className)return true;
@@ -782,7 +804,7 @@ this.callback_uri='';
 this.queue=new Array();
 this.timeout=null;
 this.request_counter=0;
-this.debug=false;
+this.debug=true;
 
 this.activatemon = function(def)
 {
@@ -942,12 +964,13 @@ this.send_async = function(d)//d={uri:uri,static:'var',val:'value'}
 			$i('errordump').cntr=tt;
 		}*/
 	var send_buffer='';
+	var key;
 	if(typeof(d.dynamic)!='undefined')
 	{
 		if(typeof(d.dynamic)=='string')
 			send_buffer+=d.dynamic;
 		else{
-			for(var key in d.dynamic)
+			for(key in d.dynamic)
 			{
 				if(send_buffer !='')send_buffer+='&';
 				send_buffer+=(encodeURIComponent(key)+'='+encodeURIComponent(d.dynamic[key]));
@@ -955,18 +978,25 @@ this.send_async = function(d)//d={uri:uri,static:'var',val:'value'}
 		}
 		
 	}
-	if(typeof(d.static=='string'))
+	if(typeof(d.static)!='undefined')
 	{
-		if(send_buffer !='')
-			send_buffer=d.static+'&'+send_buffer;
-		else
-			send_buffer=d.static;
-	}else{
-		alert('typeof(d.static) != string! Passing object in d.static is not implemented yet.');
+		if(typeof(d.static)=='string')
+		{
+			if(send_buffer !='')
+				send_buffer=d.static+'&'+send_buffer;
+			else
+				send_buffer=d.static;
+		}else{
+			for(key in d.static)
+			{
+				if(send_buffer !='')send_buffer+='&';
+				send_buffer+=(encodeURIComponent(key)+'='+encodeURIComponent(d.static[key]));
+			}
+		}
 	}
 	if(typeof(d.val=='string'))
 	{
-		send_buffer+=('=' + d.val);
+		send_buffer+=('&val=' + d.val);
 	}
 	xmlHttp.send(send_buffer);
 	//async_post(this.callback_uri,d,this.callback);

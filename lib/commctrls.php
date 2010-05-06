@@ -95,7 +95,6 @@ class editor_generic extends dom_any
 		$postargs['context'][$this->long_name]['oid']=$this->oid;
 	$send=editor_generic::array_to_post($postargs);
 	$send.="&last_generated_id=' + last_generated_id + '";
-	$send.="&val";
 	$this->attributes['onfocus']="chse.activatemon({obj:this,objtype:'".$this->etype."',static:'$send'});";
 	$this->attributes['onblur']='chse.latedeactivate(this);';
 	
@@ -138,14 +137,20 @@ class editor_generic extends dom_any
 	//	';b64='.strlen(urlencode(base64_encode(gzcompress(serialize($context))))).'<br/>';
 	
 	
+	$send="{keys:'".js_escape(serialize($this->keys))."',".
+		"context:'".js_escape(editor_generic::em?serialize($context):base64_encode(gzcompress(serialize($context))))."',".
+		"name:'".	js_escape(editor_generic::effective_name())."',".
+		"type:'".	js_escape(editor_generic::long_type())."',".
+		"last_generated_id:last_generated_id}";
+/*	$s1=strlen($send);
 	$send=	'keys='.		urlencode(serialize($this->keys)).
 		'&context='.	(editor_generic::em?urlencode(serialize($context)):urlencode(base64_encode(gzcompress(serialize($context))))).
-#		'&name='.	urlencode($this->long_name).
+		'&name='.	urlencode($this->long_name).
 		'&name='.	urlencode(editor_generic::effective_name()).
 		'&type='.	urlencode(editor_generic::long_type()).
-		"&last_generated_id=' + last_generated_id + '".
-		"&val";
-	$this->attributes['onfocus']="chse.activatemon({obj:this,objtype:'".$this->etype."',static:'$send'});";
+		"&last_generated_id=' + last_generated_id + '";
+	if($s1<strlen($send))print "(got:$s1<".strlen($send).")";*/
+	$this->attributes['onfocus']="chse.activatemon({obj:this,objtype:'".$this->etype."',static:$send});";
 	$this->attributes['onblur']='chse.latedeactivate(this);';
 	
 	}
@@ -176,7 +181,6 @@ class editor_generic extends dom_any
 		$postargs['context'][$this->long_name]['oid']=$this->oid;
 	$send=editor_generic::array_to_post($postargs);
 	$send.="&last_generated_id=' + last_generated_id + '";
-	$send.="&val";
 	$this->send=&$send;
 	$this->postargs=&$postargs;
 	}
@@ -204,16 +208,12 @@ class editor_generic extends dom_any
 	}
 	
 	
-	//print 'ue='.strlen(urlencode(serialize($context))).';gz='.strlen(urlencode(gzcompress(serialize($context)))).';b64='.strlen(urlencode(base64_encode(gzcompress(serialize($context))))).'<br/>';
-	
-	
-	$send='keys='.urlencode(serialize($this->keys)).
-	'&context='.	(editor_generic::em?urlencode(serialize($context)):urlencode(base64_encode(gzcompress(serialize($context))))).
-#	'&name='.urlencode($this->long_name).
-	'&name='.	urlencode(editor_generic::effective_name()).
-	'&type='.urlencode(editor_generic::long_type());
-	if($lgi)$send.="&last_generated_id=' + last_generated_id + '";
-	$send.="&val";
+	$send="{keys:'".js_escape(serialize($this->keys))."'".
+		",context:'".js_escape(editor_generic::em?serialize($context):base64_encode(gzcompress(serialize($context))))."'".
+		",name:'".	js_escape(editor_generic::effective_name())."'".
+		",type:'".	js_escape(editor_generic::long_type())."'".
+		($lgi?",last_generated_id:last_generated_id":"").
+		"}";
 	$this->send=&$send;
 	//$this->postargs=&$postargs;
 	}
@@ -301,8 +301,6 @@ class editor_generic extends dom_any
 			"&oid";*/
 		$coo=urlencode(serialize(Array('keys' => $this->keys, 'name' => $this->long_name, 'oid' => $this->oid)));
 		
-//		$obj->attributes['onfocus'].='chse.send_or_push({obj:chse.request_counter,uri:\'/settings/focus.php\',static:\''.js_escape($st).'\',val:\''.js_escape($this->oid).'\'});';
-//		$obj->attributes['onblur'].='chse.send_or_push({obj:chse.request_counter,uri:\'/settings/focus.php\',static:\'name=\',val:\'null\'});';
 		$tgt->attributes['onfocus'].='document.cookie=\'focus_restore=\'+\''.js_escape($coo).'\';';
 		$tgt->attributes['onblur'].='document.cookie=\'focus_restore=\'+\'\';';
 		//$obj->attributes['title']=serialize($this->keys).';'.$this->long_name.';'.$this->oid;
@@ -652,9 +650,9 @@ class editor_button extends dom_any_noterm
 		if(isset($this->context[$this->long_name]['var']))$value=$this->args[$this->context[$this->long_name]['var']];
 		if(isset($this->val_js))
 		{
-			$this->attributes['onclick']="chse.send_or_push({static:'".$this->send."',val:".$this->val_js.",c_id:this.id});";
+			$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:".$this->val_js.",c_id:this.id});";
 		}else
-			$this->attributes['onclick']="chse.send_or_push({static:'".$this->send."',val:'".js_escape(urlencode($value))."',c_id:this.id});";
+			$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:'".js_escape(urlencode($value))."',c_id:this.id});";
 		
 		$this->attributes['onfocus']='';
 		$this->attributes['onblur']='';
@@ -686,7 +684,7 @@ class editor_valbutton extends editor_button
 	{
 		if(isset($this->value))$value=$this->value;
 		elseif(isset($this->context[$this->long_name]['var']))$value=$this->args[$this->context[$this->long_name]['var']];
-		$this->attributes['onclick']="chse.send_or_push({static:'".$this->send."',val:'".js_escape(urlencode($value))."',c_id:this.id});";
+		$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:'".js_escape(urlencode($value))."',c_id:this.id});";
 		
 		parent::html_head();
 	}
@@ -715,7 +713,7 @@ class editor_valbutton_button extends dom_any
 	{
 		if(isset($this->value))$value=$this->value;
 		elseif(isset($this->context[$this->long_name]['var']))$value=$this->args[$this->context[$this->long_name]['var']];
-		$this->attributes['onclick']="chse.send_or_push({static:'".$this->send."',val:'".js_escape(urlencode($value))."',c_id:this.id});";
+		$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:'".js_escape(urlencode($value))."',c_id:this.id});";
 		
 		parent::html_head();
 	}
@@ -735,7 +733,7 @@ class editor_valbutton_image extends editor_button
 	{
 		if(isset($this->value))$value=$this->value;
 		elseif(isset($this->context[$this->long_name]['var']))$value=$this->args[$this->context[$this->long_name]['var']];
-		$this->attributes['onclick']="chse.send_or_push({static:'".$this->send."',val:'".js_escape(urlencode($value))."',c_id:this.id});";
+		$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:'".js_escape(urlencode($value))."',c_id:this.id});";
 		
 		parent::html_head();
 	}
@@ -891,7 +889,7 @@ class editor_text_submit1 extends dom_void
 		editor_generic::bootstrap_part();
 //		$this->long_name=editor_generic::long_name();
 		$this->text_input->attributes['value']=$this->args[$this->context[$this->long_name]['var']];
-		$this->button->attributes['onclick']="chse.send_or_push({static:'".$this->send."',val:\$i('".js_escape($this->main_id())."').value,c_id:this.id});";
+		$this->button->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:\$i('".js_escape($this->main_id())."').value,c_id:this.id});";
 		//$this->attributes['value']=implode($this->args,';');
 		
 	}
@@ -989,7 +987,7 @@ class editor_text_submit extends dom_any
 			"{".
 				"\$i('".$this->button->id_gen()."').onclick();".
 			"}";
-		$this->button->attributes['onclick']="chse.send_or_push({static:'".$this->send."',val:\$i('".js_escape($this->main_id())."').value,c_id:this.id});";
+		$this->button->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:\$i('".js_escape($this->main_id())."').value,c_id:this.id});";
 		$this->button_un->attributes['onclick']="var f=\$i('".js_escape($this->main_id())."');try{if(f.revert_val_stored)f.value=f.revert_val;}catch(e){}";
 		$this->button_cl->attributes['onclick']="try{\$i('".js_escape($this->main_id())."').value='';}catch(e){};";
 		
@@ -1466,7 +1464,7 @@ class editor_text_autosuggest extends dom_void
 	function html_inner()
 	{
 	$this->text->attributes['value']=$this->args[$this->context[$this->long_name]['var']];
-	$this->text->attributes['onfocus']="chse.activatemon({obj:this,objtype:'editor_text',static:'".$this->send."'});this.selectionStart=0;this.selectionEnd=this.value.length;clearTimeout(this.hide_timeout);chse.send_or_push({static:'".$this->send."',val:encodeURIComponent(this.value),c_id:this.id});";
+	$this->text->attributes['onfocus']="chse.activatemon({obj:this,objtype:'editor_text',static:".$this->send."});this.selectionStart=0;this.selectionEnd=this.value.length;clearTimeout(this.hide_timeout);chse.send_or_push({static:".$this->send.",val:encodeURIComponent(this.value),c_id:this.id});";
 	$this->text->attributes['onfocus'].="\$i('".js_escape($this->div->id_gen())."').tabIndex=1000;";
 	$this->text->attributes['onblur']="chse.latedeactivate(this);if(this.refresh_timeout)clearTimeout(this.refresh_timeout);this.hide_timeout=setTimeout('\$i(\\'".js_escape($this->div->id_gen())."\\').style.display=\\'none\\';',200);";
 	
@@ -2317,9 +2315,9 @@ class editor_divbutton extends dom_div
 		if(isset($this->context[$this->long_name]['var']))$value=$this->args[$this->context[$this->long_name]['var']];
 		if(isset($this->val_js))
 		{
-			$this->attributes['onclick']="chse.send_or_push({static:'".$this->send."',val:".$this->val_js.",c_id:this.id});";
+			$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:".$this->val_js.",c_id:this.id});";
 		}else
-			$this->attributes['onclick']="chse.send_or_push({static:'".$this->send."',val:'".js_escape(urlencode($value))."',c_id:this.id});";
+			$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:'".js_escape(urlencode($value))."',c_id:this.id});";
 		
 		// focus persistence test
 	}

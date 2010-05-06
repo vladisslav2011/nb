@@ -1623,7 +1623,7 @@ class calendar_viewer_day extends dom_any
 	function bootstrap()
 	{
 		editor_generic::bootstrap_part();
-		$this->attributes['onclick']="chse.send_or_push({static:'".$this->send."',val:1,c_id:this.id});";
+		$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:1,c_id:this.id});";
 		
 	}
 	
@@ -1844,7 +1844,7 @@ class editor_m_object_variants extends dom_div
 			$sel_v=$this->context[$this->long_name]['v_next'];if($sel_v!='')$sel_v.='.';
 			$this->td0->attributes['onclick']="\$i('".js_escape($this->context[$this->long_name]['pick_id'])."').focus();".
 				"\$i('".js_escape($this->context[$this->long_name]['current_selection_id'])."').textContent='".js_escape($sel_v.$v['n'])."';".
-				"\$i('".js_escape($this->context[$this->long_name]['self_id'])."').value='".js_escape($sel_i.$v['v'])."';chse.send_or_push({static:'".$this->send."',val:'".js_escape($sel_i.$v['v'])."',c_id:this.id});".
+				"\$i('".js_escape($this->context[$this->long_name]['self_id'])."').value='".js_escape($sel_i.$v['v'])."';chse.send_or_push({static:".$this->send.",val:'".js_escape($sel_i.$v['v'])."',c_id:this.id});".
 				""
 			;
 			$this->t1->text='';
@@ -3745,9 +3745,9 @@ class ed_tree_main extends dom_div
 	
 	function html_inner()
 	{
-		$this->rootnode->endscripts[]="(function(){var a=\$i('".js_escape($this->ctl->id_gen())."');a.id_list=new Array();a.id_current=-1;a.send_static='".$this->ctl->send."';".
-		"a.fa_id='".$this->editors['fa_cnt']->in->id_gen()."';".
-		"var b=\$i('".js_escape($this->editors['clip']->id_gen())."');b.send_static='".$this->editors['clip']->send."';})();";
+		$this->rootnode->endscripts[]="(function(){var a=\$i('".js_escape($this->ctl->id_gen())."');a.id_list=new Array();a.id_current=-1;a.send_static=".$this->ctl->send.";".
+		"a.fa_id='".$this->editors['fa_cnt']->in->id_gen()."';"."})();";
+		//"var b=\$i('".js_escape($this->editors['clip']->id_gen())."');b.send_static=".$this->editors['clip']->send.";})();";
 		$this->editors['fa']->object=$this->fetch();
 		$this->editors['fa']->ma=$this->manipulator();
 		$this->editors['clip']->ma=$this->manipulator();
@@ -3849,7 +3849,7 @@ class ed_tree_main extends dom_div
 				$do_store=true;
 				break;
 			case 'pastenew':
-				$cn=$_POST['n'];
+				$cn=$_POST['cn'];
 				if(class_exists($cn))$new=new $cn;
 				else return;
 				$ma->add_node($obj,$_POST['before'],$new);
@@ -4013,7 +4013,7 @@ class ed_tree_tracker extends dom_any
 	{
 		
 		editor_generic::bootstrap_part(false);
-		//$this->attributes['onclick']="chse.send_or_push({static:'".$this->send."',val:".$this->val_js.",c_id:this.id});";
+		//$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:".$this->val_js.",c_id:this.id});";
 		$this->attributes['onfocus']='';
 		$this->attributes['onblur']='';
 		// focus persistence test
@@ -5624,7 +5624,7 @@ class editor_txtasg extends dom_div
 	function html_inner()
 	{
 	$this->text->attributes['value']=$this->args[$this->context[$this->long_name]['var']];
-	$this->text->attributes['onfocus']="chse.activatemon({obj:this,objtype:'editor_text',static:'".$this->send."'});this.selectionStart=0;this.selectionEnd=this.value.length;clearTimeout(this.hide_timeout);chse.send_or_push({static:'".$this->send."',val:encodeURIComponent(this.value),c_id:this.id});";
+	$this->text->attributes['onfocus']="chse.activatemon({obj:this,objtype:'editor_text',static:".$this->send."});this.selectionStart=0;this.selectionEnd=this.value.length;clearTimeout(this.hide_timeout);chse.send_or_push({static:".$this->send.",val:encodeURIComponent(this.value),c_id:this.id});";
 	$this->text->attributes['onfocus'].="\$i('".js_escape($this->div->id_gen())."').tabIndex=1000;";
 	$this->text->attributes['onblur']="chse.latedeactivate(this);if(this.refresh_timeout)clearTimeout(this.refresh_timeout);this.hide_timeout=setTimeout('\$i(\\'".js_escape($this->div->id_gen())."\\').style.display=\\'none\\';',200);";
 	

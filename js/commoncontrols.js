@@ -928,43 +928,38 @@ function ed_tree_main_ctl_k(event,object,t)
 		if(is.leave && !is.repeated)return true;
 		if(object.id_current==-1)break;
 		var m=event_to_mkc(event);
+		var st=object.send_static;
+		st.last_generated_id=last_generated_id;
 		if(m.m==m.SHIFT)//cut
 		{
-			chse.send_or_push({static:object.send_static+'=movecl'+
-				'&last_generated_id=' + last_generated_id +
-				'&path='+
-				encodeURIComponent(object.id_list[object.id_current].keys)+'&n',val:'',c_id:object.id});
+			st.path=object.id_list[object.id_current].keys;
+			chse.send_or_push({static:st,val:'movecl',c_id:object.id});
 			return stop_event(event);
 		}
 		if(m.m==m.CTRL)//clear
 		{
-			chse.send_or_push({static:object.send_static+'=clipboard_clear'+
-				'&last_generated_id=' + last_generated_id +
-				'&n',val:'',c_id:object.id});
+			chse.send_or_push({static:st,val:'clipboard_clear',c_id:object.id});
 			return stop_event(event);
 		}
-		chse.send_or_push({static:object.send_static+'=del&path='+
-			encodeURIComponent(object.id_list[object.id_current].keys)+
-			'&last_generated_id=' + last_generated_id +
-			'&parent_id='+encodeURIComponent(object.id_list[object.id_current].pcid)+'&n',val:'',c_id:this.id});
+		st.path=object.id_list[object.id_current].keys;
+		st.parent_id=object.id_list[object.id_current].pcid;
+		chse.send_or_push({static:st,val:'del',c_id:this.id});
 		return stop_event(event);
 	case 45://insert
 		if(!is.leave && !is.repeated)return stop_event(event);
 		if(is.leave && !is.repeated)return true;
 		var m=event_to_mkc(event);
+		var st=object.send_static;
+		st.last_generated_id=last_generated_id;
 		if(m.m==m.CTRL)//copy
 		{
-			chse.send_or_push({static:object.send_static+'=copycl'+
-				'&last_generated_id=' + last_generated_id +
-				'&path='+
-				encodeURIComponent(object.id_list[object.id_current].keys)+'&n',val:'',c_id:object.id});
+			st.path=object.id_list[object.id_current].keys;
+			chse.send_or_push({static:st,val:'copycl',c_id:object.id});
 		}
 		if(m.m==m.SHIFT)//paste
 		{
-			chse.send_or_push({static:object.send_static+'=pastecl'+
-				'&last_generated_id=' + last_generated_id +
-				'&before='+
-				encodeURIComponent(object.id_list[object.id_current].keys)+'&n',val:'',c_id:object.id});
+			st.before=object.id_list[object.id_current].keys;
+			chse.send_or_push({static:st,val:'pastecl',c_id:object.id});
 		}
 		return stop_event(event);
 	}
@@ -991,13 +986,12 @@ function ed_tree_item_act(object,mouse)
 	if(object.id_current==-1)return;
 	if(object.act_timeout)clearTimeout(object.act_timeout);
 	object.act_timeout=setTimeout(function(){
-		chse.send_or_push({static:object.send_static+'=activate&path='+
-			encodeURIComponent(object.id_list[object.id_current].keys)+
-			'&mouse='+(mouse?1:0)+
-			'&cid='+
-			encodeURIComponent(object.id_list[object.id_current].cid)+
-			'&last_generated_id=' + last_generated_id +
-			'&n',val:'',c_id:this.id});
+		var st=object.send_static;
+		st.path=object.id_list[object.id_current].keys;
+		st.mouse=(mouse?1:0);
+		st.cid=object.id_list[object.id_current].cid;
+		st.last_generated_id=last_generated_id;
+		chse.send_or_push({static:st,val:'activate',c_id:this.id});
 		},100);
 }
 
@@ -1011,29 +1005,27 @@ function ed_tree_fa_item_up(event,object_id,path)
 			if(id_list[k].keys==path)break;
 		var act='moveti';
 		if(event.ctrlKey)act='copyti';
+		var st=object.send_static;
+		st.last_generated_id=last_generated_id;
 		if(resizer.drag_context.data.t=='ti')
 		{
 			if(path==resizer.drag_context.data.d)return;
-			chse.send_or_push({static:object.send_static+'='+act+'&before='+
-				encodeURIComponent(object.id_list[k].keys)+
-				'&path='+
-				encodeURIComponent(resizer.drag_context.data.d)+
-				'&last_generated_id=' + last_generated_id +
-				'&parent_id='+encodeURIComponent(object.id_list[k].pcid)+'&n',val:'',c_id:object.id});
+			st.before=object.id_list[k].keys;
+			st.path=resizer.drag_context.data.d;
+			st.parent_id=object.id_list[k].pcid;
+			chse.send_or_push({static:st,val:act,c_id:object.id});
 			return;
 		}
 		if(resizer.drag_context.data.t=='cl')
 		{
-			chse.send_or_push({static:object.send_static+'=pastecl&before='+
-				encodeURIComponent(object.id_list[k].keys)+
-				'&last_generated_id=' + last_generated_id +
-				'&clipboard=1&n',val:'',c_id:object.id});
+			st.before=object.id_list[k].keys;
+			st.clipboard=1;
+			chse.send_or_push({static:st,val:'pastecl',c_id:object.id});
 			return;
 		}
-		chse.send_or_push({static:object.send_static+'=pastenew&before='+
-			encodeURIComponent(object.id_list[k].keys)+
-			'&last_generated_id=' + last_generated_id +
-			'&n',val:resizer.drag_context.data.t,c_id:object.id});
+		st.before=object.id_list[k].keys;
+		st.cn=resizer.drag_context.data.t;
+		chse.send_or_push({static:st,val:'pastenew',c_id:object.id});
 	}
 }
 
@@ -1061,28 +1053,26 @@ function ed_tree_fa_item_mov(event,object_id,path,s,move)
 		}
 		object.hint_path=path;
 		for(var k=0;k<object.id_list.length;k++)if(object.id_list[k].keys==path)break;
+		
 		try_show_hint(object,s,Array(
 			{	src:'/i/copy.png',
 				alt:'copy',
 				title:'Copy to clipboard(Ctrl+Ins)',
-				onclick:'chse.send_or_push({static:$i("'+object_id+'").send_static+"=copycl'+
-				'&path='+encodeURIComponent(path)+
-				'&last_generated_id=" + last_generated_id +"&n",val:"",c_id:"'+object_id+'"});'
+				onclick:'remove_hint($i("'+object_id+'"));chse.send_or_push({static:'+object_serialize(object_merge($i(object_id).send_static,
+				{path:path,last_generated_id:last_generated_id}))+',val:"copycl",c_id:"'+object_id+'"});'
 			},
 			{	src:'/i/paste.png',
 				alt:'paste',
 				title:'Paste from clipboard before this element(Ctrl+Ins)',
-				onclick:'chse.send_or_push({static:$i("'+object_id+'").send_static+"=pastecl'+
-				'&before='+encodeURIComponent(path)+
-				'&last_generated_id=" + last_generated_id +"&n",val:"",c_id:"'+object_id+'"});'
+				onclick:'remove_hint($i("'+object_id+'"));chse.send_or_push({static:'+object_serialize(object_merge($i(object_id).send_static,
+				{before:path,last_generated_id:last_generated_id}))+',val:"pastecl",c_id:"'+object_id+'"});'
 			},
 			{	src:'/i/cancel-delete.png',
 				alt:'delete',
 				title:'Delete object',
-				onclick:'remove_hint($i("'+object_id+'"));chse.send_or_push({static:$i("'+object_id+'").send_static+"=del'+
-				'&path='+encodeURIComponent(path)+
-				'&parent_id='+encodeURIComponent(object.id_list[k].pcid)+
-				'&last_generated_id=" + last_generated_id +"&n",val:"",c_id:"'+object_id+'"});'
+				onclick:'remove_hint($i("'+object_id+'"));chse.send_or_push({static:'+object_serialize(
+				object_merge($i(object_id).send_static,
+				{path:path,parent_id:object.id_list[k].pcid,last_generated_id:last_generated_id}))+',val:"del",c_id:"'+object_id+'"});'
 			}));
 //		object.hint_path=path;
 	}
@@ -1114,10 +1104,10 @@ function ed_tree_clip_up(event,object)
 		if(event.ctrlKey)act='copycl';
 		if(resizer.drag_context.data.t=='ti')
 		{
-			chse.send_or_push({static:object.send_static+'='+act+
-				'&last_generated_id=' + last_generated_id +
-				'&path='+
-				encodeURIComponent(resizer.drag_context.data.d)+'&n',val:'',c_id:object.id});
+			var st=object.send_static;
+			st.path=resizer.drag_context.data.d;
+			st.last_generated_id=last_generated_id;
+			chse.send_or_push({static:st,val:act,c_id:object.id});
 		}
 	}
 }
@@ -1139,7 +1129,8 @@ function ed_tree_clip_mov(event,object,ctl_id)
 				{	src:'/i/cancel-delete.png',
 					alt:'clear',
 					title:'Clear clipboard(Ctrl_Del)',
-					onclick:'chse.send_or_push({static:$i("'+ctl_id+'").send_static+"=clipboard_clear&last_generated_id=" + last_generated_id +"&n",val:"",c_id:"'+ctl_id+'"});'
+					onclick:'remove_hint($i("'+ctl_id+'"));chse.send_or_push({static:'+object_serialize(object_merge($i(ctl_id).send_static,
+					{last_generated_id:last_generated_id}))+',val:"clipboard_clear",c_id:"'+ctl_id+'"});'
 				}
 				));
 /*			object.hint_div=document.createElement('div');

@@ -152,7 +152,7 @@ class editor_search_pick extends dom_div
 		$this->context[$this->long_name]['filter_id']=$filter_id;
 		$this->context[$this->long_name]['suggestions_page']=0;
 		editor_generic::bootstrap_part();
-		$this->rval->attributes['onfocus']="chse.activatemon({obj:this,objtype:'editor_text',static:'".$this->send."'});";
+		$this->rval->attributes['onfocus']="chse.activatemon({obj:this,objtype:'editor_text',static:".$this->send."});";
 		$this->rval->attributes['onblur']='chse.latedeactivate(this);';
 		$this->vval->attributes['onclick']="\$i('".js_escape($this->bottom_div->id_gen())."').style.display='block';".
 			"var d=\$i('".js_escape($filter_id)."');d.focus();".
@@ -1258,7 +1258,7 @@ class editor_dropdown_list extends dom_div
 	{
 		global $idcounter;
 		//allocate ids
-		$this->sender_js="chse.send_or_push({static:'".$this->send."',val:a,c_id:'".js_escape($this->button->id_gen())."'});";
+		$this->sender_js="chse.send_or_push({static:".$this->send.",val:a,c_id:'".js_escape($this->button->id_gen())."'});";
 		$js='';
 		foreach($this->actions as $a)
 			{
@@ -1607,7 +1607,7 @@ class editor_text_dropdown_set extends dom_div
 		editor_generic::bootstrap_part();
 		unset($this->custom_id);
 		$this->main->attributes['onmouseover']='opera_fix(this);';
-		$this->main->attributes['onfocus']="tddcb_activate(this,'".js_escape($this->listdiv->id_gen())."','".js_escape($this->full_set)."',{obj:this,objtype:'".$this->etype."',static:'".$this->send."'});";
+		$this->main->attributes['onfocus']="tddcb_activate(this,'".js_escape($this->listdiv->id_gen())."','".js_escape($this->full_set)."',{obj:this,objtype:'".$this->etype."',static:".$this->send."});";
 		$this->main->attributes['onblur']="tddcb_deactivate(this,'".js_escape($this->listdiv->id_gen())."');";
 		$this->main->attributes['onkeypress']="return tddcb_keypress(event,this,'".js_escape($this->listdiv->id_gen())."');";
 		
