@@ -2329,6 +2329,228 @@ class editor_divbutton extends dom_div
 }
 
 
+//###############################################################################################3
+//##################################   editor_txtasg definition  ######################3
+//###############################################################################################3
+
+
+class editor_txtasg extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->text=new dom_any_noterm('input');
+		$this->main=$this->text;
+		$this->text->attributes['type']='text';
+		$this->text->attributes['autocomplete']='off';
+		$this->etype=get_class($this);
+		$this->div=new dom_div;
+		$this->div->css_style['display']='none';
+		$this->div->css_style['position']='absolute';
+		$this->div->css_style['min-width']='50px';
+		$this->div->css_style['max-height']='200px';
+		$this->div->css_style['overflow']='auto';
+		$this->append_child($this->text);
+		$this->append_child($this->div);
+		$this->keys=Array();
+		$this->context=Array();
+	}
+	
+
+	function fetch_list($ev,$part=NULL)
+	{
+		return Array(
+			Array(
+				'val'=>'line1',
+				'title'=>'title for line 1'//works
+				),
+			Array(
+				'val'=>'line2',
+				'hint'=>'hint for line 2' //TODO: implement hint
+				),
+			Array(
+				'val'=>'line3',//TODO: implement dynamic hint request
+				'qh'=>1
+				),
+			);
+	}
+
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		$this->context[$this->long_name]['div_id']=$this->div->id_gen();
+		$this->context[$this->long_name]['text_id']=$this->text->id_gen();
+		$this->text->keys=&$this->keys;
+		$this->text->context=&$this->context;
+		$this->context[$this->long_name]['oid']=$this->oid;
+		
+		$this->custom_id=$this->text->id_gen();
+		editor_generic::bootstrap_part();
+		unset($this->custom_id);
+	}
+	
+	function html_inner()
+	{
+	$this->text->attributes['value']=$this->args[$this->context[$this->long_name]['var']];
+	$this->text->attributes['onfocus']="chse.activatemon({obj:this,objtype:'editor_text',static:".$this->send."});this.selectionStart=0;this.selectionEnd=this.value.length;clearTimeout(this.hide_timeout);var st=".$this->send.";st.name+='.fo';st.type+='.editor_hidden';chse.send_or_push({static:st,val:encodeURIComponent(this.value),c_id:this.id});";
+	$this->text->attributes['onfocus'].="\$i('".js_escape($this->div->id_gen())."').tabIndex=1000;";
+	$this->text->attributes['onblur']="chse.latedeactivate(this);if(this.refresh_timeout)clearTimeout(this.refresh_timeout);this.hide_timeout=setTimeout('\$i(\\'".js_escape($this->div->id_gen())."\\').style.display=\\'none\\';',200);";
+	$this->div->attributes['onmousedown']='event.preventDefault();event.stopPropagation();return false;$i(\''.js_escape($this->text->id_gen()).'\').focus();';
+	$this->text->attributes['onkeypress']="editor_text_autosuggest_keypress(this,event,'".js_escape($this->text->id_gen())."','".js_escape($this->text->id_gen())."','".js_escape($this->div->id_gen())."');";
+	if(!isset($this->no_restore_focus))editor_generic::add_focus_restore($this->ed);
+	dom_void::html_inner();
+	}
+	
+	function handle_event($ev)
+	{
+		$r= new editor_txtasg_list;
+		if($ev->rem_type==$this->etype)//self targeted event
+		{
+			
+			$div_id=$ev->context[$ev->long_name]['div_id'];
+			//print $customid;exit;
+			$oid=$ev->context[$ev->long_name]['oid'];
+			$text_id=$ev->context[$ev->long_name]['text_id'];
+			$r->input=$this->fetch_list($ev,$_POST['val']);
+		}
+ 		if($ev->rem_name=='fo')
+		{
+			//child node targeted event
+			
+			$div_id=$ev->context[$ev->parent_name]['div_id'];
+			$oid=$ev->context[$ev->parent_name]['oid'];
+			$text_id=$ev->context[$ev->parent_name]['text_id'];
+			$r->input=$this->fetch_list($ev);
+		}
+		//common part
+		$r->context=&$ev->context;
+		$r->keys=&$ev->keys;
+		$r->oid=$oid;
+		$r->name=$ev->parent_name;
+		$r->etype=$ev->parent_type;
+		$r->text_inp=$text_id;
+		$r->bootstrap();
+		print "(function(){var nya=\$i('".js_escape($div_id)."');".
+		"if(!nya.hide_timeout && chse.ismonitored(\$i('".js_escape($text_id)."')))".
+		"{".
+		"try{nya.innerHTML=";
+		reload_object($r);
+		print
+		"nya.scrollTop=0;}catch(e){ window.location.reload(true);};";
+		print 'nya.style.display=\'block\';';
+		$js='';
+		if(is_array($r->input))foreach($r->input as $v)
+		{
+			if($js!='')$js.=',';
+			$js.='{id:\''.js_escape($v['id']).'\',val:\''.js_escape($v['val']).'\'}';
+		}
+		print '$i(\''.js_escape($text_id).'\').as_objects=['.$js.'];';
+		print '$i(\''.js_escape($text_id).'\').as_id = null;};';
+		print 'chse.bgifc(\''.js_escape($ev->context[$ev->long_name]['text_id']).'\',\'\');})();';
+		#if($ev->rem_type!=$this->etype)
+			return;
+		
+		editor_generic::handle_event($ev);
+	}
+}
+
+
+
+class editor_txtasg_list extends dom_table
+{
+	function __construct()
+	{
+		dom_table::__construct();
+		$this->css_style['border']='1px solid blue';
+		$this->css_style['background']='white';
+		$this->tr=new dom_tr;
+		$this->tr->css_style['border']='1px solid gray';
+		$this->td=new dom_td;
+		$this->append_child($this->tr);
+		$this->tr->append_child($this->td);
+		$this->t=new dom_statictext;
+		$this->td->append_child($this->t);
+		$this->etype='-1';
+		$this->args=Array();
+		$this->keys=Array();
+	}
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		
+	}
+	
+	function setup_tr($it)
+	{
+		
+		$this->tr->attributes['onmouseover']=
+		"var text_inp=\$i('".js_escape($this->text_inp)."');".
+		"if(text_inp.as_objects)".
+		"{".
+			"if(text_inp.as_id || text_inp.as_id==0)".
+			"{".
+				"var s=\$i(text_inp.as_objects[text_inp.as_id].id).style;".
+				"s.backgroundColor='white';".
+				"s.color='';".
+			"};".
+			"text_inp.as_id='".js_escape($it)."';".
+			"if(text_inp.as_id || text_inp.as_id==0)".
+			"{".
+				"var s=\$i(text_inp.as_objects[text_inp.as_id].id).style;".
+				"s.backgroundColor='blue';".
+				"s.color='white';".
+			"}".
+		"}".
+		"";
+		$this->tr->attributes['onmouseout']=
+		"var text_inp=\$i('".js_escape($this->text_inp)."');".
+		"if(text_inp.as_objects)".
+		"{".
+			"if(text_inp.as_id || text_inp.as_id==0)".
+			"{".
+				"var s=\$i(text_inp.as_objects[text_inp.as_id].id).style;".
+				"s.backgroundColor='white';".
+				"s.color='';".
+			"};".
+			"text_inp.as_id=null;".
+		"}".
+		"";
+		//$this->tr->attributes['onclick']=
+		$click=
+		"var text_inp=\$i('".js_escape($this->text_inp)."');".
+		"if(text_inp.as_objects)".
+		"{".
+			"if(text_inp.as_id || text_inp.as_id==0)".
+				"text_inp.value=text_inp.as_objects[text_inp.as_id].val;".
+			"text_inp.focus();".
+		"}".
+		"";
+		$this->tr->attributes['onmousedown']="event.preventDefault();\$i('".js_escape($this->text_inp)."').focus();";
+		$this->tr->attributes['onmouseup']="\$i('".js_escape($this->text_inp)."').focus();$click";
+		$this->tr->css_style['cursor']='pointer';
+
+	}
+	
+	function html_inner()
+	{
+		if(is_array($this->input))foreach($this->input as $k =>$v)
+		{
+			$this->t->text=$v['val'];
+			$this->id_alloc();
+			$this->input[$k]['id']=$this->tr->id_gen();
+			if(isset($v['title']))
+				$this->tr->attributes['title']=$v['title'];
+			else
+				unset($this->tr->attributes['title']);
+			$this->setup_tr($k);
+			$this->tr->html();
+		}
+	}
+
+}
+
+$tests_m_array['editor_txtasg']='editor_txtasg';
+
 
 
 
