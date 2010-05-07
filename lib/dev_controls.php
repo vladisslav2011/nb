@@ -3793,10 +3793,15 @@ class ed_tree_main extends dom_div
 		{
 			$current=$ma->find($obj,$ev->keys['path']);
 			$n=$ev->rem_name;
-			$current->$n=$_POST['val'];
-			//node has known structure, so we can access children[1] directly...
-			print "\$i('".$ev->context[$ev->parent_name]['cid']."').childNodes[1][text_content]='".js_escape($ma->text($current))."';";
-			$do_store=true;
+			$ev->current=$current;
+			$ev->obj=$obj;
+			if($n != 'fo')//very bad. Should do it other way...
+			{
+				$current->$n=$_POST['val'];
+				//node has known structure, so we can access children[1] directly...
+				print "\$i('".$ev->context[$ev->parent_name]['cid']."').childNodes[1][text_content]='".js_escape($ma->text($current))."';";
+				$do_store=true;
+			}
 		}
 		if($ev->rem_name=='tracker')
 		{
@@ -4909,9 +4914,9 @@ class ed_query_gen_ext_editor extends ed_tree_item_editor//virtual component inj
 			break;
 		case 'sql_var':
 			//TODO: localization
-			$this->field_add($obj,'val','Значение',new editor_text);
+			$this->field_add($obj,'var','Значение',new editor_txtasg_q0);
 			$this->field_add($obj,'alias','alias',new editor_text);
-			$this->field_add($obj,'variable','Переменная',new editor_text);
+			$this->field_add($obj,'variable','Переменная',new editor_txtasg_q0);
 			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
 			break;
 		case 'sql_subquery':
@@ -4934,11 +4939,11 @@ class ed_query_gen_ext_editor extends ed_tree_item_editor//virtual component inj
 			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
 			break;
 		case 'sql_column':
-			$this->field_add($obj,'db','db',new editor_text);
-			$this->field_add($obj,'tbl','tbl',new editor_text);
-			$this->field_add($obj,'col','col',new editor_text);
+			$this->field_add($obj,'db','db',new editor_txtasg_q0);
+			$this->field_add($obj,'tbl','tbl',new editor_txtasg_q0);
+			$this->field_add($obj,'col','col',new editor_txtasg_q0);
 			$this->field_add($obj,'alias','alias',new editor_text);
-			$this->field_add($obj,'variable','Переменная',new editor_text);
+			$this->field_add($obj,'variable','Переменная',new editor_txtasg_q0);
 			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
 			break;
 		case 'sql_order':
@@ -4981,17 +4986,107 @@ class editor_txtasg_q0 extends editor_txtasg
 	function fetch_list($ev,$k=NULL)
 	{
 		global $sql;
-		if(preg_match('/db(\.fo)?$/',$ev->rem_name))
+		print '/*'.$ev->real_name.'*/';
+		if(get_class($ev->current)=='sql_column')
 		{
-			$res=$sql->query('SHOW DATABASES');
-			while($row=$sql->fetchn($res))
+			if(preg_match('/db$/',$ev->real_name))
 			{
-				$ra[]=Array('val'=>$row[0]);
-			}
-			$sql->free($res);
-			return $ra;
+				$ra[]=Array('val'=>'');
+				$res=$sql->query('SHOW DATABASES');
+				while($row=$sql->fetchn($res))
+				{
+					$ra[]=Array('val'=>$row[0]);
+				}
+				$sql->free($res);
+				return $ra;
+			};
+			if(preg_match('/tbl$/',$ev->real_name))
+			{
+				$ra=$this->table_aliases($ev->obj,$ev->keys['path']);
+				$res=$sql->query('SHOW TABLES'.(($ev->current->db != '')?(" FROM `".$sql->esc($ev->current->db)."`"):""));
+				while($row=$sql->fetchn($res))
+				{
+					$ra[]=Array('val'=>$row[0]);
+				}
+				$sql->free($res);
+				return $ra;
+			};
+			if(preg_match('/col$/',$ev->real_name))
+			{
+				$ra[]=Array('val'=>'');
+				$res=$sql->query('SHOW COLUMNS'.(($ev->current->tbl != '')?(" FROM ".(($ev->current->db != '')?("`".$sql->esc($ev->current->db)."`."):"")."`".$sql->esc($ev->current->tbl)."`"):""));
+				while($row=$sql->fetchn($res))
+				{
+					$ra[]=Array('val'=>$row[0]);
+				}
+				$sql->free($res);
+				return $ra;
+			};
 		};
 		return NULL;
+	}
+	
+	function table_aliases($obj,$path)
+	{
+		//lookup areas: from,into,joins/what
+		$path_e=explode('/',$path);
+		$res=Array(Array('val'=>''));
+		while(count($path_e)>0)
+		{
+			$i=array_shift($path_e);
+			if($i=='')$curr=$obj;
+			else{
+				$ia=query_gen_ext_manipulator::children($curr);
+				$curr=$ia[intval($i)];
+			}
+			//if(get_class($curr)=='sql_subquery')print "alert('yoo');";
+			if(get_class($curr)=='query_gen_ext')
+			{
+				if(is_array($curr->from->exprs))foreach($curr->from->exprs as $e)
+					if($e->alias !='')
+						$res[]=Array('val'=>$e->alias,'title'=>$e->result());
+				if(is_array($curr->into->exprs))foreach($curr->into->exprs as $e)
+					if($e->alias !='')
+						$res[]=Array('val'=>$e->alias,'title'=>$e->result());
+				if(is_array($curr->joins->exprs))foreach($curr->joins->exprs as $j)
+					if(is_array($j->what->exprs))foreach($j->what->exprs as $e)
+						if($e->alias !='')
+							$res[]=Array('val'=>$e->alias,'title'=>$e->result());
+				$lastn=query_gen_ext_manipulator::xname($curr,$i);
+			}
+			if(isset($curr->on)&&isset($curr->what)&&isset($curr->type)&&($i==0))
+				$lastn='join';
+		}
+		if($lastn=='from' || $lastn=='into' || $lastn=='join')return Array(Array('val'=>''));
+		return $res;
+	}
+	
+	function column_aliases($obj,$path,$tbl)
+	{
+		//lookup areas: what, try dereference $tbl alias into table ang get columns,
+		// try dereference $tbl subquery alias and get subquer->what aliases, guess from column names if none and warn
+		$path_e=explode('/',$path);
+		//translate $path_e to array of object references and walk it topdown
+		$path_o=Array();
+		$res=Array(Array('val'=>''));
+		while(count($path_e)>0)
+		{
+			$i=array_shift($path_e);
+			if($i=='')$curr=$obj;
+			else{
+				$ia=query_gen_ext_manipulator::children($curr);
+				$curr=$ia[intval($i)];
+			}
+			$path_o[]=$curr;
+		}
+		//now $path_o has object references from $path_e, $path_e is empty
+		while(count($path_o)>0)
+		{
+			$curr=array_pop($path_o);
+			//test if $curr points to valid object (query_gen_ext or join) and do lookup
+			
+		}
+		
 	}
 }
 

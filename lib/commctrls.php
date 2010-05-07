@@ -2411,6 +2411,7 @@ class editor_txtasg extends dom_div
 			//print $customid;exit;
 			$oid=$ev->context[$ev->long_name]['oid'];
 			$text_id=$ev->context[$ev->long_name]['text_id'];
+			$ev->real_name=$ev->long_name;
 			$r->input=$this->fetch_list($ev,$_POST['val']);
 		}
  		if($ev->rem_name=='fo')
@@ -2420,6 +2421,7 @@ class editor_txtasg extends dom_div
 			$div_id=$ev->context[$ev->parent_name]['div_id'];
 			$oid=$ev->context[$ev->parent_name]['oid'];
 			$text_id=$ev->context[$ev->parent_name]['text_id'];
+			$ev->real_name=$ev->parent_name;
 			$r->input=$this->fetch_list($ev);
 		}
 		//common part
@@ -2446,7 +2448,7 @@ class editor_txtasg extends dom_div
 		}
 		print '$i(\''.js_escape($text_id).'\').as_objects=['.$js.'];';
 		print '$i(\''.js_escape($text_id).'\').as_id = null;};';
-		print 'chse.bgifc(\''.js_escape($ev->context[$ev->long_name]['text_id']).'\',\'\');})();';
+		print 'chse.bgifc(\''.js_escape($text_id).'\',\'\');})();';
 		#if($ev->rem_type!=$this->etype)
 			return;
 		
@@ -2468,7 +2470,7 @@ class editor_txtasg_list extends dom_table
 		$this->td=new dom_td;
 		$this->append_child($this->tr);
 		$this->tr->append_child($this->td);
-		$this->t=new dom_statictext;
+		$this->t=new dom_statictext_nonempty;
 		$this->td->append_child($this->t);
 		$this->etype='-1';
 		$this->args=Array();

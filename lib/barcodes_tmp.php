@@ -1466,9 +1466,8 @@ class query_result_viewer_codessel extends dom_any
 		$tr->append_child($td->append_child($this->editors['ribbon_init']));
 		
 		$td=new dom_any('td');
-		editor_generic::addeditor('ribbon_reset',new editor_button);
-		$this->editors['ribbon_reset']->attributes['value']='=>';
-		$tr->append_child($td->append_child($this->editors['ribbon_reset']));
+		$this->ribbon_reset=new dom_textbutton('=>');
+		$tr->append_child($td->append_child($this->ribbon_reset));
 		
 		$td=new dom_any('td');
 		editor_generic::addeditor('ribbon_remaining',new editor_text_autofetch);
@@ -1486,9 +1485,8 @@ class query_result_viewer_codessel extends dom_any
 		$tr->append_child($td->append_child($this->editors['labels_init']));
 		
 		$td=new dom_any('td');
-		editor_generic::addeditor('labels_reset',new editor_button);
-		$this->editors['labels_reset']->attributes['value']='=>';
-		$tr->append_child($td->append_child($this->editors['labels_reset']));
+		$this->labels_reset=new dom_textbutton('=>');
+		$tr->append_child($td->append_child($this->labels_reset));
 		
 		$td=new dom_any('td');
 		editor_generic::addeditor('labels_remaining',new editor_text_autofetch);
@@ -1741,8 +1739,10 @@ class query_result_viewer_codessel extends dom_any
 		$this->context[$this->long_name]['selonly_id']=$this->editors['only_selected']->main_id();
 		$this->context[$this->long_name]['ed_offset_id']=$this->editors['ed_offset']->main_id();
 		$this->context[$this->long_name]['total_count_id']=$this->editors['total_count']->main_id();
-		$this->context[$this->long_name]['labels_remaining_id']=$this->editors['labels_remaining']->id_gen();
-		$this->context[$this->long_name]['ribbon_remaining_id']=$this->editors['ribbon_remaining']->id_gen();
+		$this->labels_reset->attributes['onclick']="var a=\$i('".js_escape($this->editors['labels_remaining']->main->id_gen())."');".
+			"a.focus();a.value=\$i('".js_escape($this->editors['labels_init']->main->id_gen())."').value;";
+		$this->ribbon_reset->attributes['onclick']="var a=\$i('".js_escape($this->editors['ribbon_remaining']->main->id_gen())."');".
+			"a.focus();a.value=\$i('".js_escape($this->editors['ribbon_init']->main->id_gen())."').value;";
 		$this->args['@@fltr']=$_SESSION['fltr'];
 		$this->args['@@selonly']=$_SESSION['selonly'];
 		$this->args['@@ed_count']=$_SESSION['ed_count'];
@@ -1959,32 +1959,6 @@ class query_result_viewer_codessel extends dom_any
 			//child node targeted event
 			$_SESSION['current_task']=intval($_POST['val']);
 			$changed=true;
-		}
-		if($ev->rem_name=='labels_reset')
-		{
-			$this->reset_lr(0);
-			$this->name=$ev->parent_name;
-			$this->bootstrap();
-			unset($this->editors['labels_remaining']->com_parent);
-			$this->editors['labels_remaining']->name=$ev->parent_name.'.labels_remaining';
-			$this->setup_h();
-			print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['labels_remaining_id'])."');".
-			"try{nya.innerHTML=";
-			reload_object($this->editors['labels_remaining']);
-			print "}catch(e){nya.innerHTML='exception';};";
-		}
-		if($ev->rem_name=='ribbon_reset')
-		{
-			$this->reset_lr(1);
-			$this->name=$ev->parent_name;
-			$this->bootstrap();
-			unset($this->editors['ribbon_remaining']->com_parent);
-			$this->editors['ribbon_remaining']->name=$ev->parent_name.'.ribbon_remaining';
-			$this->setup_h();
-			print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['ribbon_remaining_id'])."');".
-			"try{nya.innerHTML=";
-			reload_object($this->editors['ribbon_remaining']);
-			print "}catch(e){nya.innerHTML='exception';};";
 		}
 		if($ev->rem_name=='only_selected')
 		{

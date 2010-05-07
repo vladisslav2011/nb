@@ -41,7 +41,7 @@ class sql
 	}
 	function free($r)
 	{
-		if($r !== TRUE)mysql_free_result($r);
+		if($r && ($r !== TRUE))mysql_free_result($r);
 		return 0;
 	}
 	function fetcha($r)

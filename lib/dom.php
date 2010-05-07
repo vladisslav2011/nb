@@ -529,6 +529,22 @@ class dom_statictext extends dom_node
 	}
 }
 
+class dom_statictext_nonempty extends dom_node
+{
+	public $text;
+	
+	function __construct($text='')
+	{
+		parent::__construct();
+		if($text != '')$this->text=$text;
+	}
+	
+	function html()
+	{
+		$this->rootnode->out('&nbsp;'.htmlspecialchars($this->text));
+	}
+}
+
 class dom_statichtml extends dom_node
 {
 	public $text;
@@ -539,11 +555,19 @@ class dom_statichtml extends dom_node
 }
 
 
-class dom_textinput extends dom_any_noterm
+class dom_input extends dom_any_noterm
 {
 	function __construct()
 	{
 		dom_any_noterm::__construct('input');
+	}
+}
+
+class dom_textinput extends dom_input
+{
+	function __construct()
+	{
+		parent::__construct();
 		$this->attributes['type']='text';
 	}
 }
@@ -552,10 +576,11 @@ class dom_textinput extends dom_any_noterm
 
 class dom_textbutton extends dom_any_noterm
 {
-	function __construct()
+	function __construct($val='')
 	{
 		dom_any_noterm::__construct('input');
-		$this->attributes['type']='submit';
+		$this->attributes['type']='button';
+		if($val !='')$this->attributes['value']=$val;
 	}
 }
 

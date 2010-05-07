@@ -387,12 +387,12 @@ class sql_immed
 
 class sql_var
 {
-	public $val='',$alias='';
+	public $var='',$alias='';
 	public $error=NULL;
 	
-	function __construct($val=NULL,$alias=NULL)
+	function __construct($var=NULL,$alias=NULL)
 	{
-		if(isset($val))$this->val=$val;
+		if(isset($var))$this->var=$var;
 		if(isset($alias))$this->alias=$alias;
 	}
 	
@@ -405,7 +405,7 @@ class sql_var
 			return NULL;
 		}*/
 		//do not quote numbers
-			$res=' @`'.sql::esc($this->val).'`';
+			$res=' @`'.sql::esc($this->var).'`';
 		if($this->alias != '')
 			$res.=' AS `'.sql::esc($this->alias).'`';
 		if($this->variable !='')
@@ -415,7 +415,7 @@ class sql_var
 	
 	function match_update($root,$item,$scope)
 	{
-		if(get_class($this)===get_class($item) && $this->val===$item->val)return OP_R_MATCHED;
+		if(get_class($this)===get_class($item) && $this->var===$item->var)return OP_R_MATCHED;
 		else return OP_R_DIFF;
 	}
 }
@@ -1453,6 +1453,10 @@ function strip_aliases($o=NULL,$skip=false)
 		foreach($o->exprs as $e)
 			$this->strip_aliases($e);
 }
+
+
+
+
 
 
 
