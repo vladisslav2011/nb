@@ -5585,6 +5585,7 @@ class editor_txtasg extends dom_div
 {
 	function __construct()
 	{
+		parent::__construct();
 		$this->text=new dom_any_noterm('input');
 		$this->main=$this->text;
 		$this->text->attributes['type']='text';
@@ -5603,8 +5604,22 @@ class editor_txtasg extends dom_div
 	}
 	
 
-	function fetch_list()
+	function fetch_list($ev,$part=NULL)
 	{
+		return Array(
+			Array(
+				'val'=>'line1',
+				'title'=>'title for line 1'//works
+				),
+			Array(
+				'val'=>'line2',
+				'hint'=>'hint for line 2' //TODO: implement hint
+				),
+			Array(
+				'val'=>'line3',//TODO: implement dynamic hint request
+				'qh'=>1
+				),
+			);
 	}
 
 	function bootstrap()
@@ -5624,99 +5639,62 @@ class editor_txtasg extends dom_div
 	function html_inner()
 	{
 	$this->text->attributes['value']=$this->args[$this->context[$this->long_name]['var']];
-	$this->text->attributes['onfocus']="chse.activatemon({obj:this,objtype:'editor_text',static:".$this->send."});this.selectionStart=0;this.selectionEnd=this.value.length;clearTimeout(this.hide_timeout);chse.send_or_push({static:".$this->send.",val:encodeURIComponent(this.value),c_id:this.id});";
+	$this->text->attributes['onfocus']="chse.activatemon({obj:this,objtype:'editor_text',static:".$this->send."});this.selectionStart=0;this.selectionEnd=this.value.length;clearTimeout(this.hide_timeout);var st=".$this->send.";st.name+='.fo';st.type+='.editor_hidden';chse.send_or_push({static:st,val:encodeURIComponent(this.value),c_id:this.id});";
 	$this->text->attributes['onfocus'].="\$i('".js_escape($this->div->id_gen())."').tabIndex=1000;";
 	$this->text->attributes['onblur']="chse.latedeactivate(this);if(this.refresh_timeout)clearTimeout(this.refresh_timeout);this.hide_timeout=setTimeout('\$i(\\'".js_escape($this->div->id_gen())."\\').style.display=\\'none\\';',200);";
-	
-//	$this->div->attributes['onmousedown']='this.style.backgroundColor=\'red\';event.preventDefault();event.stopPropagation();return false;$i(\''.js_escape($this->text->id_gen()).'\').focus();';
 	$this->div->attributes['onmousedown']='event.preventDefault();event.stopPropagation();return false;$i(\''.js_escape($this->text->id_gen()).'\').focus();';
-//	$this->div->attributes['onmouseup']='this.style.backgroundColor=\'blue\'';
-
-//	$this->text->attributes['onkeypress']="editor_text_autosuggest_keypress(object,event,inp_id,div_id);";
 	$this->text->attributes['onkeypress']="editor_text_autosuggest_keypress(this,event,'".js_escape($this->text->id_gen())."','".js_escape($this->text->id_gen())."','".js_escape($this->div->id_gen())."');";
-	//up=38,down=40,left=37,right=39,enter=13
-	//keynum = e.keyCode;
-	// focus persistence test
 	if(!isset($this->no_restore_focus))editor_generic::add_focus_restore($this->ed);
 	dom_void::html_inner();
 	}
 	
 	function handle_event($ev)
 	{
-		//print 'alert(\''.$ev->long_name.'\');';
-		// exit;
-			//handle root object events here
-		
+		$r= new editor_txtasg_list;
 		if($ev->rem_type==$this->etype)//self targeted event
 		{
 			
-			$customid=$ev->context[$ev->long_name]['retid'];
+			$div_id=$ev->context[$ev->long_name]['div_id'];
 			//print $customid;exit;
 			$oid=$ev->context[$ev->long_name]['oid'];
-			$htmlid=$ev->context[$ev->long_name]['htmlid'];
-			$list_class=$ev->context[$ev->long_name]['list_class'];
-			
-/*			$r= new $list_class;
-			$r->context=&$ev->context;
-			$r->input_part=$_POST['val'];
-			$r->oid=$oid;
-			$r->name=$ev->parent_name;
-			$r->etype=$ev->parent_type;
-			$r->text_inp=$htmlid;
-			$r->bootstrap();
-			print "var a=\$i('".js_escape($customid)."');try{a.innerHTML=".reload_object($r).
-			"a.scrollTop=0;}catch(e){ window.location.reload(true);};";
-			print 'a.style.display=\'block\';';
-			$js='';
-			foreach($r->result_array as $v)
-			{
-				if($js!='')$js.=',';
-				$js.='{id:\''.js_escape($v->id).'\',val:\''.js_escape($v->val).'\'}';
-			}
-			print '$i(\''.js_escape($htmlid).'\').as_objects=['.$js.'];';
-			print '$i(\''.js_escape($htmlid).'\').as_id = null;';*/
+			$text_id=$ev->context[$ev->long_name]['text_id'];
+			$r->input=$this->fetch_list($ev,$_POST['val']);
 		}
- 		if($ev->rem_name=='text')
+ 		if($ev->rem_name=='fo')
 		{
 			//child node targeted event
 			
-			$customid=$ev->context[$ev->parent_name]['retid'];
-			$oid=$ev->context[$ev->long_name]['oid'];
-			$htmlid=$ev->context[$ev->long_name]['htmlid'];
-			$list_class=$ev->context[$ev->parent_name]['list_class'];
+			$div_id=$ev->context[$ev->parent_name]['div_id'];
+			$oid=$ev->context[$ev->parent_name]['oid'];
+			$text_id=$ev->context[$ev->parent_name]['text_id'];
+			$r->input=$this->fetch_list($ev);
 		}
-			//common part
-			$r= new $list_class;
-			$r->context=&$ev->context;
-			$r->keys=&$ev->keys;
-			$r->input_part=$_POST['val'];
-			$r->oid=$oid;
-			$r->name=$ev->parent_name;
-			$r->etype=$ev->parent_type;
-			$r->text_inp=$htmlid;
-			$r->bootstrap();
-			print "(function(){var nya=\$i('".js_escape($customid)."');".
-			"if(!nya.hide_timeout && chse.ismonitored(\$i('".js_escape($htmlid)."')))".
-			"{".
-			"try{nya.innerHTML=";
-			reload_object($r);
-			print
-			"nya.scrollTop=0;}catch(e){ window.location.reload(true);};";
-			print 'nya.style.display=\'block\';';
-			$js='';
-			foreach($r->result_array as $v)
-			{
-				if($js!='')$js.=',';
-				$js.='{id:\''.js_escape($v->id).'\',val:\''.js_escape($v->val).'\'}';
-			}
-			print '$i(\''.js_escape($htmlid).'\').as_objects=['.$js.'];';
-			print '$i(\''.js_escape($htmlid).'\').as_id = null;};';
-			//exit;
-		//}
-		//editor_text::handle_event($ev);
-		print 'chse.bgifc(\''.js_escape($ev->context[$ev->long_name]['htmlid']).'\',\'\');})();';
-		return;
-		if($ev->rem_type==$this->etype)//always stop propagation of self targeted events
+		//common part
+		$r->context=&$ev->context;
+		$r->keys=&$ev->keys;
+		$r->oid=$oid;
+		$r->name=$ev->parent_name;
+		$r->etype=$ev->parent_type;
+		$r->text_inp=$text_id;
+		$r->bootstrap();
+		print "(function(){var nya=\$i('".js_escape($div_id)."');".
+		"if(!nya.hide_timeout && chse.ismonitored(\$i('".js_escape($text_id)."')))".
+		"{".
+		"try{nya.innerHTML=";
+		reload_object($r);
+		print
+		"nya.scrollTop=0;}catch(e){ window.location.reload(true);};";
+		print 'nya.style.display=\'block\';';
+		$js='';
+		foreach($r->input as $v)
+		{
+			if($js!='')$js.=',';
+			$js.='{id:\''.js_escape($v['id']).'\',val:\''.js_escape($v['val']).'\'}';
+		}
+		print '$i(\''.js_escape($text_id).'\').as_objects=['.$js.'];';
+		print '$i(\''.js_escape($text_id).'\').as_id = null;};';
+		print 'chse.bgifc(\''.js_escape($ev->context[$ev->long_name]['text_id']).'\',\'\');})();';
+		#if($ev->rem_type!=$this->etype)
 			return;
 		
 		editor_generic::handle_event($ev);
@@ -5737,23 +5715,15 @@ class editor_txtasg_list extends dom_table
 		$this->td=new dom_td;
 		$this->append_child($this->tr);
 		$this->tr->append_child($this->td);
-		editor_generic::addeditor('text',new editor_statichtml);
-		$this->td->append_child($this->editors['text']);
-		$this->etype='editor_text_autosuggest';
+		$this->t=new dom_statictext;
+		$this->td->append_child($this->t);
+		$this->etype='-1';
 		$this->args=Array();
 		$this->keys=Array();
-		$this->list_items=Array('this','is','example','of','editor_text_autosuggest','implementation.','you','forgot','to','set','editor_text_autosuggest::list_class','to','editor_text_autosuggest_list_example','implementation','or','set','editor_text_autosuggest_list_example::list_items,','damn','bastard','type','some','letters','to','see','filtered','list');
 	}
 	function bootstrap()
 	{
 		$this->long_name=editor_generic::long_name();
-		$this->context[$this->long_name.'.text']['var']='i';
-		foreach($this->editors as $e)
-		{
-			$e->args= &$this->args;
-			$e->keys= &$this->keys;
-			$e->context= &$this->context;
-		}
 		
 	}
 	
@@ -5810,33 +5780,23 @@ class editor_txtasg_list extends dom_table
 	
 	function html_inner()
 	{
-		$a=Array();
-		foreach($this->list_items as $v)
+		foreach($this->input as $k =>$v)
 		{
-			if(!isset($this->nofilter))
-				if(!preg_match('/'.preg_quote($this->input_part,'/').'/',$v))continue;
-			if($this->input_part=='')
-			{
-				$this->args['i']=htmlspecialchars($v);
-			}else{
-				$v1=htmlspecialchars($this->input_part);
-				$v2=htmlspecialchars($v);
-				$this->args['i']=preg_replace('/'.preg_quote($v1,'/').'/','<span style=\'font-size:1.2em;\'>'.$v1.'</span>',$v2);
-			}
+			$this->t->text=$v['val'];
 			$this->id_alloc();
-			foreach($this->editors as $e)$e->bootstrap();
-			unset($it);
-			$it->id=$this->tr->id_gen();
-			$it->val=$v;
-			$this->setup_tr(count($a));
-			$a[]=$it;
+			$this->input[$k]['id']=$this->tr->id_gen();
+			if(isset($v['title']))
+				$this->tr->attributes['title']=$v['title'];
+			else
+				unset($this->tr->attributes['title']);
+			$this->setup_tr($k);
 			$this->tr->html();
 		}
-		$this->result_array=&$a;
 	}
 
 }
 
+$tests_m_array['editor_txtasg']='editor_txtasg';
 
 
 
