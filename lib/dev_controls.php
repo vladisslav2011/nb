@@ -4959,7 +4959,8 @@ class ed_query_gen_ext_editor extends ed_tree_item_editor//virtual component inj
 			$this->editors['type']->options=Array(
 				"SELECT"=>"SELECT",
 				"INSERT"=>"INSERT",
-				"INSERT UPDATE"=>"INSERT UPDATE",
+				"INSERT UPDATE"=>"INSERT ... UPDATE",
+				"INSERT SELECT"=>"INSERT ... SELECT",
 				"UPDATE"=>"UPDATE",
 				"DELETE"=>"DELETE",
 				);
@@ -5004,7 +5005,7 @@ class editor_txtasg_q0 extends editor_txtasg
 			{
 				$ra=$this->table_aliases($ev->obj,$ev->keys['path'],$k);
 				$res=$sql->query('SHOW TABLES'.(($ev->current->db != '')?(" FROM `".$sql->esc($ev->current->db)."`"):"").
-					(($k != '')?(" LIKE `%".$sql->esc($k)."%`"):""));
+					(($k != '')?(" LIKE '%".$sql->esc($k)."%'"):""));
 				while($row=$sql->fetchn($res))
 				{
 					$ra[]=Array('val'=>$row[0]);
@@ -5018,7 +5019,7 @@ class editor_txtasg_q0 extends editor_txtasg
 				if(count($ra)==1)
 				{
 					$res=$sql->query('SHOW COLUMNS'.(($ev->current->tbl != '')?(" FROM ".(($ev->current->db != '')?("`".$sql->esc($ev->current->db)."`."):"")."`".$sql->esc($ev->current->tbl)."`"):"").
-						(($k != '')?(" LIKE `%".$sql->esc($k)."%`"):""));
+						(($k != '')?(" LIKE '%".$sql->esc($k)."%'"):""));
 					while($row=$sql->fetchn($res))
 					{
 						$ra[]=Array('val'=>$row[0]);
@@ -5120,7 +5121,7 @@ class editor_txtasg_q0 extends editor_txtasg
 			if(get_class($found)=='sql_column')
 			{
 				$qres=$sql->query('SHOW COLUMNS FROM '.(($found->db != '')?("`".$sql->esc($found->db)."`."):"")."`".$sql->esc($found->tbl)."`".
-					(($k != '')?(" LIKE `%".$sql->esc($k)."%`"):""));
+					(($k != '')?(" LIKE '%".$sql->esc($k)."%'"):""));
 				while($row=$sql->fetchn($qres))
 				{
 					$res[]=Array('val'=>$row[0],'title'=>$found->result());
@@ -5665,9 +5666,138 @@ class ed_css_editor extends dom_div
 
 
 
+class dom_query_root extends dom_void
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->vars=Array();
+	}
+	
+	function append_child($node)
+	{
+		$node->query_root=$this;
+		parent::append_child($node);
+	}
+}
 
+class dom_query_query extends dom_void
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->query_raw='';
+		$this->query_gen_ext=NULL;
+	}
+	
+	function append_child($node)
+	{
+		$node->query_root=$this->query_root;
+		parent::append_child($node);
+	}
+	
+	function html_inner()
+	{
+		global $sql;
+		if(isset($this->query_gen_ext))
+		{
+			$this->query_raw=$this->query_gen_ext->result();
+		}
+		if($this->query_raw != '')
+		{
+			$res=$sql->query($this->query_raw);
+			while($row=$sql->fetcha($res))
+			{
+				foreach($row as $k =>$v)
+					$this->query_root->vars[$k]=$v;
+				parent::html_inner();
+			}
+			$sql->free($res);
+		}
+	}
+}
 
-
+$dom_query_node_noterm=Array(
+'area'=>1,
+'base'=>1,
+'basefont'=>1,
+'bgsound'=>1,
+'br'=>1,
+'col'=>1,
+'frame'=>1,
+'hr'=>1,
+'img'=>1,
+'input'=>1,
+'isindex'=>1,
+'link'=>1,
+'meta'=>1,
+'param'=>1,
+'wbr'=>1,
+);
+class dom_query_node extends dom_void
+{
+	function append_child($node)
+	{
+		$node->query_root=$this->query_root;
+		parent::append_child($node);
+	}
+	
+	function html()
+	{
+		global $dom_query_node_noterm;
+		$node_name=strtolower(is_object($this->node_name)?$this->query_root->vars[$this->node_name->ref]:$this->node_name);
+		$this->rootnode->out('<'.$node_name);
+		if(isset($this->css_class))
+		{
+			if(is_array($this->css_class))
+			{
+				$css_class=Array();
+				foreach($this->css_class as $n =>$v)
+				{
+					if(is_object($v)?$this->query_root->vars[$v->ref]:$v)$css_class[]=$n;
+				}
+				if(count($css_class)>0)
+					$this->rootnode->out(' class="'.htmlspecialchars(implode(' ',$css_class),ENT_QUOTES).'"');
+			}else{
+				$this->rootnode->out(' class="'.htmlspecialchars(
+					is_object($this->css_class)?$this->query_root->vars[$this->css_class->ref]:$this->css_class,ENT_QUOTES).'"');
+			}
+		}
+		if(isset($this->css_style))
+		{
+			if(is_array($this->css_style))
+			{
+				$css_style=Array();
+				foreach($this->css_style as $n =>$v)
+				{
+					$css_style[]=$n.':'.(is_object($v)?($this->query_root->vars[$v->ref].$v->unit):$v);
+				}
+				if(count($css_style)>0)
+					$this->rootnode->out(' style="'.htmlspecialchars(implode('; ',$css_class),ENT_QUOTES).'"');
+			}else{
+				$this->rootnode->out(' style="'.htmlspecialchars(
+					is_object($this->css_style)?$this->query_root->vars[$this->css_style->ref]:$this->css_style,ENT_QUOTES).'"');
+			}
+		}
+		if(is_array($this->attributes))foreach($this->attributes as $n => $v)
+			$this->rootnode->out(' '.$n.'="'.htmlspecialchars((is_object($v)?($this->query_root->vars[$v->ref]):$v),ENT_QUOTES).'"');
+		if(!$dom_query_node_noterm[$node_name])
+		{
+			$this->rootnode->out('>');
+			parent::html_inner();
+			$this->rootnode->out('</'.$node_name.'>');
+		}else $this->rootnode->out('/>');
+		
+		
+	}
+}
+class dom_query_text extends dom_void
+{
+	function html()
+	{
+		$this->rootnode->out(htmlspecialchars((is_object($this->text)?($this->query_root->vars[$this->text->ref]):$this->text),ENT_QUOTES));
+	}
+}
 
 
 

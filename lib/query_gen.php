@@ -1323,7 +1323,7 @@ function result()
 	{
 		$res= "INSERT ";
 		if(preg_match('/.*ignore.*/i',$this->type))$res.="IGNORE ";
-		if(preg_match('/.*select/',$this->type))
+		if(preg_match('/.*select/i',$this->type))
 		{
 			if(count($this->into->exprs)!=1)return "error: insert-select into multiple tables not implemented yet";
 			$res.="INTO ".$into_part;
@@ -1333,8 +1333,8 @@ function result()
 				if($al_list!='')$al_list.=',';
 				$al_list.=("`".$e->alias."`");
 			}
-			$res.="(".$al_list.") ";
-			$res= strtoupper($this->type)." ".$what_part;
+			$res.="(".$al_list.")";
+			$res.= " SELECT ".$what_part;
 			if($from_part !='')$res .= " FROM ".$from_part;
 			if($joins_part !='')$res .= $joins_part;
 			if($where_part !='')$res .= " WHERE ".$where_part;
