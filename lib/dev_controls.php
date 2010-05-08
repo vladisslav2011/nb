@@ -4986,13 +4986,13 @@ class editor_txtasg_q0 extends editor_txtasg
 	function fetch_list($ev,$k=NULL)
 	{
 		global $sql;
-		print '/*'.$ev->real_name.'*/';
 		if(get_class($ev->current)=='sql_column')
 		{
 			if(preg_match('/db$/',$ev->real_name))
 			{
 				$ra[]=Array('val'=>'');
-				$res=$sql->query('SHOW DATABASES');
+				$res=$sql->query('SHOW DATABASES'.
+					(($k != '')?(" LIKE `%".$sql->esc($k)."%`"):""));
 				while($row=$sql->fetchn($res))
 				{
 					$ra[]=Array('val'=>$row[0]);
@@ -5002,8 +5002,9 @@ class editor_txtasg_q0 extends editor_txtasg
 			};
 			if(preg_match('/tbl$/',$ev->real_name))
 			{
-				$ra=$this->table_aliases($ev->obj,$ev->keys['path']);
-				$res=$sql->query('SHOW TABLES'.(($ev->current->db != '')?(" FROM `".$sql->esc($ev->current->db)."`"):""));
+				$ra=$this->table_aliases($ev->obj,$ev->keys['path'],$k);
+				$res=$sql->query('SHOW TABLES'.(($ev->current->db != '')?(" FROM `".$sql->esc($ev->current->db)."`"):"").
+					(($k != '')?(" LIKE `%".$sql->esc($k)."%`"):""));
 				while($row=$sql->fetchn($res))
 				{
 					$ra[]=Array('val'=>$row[0]);
@@ -5013,20 +5014,24 @@ class editor_txtasg_q0 extends editor_txtasg
 			};
 			if(preg_match('/col$/',$ev->real_name))
 			{
-				$ra[]=Array('val'=>'');
-				$res=$sql->query('SHOW COLUMNS'.(($ev->current->tbl != '')?(" FROM ".(($ev->current->db != '')?("`".$sql->esc($ev->current->db)."`."):"")."`".$sql->esc($ev->current->tbl)."`"):""));
-				while($row=$sql->fetchn($res))
+				$ra=$this->column_aliases($ev->obj,$ev->keys['path'],$ev->current->tbl,$k);
+				if(count($ra)==1)
 				{
-					$ra[]=Array('val'=>$row[0]);
+					$res=$sql->query('SHOW COLUMNS'.(($ev->current->tbl != '')?(" FROM ".(($ev->current->db != '')?("`".$sql->esc($ev->current->db)."`."):"")."`".$sql->esc($ev->current->tbl)."`"):"").
+						(($k != '')?(" LIKE `%".$sql->esc($k)."%`"):""));
+					while($row=$sql->fetchn($res))
+					{
+						$ra[]=Array('val'=>$row[0]);
+					}
+					$sql->free($res);
 				}
-				$sql->free($res);
 				return $ra;
 			};
 		};
 		return NULL;
 	}
 	
-	function table_aliases($obj,$path)
+	function table_aliases($obj,$path,$k)
 	{
 		//lookup areas: from,into,joins/what
 		$path_e=explode('/',$path);
@@ -5043,26 +5048,28 @@ class editor_txtasg_q0 extends editor_txtasg
 			if(get_class($curr)=='query_gen_ext')
 			{
 				if(is_array($curr->from->exprs))foreach($curr->from->exprs as $e)
-					if($e->alias !='')
+					if(($e->alias !='')&&(($k=='')||(preg_match('/'.preg_quote($k,'/').'/',$e->alias))))
 						$res[]=Array('val'=>$e->alias,'title'=>$e->result());
 				if(is_array($curr->into->exprs))foreach($curr->into->exprs as $e)
-					if($e->alias !='')
+					if(($e->alias !='')&&(($k=='')||(preg_match('/'.preg_quote($k,'/').'/',$e->alias))))
 						$res[]=Array('val'=>$e->alias,'title'=>$e->result());
 				if(is_array($curr->joins->exprs))foreach($curr->joins->exprs as $j)
 					if(is_array($j->what->exprs))foreach($j->what->exprs as $e)
-						if($e->alias !='')
+						if(($e->alias !='')&&(($k=='')||(preg_match('/'.preg_quote($k,'/').'/',$e->alias))))
 							$res[]=Array('val'=>$e->alias,'title'=>$e->result());
 				$lastn=query_gen_ext_manipulator::xname($curr,$i);
 			}
-			if(isset($curr->on)&&isset($curr->what)&&isset($curr->type)&&($i==0))
+			if(isset($curr->on)&&isset($curr->what)&&isset($curr->type)&&($path_e[0]==0))
 				$lastn='join';
 		}
+		#print "alert('".$lastn."');";
 		if($lastn=='from' || $lastn=='into' || $lastn=='join')return Array(Array('val'=>''));
 		return $res;
 	}
 	
-	function column_aliases($obj,$path,$tbl)
+	function column_aliases($obj,$path,$tbl,$k)
 	{
+		global $sql;
 		//lookup areas: what, try dereference $tbl alias into table ang get columns,
 		// try dereference $tbl subquery alias and get subquer->what aliases, guess from column names if none and warn
 		$path_e=explode('/',$path);
@@ -5080,13 +5087,60 @@ class editor_txtasg_q0 extends editor_txtasg
 			$path_o[]=$curr;
 		}
 		//now $path_o has object references from $path_e, $path_e is empty
+		unset($found);
 		while(count($path_o)>0)
 		{
 			$curr=array_pop($path_o);
+			if(get_class($curr)=='query_gen_ext')
+			{
+				if(is_array($curr->from->exprs))foreach($curr->from->exprs as $e)
+					if($e->alias == $tbl)
+					{
+						$found=$e;
+						break 2;
+					}
+				if(is_array($curr->into->exprs))foreach($curr->into->exprs as $e)
+					if($e->alias == $tbl)
+					{
+						$found=$e;
+						break 2;
+					}
+				if(is_array($curr->joins->exprs))foreach($curr->joins->exprs as $j)
+					if(is_array($j->what->exprs))foreach($j->what->exprs as $e)
+						if($e->alias == $tbl)
+						{
+							$found=$e;
+							break 2;
+						}
+			}
 			//test if $curr points to valid object (query_gen_ext or join) and do lookup
-			
 		}
-		
+		if(isset($found))
+		{
+			if(get_class($found)=='sql_column')
+			{
+				$qres=$sql->query('SHOW COLUMNS FROM '.(($found->db != '')?("`".$sql->esc($found->db)."`."):"")."`".$sql->esc($found->tbl)."`".
+					(($k != '')?(" LIKE `%".$sql->esc($k)."%`"):""));
+				while($row=$sql->fetchn($qres))
+				{
+					$res[]=Array('val'=>$row[0],'title'=>$found->result());
+				}
+				$sql->free($qres);
+				
+			}
+			if(get_class($found)=='sql_subquery')
+			{
+				if(is_array($found->subquery->what->exprs))foreach($found->subquery->what->exprs as $e)
+				{
+					if(($e->alias !='')&&(($k=='')||(preg_match('/'.preg_quote($k,'/').'/',$e->alias))))
+						$res[]=Array('val'=>$e->alias,'title'=>$found->result());
+					elseif((get_class($e)=='sql_column')&&(($k=='')||(preg_match('/'.preg_quote($k,'/').'/',$e->col))))
+						$res[]=Array('val'=>$e->col,'title'=>$found->result());
+				}
+				
+			}
+		}
+		return $res;
 	}
 }
 

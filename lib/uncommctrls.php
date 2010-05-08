@@ -798,7 +798,7 @@ class container_resize_scroll extends dom_div
 		$this->css_style['width']='100px';
 		$this->css_style['height']='100px';
 		//$this->css_style['background-color']='red';
-		$this->css_style['border']='5px solid red';
+		$this->css_style['border']='5px solid gray';
 		$this->in=new dom_div;
 		$this->in->css_style['overflow']='auto';
 		$this->in->css_style['width']='100%';
