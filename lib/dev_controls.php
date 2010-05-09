@@ -5452,6 +5452,11 @@ class htm_manipulator
 	{
 		return 'ed_htm_editor';
 	}
+	
+	function xname($obj,$ref)
+	{
+		return "";
+	}
 }
 
 ##################################################################################	
@@ -5872,7 +5877,19 @@ class htm_group
 }
 
 
-
+class ed_immediate_or_var extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		$this->switcher=new dom_checkbox;
+		$this->append_child($this->switcher);
+		editor_generic::addeditor('main',new editor_text);
+		
+		
+	}
+}
 
 
 
