@@ -5886,9 +5886,43 @@ class ed_immediate_or_var extends dom_div
 		$this->switcher=new dom_checkbox;
 		$this->append_child($this->switcher);
 		editor_generic::addeditor('main',new editor_text);
+		$this->append_child($this->editors['main']);
+		editor_generic::addeditor('unit',new editor_select);
+		$this->append_child($this->editors['unit']);
+		$this->editors['unit']->options=Array(
+			"px"=>"px",
+			"%"=>"%",
+			"em"=>"em",
+			"mm"=>"mm",
+			"cm"=>"cm",
+			"in"=>"in",
+			"pt"=>"pt",
+			"pc"=>"pc",
+			"ex"=>"ex",
+			);
 		
 		
 	}
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		if(!is_array($this->args))$this->args=Array();
+		foreach($this->editors as $i=>$e)
+		{
+			$e->oid=$this->oid;
+			$e->context=&$this->context;
+			$e->keys=$this->keys;
+			$e->args=&$this->args;
+		}
+		foreach($this->editors as $e)
+			$e->bootstrap();
+	}
+	
+	function handle_event($ev)
+	{
+		editor_generic::handle_event($ev);
+	}
+	
 }
 
 
