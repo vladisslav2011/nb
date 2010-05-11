@@ -3642,7 +3642,7 @@ class ed_tree_null_manipulator
 	
 	function item_editor()//return customized item editor class name
 	{
-		return "ed_tree_item_editor";
+		return new ed_tree_item_editor;
 	}
 	
 }
@@ -3792,159 +3792,154 @@ class ed_tree_main extends dom_div
 		if($ev->keys['!']=='o')
 		{
 			$current=$ma->find($obj,$ev->keys['path']);
-			$n=$ev->rem_name;
 			$ev->current=$current;
 			$ev->obj=$obj;
-			if($n != 'fo')//very bad. Should do it other way...
+			$ev->ma=$ma;
+			$r=$ma->item_editor();
+			$r->handle_event($ev);
+		}else{
+			if($ev->rem_name=='tracker')
 			{
-				$current->$n=$_POST['val'];
-				//node has known structure, so we can access children[1] directly...
-				print "\$i('".$ev->context[$ev->parent_name]['cid']."').childNodes[1][text_content]='".js_escape($ma->text($current))."';";
-				$do_store=true;
-			}
-		}
-		if($ev->rem_name=='tracker')
-		{
-			//$this->editors['fa']->handle_event($ev);
-			$this->context=&$ev->context;
-			$this->long_name=$ev->parent_name;
-			global $clipboard;
-			switch($_POST['val'])
-			{
-			case 'moveti':
-				//$node=$this->find($obj,$_POST['path']);
-				//$this->del_node($obj,$_POST['path']);
-				if(substr($_POST['before'],0,strlen($_POST['path']))==$_POST['path'])
+				//$this->editors['fa']->handle_event($ev);
+				$this->context=&$ev->context;
+				$this->long_name=$ev->parent_name;
+				global $clipboard;
+				switch($_POST['val'])
 				{
-					print "alert('Failed to move an object into itself');";
-					return;
+				case 'moveti':
+					//$node=$this->find($obj,$_POST['path']);
+					//$this->del_node($obj,$_POST['path']);
+					if(substr($_POST['before'],0,strlen($_POST['path']))==$_POST['path'])
+					{
+						print "alert('Failed to move an object into itself');";
+						return;
+					}
+					$ma->add_node($obj,$_POST['before'],$ma->pick_node($obj,$_POST['path']));
+					$ma->cleanup_picked($obj);
+					$reload_fa=true;
+					$ev->do_store=true;
+					break;
+				case 'copyti':
+					$node=$ma->find($obj,$_POST['path']);
+					$node=clone $node;
+					$ma->add_node($obj,$_POST['before'],$node);
+					$reload_fa=true;
+					$ev->do_store=true;
+					break;
+				case 'pastecl':
+					$new=$clipboard->fetch();
+					if(!isset($new))return;
+					//if(!method_exists($new,'text_short'))return;
+					$ma->add_node($obj,$_POST['before'],$new);
+					$reload_fa=true;
+					$ev->do_store=true;
+					break;
+				case 'movecl':
+					$node=$ma->find($obj,$_POST['path']);
+					$ma->del_node($obj,$_POST['path']);
+					$clipboard->store($node);
+					$reload_fa=true;
+					$reload_clip=true;
+					$ev->do_store=true;
+					break;
+				case 'copycl':
+					$node=$ma->find($obj,$_POST['path']);
+					$clipboard->store($node);
+					$reload_clip=true;
+					$ev->do_store=true;
+					break;
+				case 'pastenew':
+					$cn=$_POST['cn'];
+					if(class_exists($cn))$new=new $cn;
+					else return;
+					$ma->add_node($obj,$_POST['before'],$new);
+					$patha=$_POST['before'];//try to activate after paste?
+					$reload_fa=true;
+					$ev->do_store=true;
+					break;
+				case 'del':
+					$ma->del_node($obj,$_POST['path']);
+					$reload_fa=true;
+					$ev->do_store=true;
+					break;
+				case 'activate':
+					$current=$ma->find($obj,$_POST['path']);
+					$reload_right=true;
+					$ev->do_store=false;
+					break;
+				case 'clipboard_clear':
+					$clipboard->store(NULL);
+					$reload_clip=true;
+					break;
 				}
-				$ma->add_node($obj,$_POST['before'],$ma->pick_node($obj,$_POST['path']));
-				$ma->cleanup_picked($obj);
-				$reload_fa=true;
-				$do_store=true;
-				break;
-			case 'copyti':
-				$node=$ma->find($obj,$_POST['path']);
-				$node=clone $node;
-				$ma->add_node($obj,$_POST['before'],$node);
-				$reload_fa=true;
-				$do_store=true;
-				break;
-			case 'pastecl':
-				$new=$clipboard->fetch();
-				if(!isset($new))return;
-				//if(!method_exists($new,'text_short'))return;
-				$ma->add_node($obj,$_POST['before'],$new);
-				$reload_fa=true;
-				$do_store=true;
-				break;
-			case 'movecl':
-				$node=$ma->find($obj,$_POST['path']);
-				$ma->del_node($obj,$_POST['path']);
-				$clipboard->store($node);
-				$reload_fa=true;
-				$reload_clip=true;
-				$do_store=true;
-				break;
-			case 'copycl':
-				$node=$ma->find($obj,$_POST['path']);
-				$clipboard->store($node);
-				$reload_clip=true;
-				$do_store=true;
-				break;
-			case 'pastenew':
-				$cn=$_POST['cn'];
-				if(class_exists($cn))$new=new $cn;
-				else return;
-				$ma->add_node($obj,$_POST['before'],$new);
-				$patha=$_POST['before'];//try to activate after paste?
-				$reload_fa=true;
-				$do_store=true;
-				break;
-			case 'del':
-				$ma->del_node($obj,$_POST['path']);
-				$reload_fa=true;
-				$do_store=true;
-				break;
-			case 'activate':
-				$current=$ma->find($obj,$_POST['path']);
-				$reload_right=true;
-				$do_store=false;
-				break;
-			case 'clipboard_clear':
-				$clipboard->store(NULL);
-				$reload_clip=true;
-				break;
 			}
+			editor_generic::handle_event($ev);
 		}
-			if($do_store)$this->store($obj);
-			
-			if($reload_right)
-			{
-				$rt=$ma->item_editor();
-				$r=new $rt;
-				$r->context=&$ev->context;
-				$r->context[$ev->parent_name.'.fa']['button_id']=$ev->context[$ev->parent_name]['ctl_id'];
-				$r->context[$ev->parent_name]['cid']=$_POST['cid'];
-				$r->keys=&$ev->keys;
-				$r->keys['path']=$_POST['path'];
-				$r->keys['!']='o';
-				$r->oid=$this->oid;
-				$r->name=$ev->parent_name;
-				$r->etype=$ev->parent_type;
-				$r->configure($current);
-				print "(function(){";
-				print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['right_id'])."');";
-				print "try{nya.innerHTML=";
-				reload_object($r,true);
-				if(($_POST['mouse']==1) && isset($r->first_editor))print "\$i('".js_escape($r->first_editor->main->id_gen())."').focus();";
-				print "}catch(e){ window.location.reload(true);};";
-				print "})();";
-			}
-			if($reload_fa)
-			{
-				$r=$this->editors['fa'];
-				unset($r->com_parent);
-				$r->object=$obj;
-				$r->ma=$ma;
-				$r->context=&$ev->context;
-				$r->context[$ev->parent_name.'.fa']['button_id']=$ev->context[$ev->parent_name]['ctl_id'];
-				$r->keys=&$ev->keys;
-				$r->oid=$this->oid;
-				$r->name=$ev->parent_name.'.fa';
-				$r->etype=$ev->parent_type.'.'.$r->etype;
-				print "(function(){var a=\$i('".js_escape($ev->context[$ev->parent_name]['ctl_id'])."');a.id_list=new Array();var b=a.id_current;a.id_current=-1;";
-				print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['fa_id'])."');";
-				print "try{nya.innerHTML=";
-				reload_object($r,true);
-				print "nya.scrollTop=0;}catch(e){ window.location.reload(true);};";
-				if(isset($patha))
-					print "ed_tree_fa_item_click('".$ev->context[$ev->parent_name]['ctl_id']."','".js_escape($patha)."');";
-				print "\$i('".js_escape($ev->context[$ev->parent_name]['right_id'])."').innerHTML='';";
-				print "})();";
-			};
-			if($reload_clip)
-			{
-				$r=$this->editors['clip'];
-				unset($r->com_parent);
-				$r->context=&$ev->context;
-				$r->keys=&$ev->keys;
-				$r->oid=$this->oid;
-				$r->name=$ev->parent_name.'.clip';
-				$r->etype=$ev->parent_type.'.'.$r->etype;
-				$r->ma=$this->manipulator();
-				print "(function(){";
-				print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['clip_id'])."');";
-				print "try{nya.innerHTML=";
-				reload_object($r,true);
-				print "nya.style.backgroundColor='';";
-				print "}catch(e){ window.location.reload(true);};";
-				print "})();";
-			}
+		if($ev->do_store)$this->store($obj);
+		
+		if($reload_right)
+		{
+			$r=$ma->item_editor();
+			$r->context=&$ev->context;
+			$r->context[$ev->parent_name.'.fa']['button_id']=$ev->context[$ev->parent_name]['ctl_id'];
+			$r->context[$ev->parent_name]['cid']=$_POST['cid'];
+			$r->keys=&$ev->keys;
+			$r->keys['path']=$_POST['path'];
+			$r->keys['!']='o';
+			$r->oid=$this->oid;
+			$r->name=$ev->parent_name;
+			$r->etype=$ev->parent_type;
+			$r->configure($current);
+			print "(function(){";
+			print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['right_id'])."');";
+			print "try{nya.innerHTML=";
+			reload_object($r,true);
+			if(($_POST['mouse']==1) && isset($r->first_editor))print "\$i('".js_escape($r->first_editor->main->id_gen())."').focus();";
+			print "}catch(e){ window.location.reload(true);};";
+			print "})();";
+		}
+		if($reload_fa)
+		{
+			$r=$this->editors['fa'];
+			unset($r->com_parent);
+			$r->object=$obj;
+			$r->ma=$ma;
+			$r->context=&$ev->context;
+			$r->context[$ev->parent_name.'.fa']['button_id']=$ev->context[$ev->parent_name]['ctl_id'];
+			$r->keys=&$ev->keys;
+			$r->oid=$this->oid;
+			$r->name=$ev->parent_name.'.fa';
+			$r->etype=$ev->parent_type.'.'.$r->etype;
+			print "(function(){var a=\$i('".js_escape($ev->context[$ev->parent_name]['ctl_id'])."');a.id_list=new Array();var b=a.id_current;a.id_current=-1;";
+			print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['fa_id'])."');";
+			print "try{nya.innerHTML=";
+			reload_object($r,true);
+			print "nya.scrollTop=0;}catch(e){ window.location.reload(true);};";
+			if(isset($patha))
+				print "ed_tree_fa_item_click('".$ev->context[$ev->parent_name]['ctl_id']."','".js_escape($patha)."');";
+			print "\$i('".js_escape($ev->context[$ev->parent_name]['right_id'])."').innerHTML='';";
+			print "})();";
+		};
+		if($reload_clip)
+		{
+			$r=$this->editors['clip'];
+			unset($r->com_parent);
+			$r->context=&$ev->context;
+			$r->keys=&$ev->keys;
+			$r->oid=$this->oid;
+			$r->name=$ev->parent_name.'.clip';
+			$r->etype=$ev->parent_type.'.'.$r->etype;
+			$r->ma=$this->manipulator();
+			print "(function(){";
+			print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['clip_id'])."');";
+			print "try{nya.innerHTML=";
+			reload_object($r,true);
+			print "nya.style.backgroundColor='';";
+			print "}catch(e){ window.location.reload(true);};";
+			print "})();";
+		}
 			//print 'window.location.reload(true);';
 		
-			editor_generic::handle_event($ev);
 	}
 }
 
@@ -4297,7 +4292,7 @@ class ed_tree_item_editor extends dom_div//virtual component injector
 	}
 	
 	
-	function handle_event($ev)//parent handles events
+	function handle_event($ev)
 	{
 		editor_generic::handle_event($ev);
 	}
@@ -4434,7 +4429,7 @@ class meta_query_manipulator
 	
 	function item_editor()
 	{
-		return 'ed_tree_meta_editor';
+		return new ed_tree_meta_editor;
 	}
 	
 	function xname($obj,$ref)
@@ -4496,8 +4491,12 @@ class ed_tree_meta_editor extends ed_tree_item_editor//virtual component injecto
 	}
 	
 	
-	function handle_event($ev)//parent handles events
+	function handle_event($ev)
 	{
+		$n=$ev->rem_name;
+		$ev->current->$n=$_POST['val'];
+		print "\$i('".$ev->context[$ev->parent_name]['cid']."').childNodes[1][text_content]='".js_escape($ev->ma->text($ev->current))."';";
+		$ev->do_store=true;
 		editor_generic::handle_event($ev);
 	}
 }
@@ -4869,7 +4868,7 @@ class query_gen_ext_manipulator
 	
 	function item_editor()
 	{
-		return 'ed_query_gen_ext_editor';
+		return new ed_query_gen_ext_editor;
 	}
 	
 	function xname($obj,$ref)
@@ -4976,8 +4975,15 @@ class ed_query_gen_ext_editor extends ed_tree_item_editor//virtual component inj
 	}
 	
 	
-	function handle_event($ev)//parent handles events
+	function handle_event($ev)
 	{
+		$n=$ev->rem_name;
+		if($n != 'fo')
+		{
+			$ev->current->$n=$_POST['val'];
+			print "\$i('".$ev->context[$ev->parent_name]['cid']."').childNodes[1][text_content]='".js_escape($ev->ma->text($ev->current))."';";
+			$ev->do_store=true;
+		}
 		editor_generic::handle_event($ev);
 	}
 }
@@ -5450,7 +5456,7 @@ class htm_manipulator
 	
 	function item_editor()
 	{
-		return 'ed_htm_editor';
+		return new ed_htm_editor;
 	}
 	
 	function xname($obj,$ref)
@@ -5485,8 +5491,15 @@ class ed_htm_editor extends ed_tree_item_editor//virtual component injector
 	}
 	
 	
-	function handle_event($ev)//parent handles events
+	function handle_event($ev)
 	{
+		$n=$ev->rem_name;
+		if($n != 'fo')
+		{
+			$ev->current->$n=$_POST['val'];
+			print "\$i('".$ev->context[$ev->parent_name]['cid']."').childNodes[1][text_content]='".js_escape($ev->ma->text($ev->current))."';";
+			$ev->do_store=true;
+		}
 		editor_generic::handle_event($ev);
 	}
 }
