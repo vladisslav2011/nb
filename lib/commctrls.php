@@ -315,25 +315,47 @@ class editor_generic extends dom_any
 	
 	function handle_event($ev)
 	{
-		$ev->etype=$etype=preg_replace('/\..*/','',$ev->rem_type);
-		
-		$ev->parent_type=$ev->parent_type.'.'.$etype;
-		$ev->rem_type=preg_replace('/^[^.]*\./','',$ev->rem_type);
-		$ev->name=preg_replace('/\..*/','',$ev->rem_name);
-		if($ev->name==$ev->rem_name && $this->default_editor != '')
-		{
-			$ev->name=$this->default_editor;
-			$ev->rem_name.=".".$ev->name;
-			$ev->long_name.=".".$ev->name;
-		}
-		$ev->parent_name.='.'.$ev->name;
-		$ev->rem_name=preg_replace('/^[^.]*\./','',$ev->rem_name);
-		
+		$etype=preg_replace('/\..*/','',$ev->rem_type);
 		if(class_exists($etype))
 		{
+			#this may slow down things a little
+			$old->etype=		$ev->etype;
+			$old->parent_type=	$ev->parent_type;
+			$old->rem_type=		$ev->rem_type;
+			$old->name=			$ev->name;
+			$old->rem_name=		$ev->rem_name;
+			$old->long_name=	$ev->long_name;
+			$old->parent_name=	$ev->parent_name;
+			
+			$ev->etype=$etype;
+			
+			$ev->parent_type=$ev->parent_type.'.'.$etype;
+			# replacing regexps with array_shift/array_push/implode may be faster. Needs testing
+			$ev->rem_type=preg_replace('/^[^.]*\./','',$ev->rem_type);
+			$ev->name=preg_replace('/\..*/','',$ev->rem_name);
+			if($ev->name==$ev->rem_name && $this->default_editor != '')
+			{
+				$ev->name=$this->default_editor;
+				$ev->rem_name.=".".$ev->name;
+				$ev->long_name.=".".$ev->name;
+			}
+			$ev->parent_name.='.'.$ev->name;
+			$ev->rem_name=preg_replace('/^[^.]*\./','',$ev->rem_name);
+		
 			$obj=new $etype;
 			if(method_exists($obj,'handle_event'))
 				$obj->handle_event($ev);
+			
+			#restore $ev after calling handle_event
+			#this may slow down things a little
+			$ev->etype=			$old->etype;
+			$ev->parent_type=	$old->parent_type;
+			$ev->rem_type=		$old->rem_type;
+			$ev->name=			$old->name;
+			$ev->rem_name=		$old->rem_name;
+			$ev->long_name=		$old->long_name;
+			$ev->parent_name=	$old->parent_name;
+			unset($old);
 		}
 	}
 }
