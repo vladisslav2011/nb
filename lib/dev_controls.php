@@ -5824,6 +5824,9 @@ class htm_node
 	function __construct()
 	{
 		$this->exprs=Array();
+		$this->attributes=Array();
+		$this->css_style=Array();
+		$this->css_class=Array();
 	}
 	
 	function result($p)
@@ -5896,8 +5899,8 @@ class ed_immediate_or_var extends dom_div
 	{
 		parent::__construct();
 		$this->etype=get_class($this);
-		$this->switcher=new dom_checkbox;
-		$this->append_child($this->switcher);
+		editor_generic::addeditor('isref',new editor_checkbox);
+		$this->append_child($this->editors['isref']);
 		editor_generic::addeditor('main',new editor_text);
 		$this->append_child($this->editors['main']);
 		editor_generic::addeditor('unit',new editor_select);
@@ -5937,6 +5940,81 @@ class ed_immediate_or_var extends dom_div
 	}
 	
 }
+
+
+##############################################################################################################################
+#                                                        class ed_attributes
+##############################################################################################################################
+class ed_attributes extends dom_table
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		$this->tr=new dom_tr;
+		$this->append_child($this->tr);
+		$this->name_cell=new dom_td;
+		$this->tr->append_child($this->name_cell);
+		$this->value_cell=new dom_td;
+		$this->tr->append_child($this->value_cell);
+		$this->action_cell=new dom_td;
+		$this->tr->append_child($this->action_cell);
+		
+		editor_generic::append_child('name',new editor_text);
+		$this->name_cell->append_child($this->editors['name']);
+		
+		editor_generic::append_child('value',new ed_immediate_or_var);
+		$this->value_cell->append_child($this->editors['value']);
+		
+		editor_generic::append_child('del',new editor_button);
+		$this->editors['del']->attributes['value']='X';
+		$this->action_cell->append_child($this->editors['del']);
+		
+		
+		
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		if(!is_array($this->args))$this->args=Array();
+		foreach($this->editors as $i=>$e)
+		{
+			$e->oid=$this->oid;
+			$e->context=&$this->context;
+			$e->keys=$this->keys;
+			$e->args=&$this->args;
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+		}
+	}
+	
+	function html_inner()
+	{
+		$a=$this->args[$this->context[$this->long_name]['var']];
+		foreach($a as $i => $v)
+		{
+			$this->args['name']=$v->name;
+			$this->args['value']=$v->value;
+			$this->keys[$this->name]=$i;
+			$this->tr->id_alloc();
+			foreach($this->editors as $e)
+				$e->bootstrap();
+			$this->tr->html();
+		}
+	}
+	
+	function handle_event($ev)
+	{
+	}
+}
+
+
+
+
+
+
+
+
 
 $html_tags_list=Array(
 "a",
