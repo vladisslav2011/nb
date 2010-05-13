@@ -4938,12 +4938,12 @@ class ed_query_gen_ext_editor extends ed_tree_item_editor//virtual component inj
 			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
 			break;
 		case 'sql_column':
-			$this->field_add($obj,'db','db',new editor_txtasg_q0);
 			$this->field_add($obj,'tbl','tbl',new editor_txtasg_q0);
 			$this->field_add($obj,'col','col',new editor_txtasg_q0);
 			$this->field_add($obj,'alias','alias',new editor_text);
 			$this->field_add($obj,'variable','Переменная',new editor_txtasg_q0);
 			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
+			$this->field_add($obj,'db','db',new editor_txtasg_q0);
 			break;
 		case 'sql_order':
 			$this->field_add($obj,'function','function',new editor_text);
