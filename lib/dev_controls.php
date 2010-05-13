@@ -3864,7 +3864,7 @@ class ed_tree_main extends dom_div
 					break;
 				case 'activate':
 					$current=$ma->find($obj,$_POST['path']);
-					$reload_right=true;
+					$ev->reload_right=true;
 					$ev->do_store=false;
 					break;
 				case 'clipboard_clear':
@@ -3877,14 +3877,14 @@ class ed_tree_main extends dom_div
 		}
 		if($ev->do_store)$this->store($obj);
 		
-		if($reload_right)
+		if($ev->reload_right)
 		{
 			$r=$ma->item_editor();
 			$r->context=&$ev->context;
 			$r->context[$ev->parent_name.'.fa']['button_id']=$ev->context[$ev->parent_name]['ctl_id'];
 			$r->context[$ev->parent_name]['cid']=$_POST['cid'];
 			$r->keys=&$ev->keys;
-			$r->keys['path']=$_POST['path'];
+			if(isset($_POST['path']))$r->keys['path']=$_POST['path'];
 			$r->keys['!']='o';
 			$r->oid=$this->oid;
 			$r->name=$ev->parent_name;
@@ -5445,7 +5445,6 @@ class htm_manipulator
 	{
 		switch(get_class($obj))
 		{
-		case 'htm_node_nc':
 		case 'htm_node':
 			return '<'.$obj->tag.'>';
 		case 'htm_text':
@@ -5477,12 +5476,11 @@ class ed_htm_editor extends ed_tree_item_editor//virtual component injector
 		switch($type)
 		{
 		case 'htm_node':
-		case 'htm_node_nc':
 			//TODO: localization
 			$this->field_add($obj,'tag','tag',new editor_text);
-			$this->field_add($obj,'title','title',new editor_text);
-			$this->field_add($obj,'css_class','css_class',new editor_text);
-			$this->field_add($obj,'css_style','css_style',new editor_text);
+			$this->field_add($obj,'attributes','attributes',new ed_attributes);
+#			$this->field_add($obj,'css_class','css_class',new editor_text);
+#			$this->field_add($obj,'css_style','css_style',new editor_text);
 			break;
 		case 'htm_text':
 			$this->field_add($obj,'text','text',new editor_text);
@@ -5494,6 +5492,31 @@ class ed_htm_editor extends ed_tree_item_editor//virtual component injector
 	function handle_event($ev)
 	{
 		$n=$ev->rem_name;
+		if($n=='attributes.add')
+		{
+			$ev->current->attributes[]=(object)Array('name'=>'','value'=>'');
+			$ev->reload_right=true;
+			$ev->do_store=true;
+			return;
+		}
+		if($n=='attributes.del')
+		{
+			$na=Array();
+			foreach($ev->current->attributes as $k => $v)
+				if($k != $ev->keys['attributes'])$na[]=$v;
+			$ev->current->attributes=$na;
+			$ev->reload_right=true;
+			$ev->do_store=true;
+			return;
+		}
+		if($n=='attributes.name')
+		{
+			print 'alert("'.$_POST['val'].'");';
+			$ev->current->attributes[$ev->keys['attributes']]->name=$_POST['val'];
+			$ev->do_store=true;
+			editor_generic::handle_event($ev);
+			return;
+		}
 		if($n != 'fo')
 		{
 			$ev->current->$n=$_POST['val'];
@@ -5537,7 +5560,6 @@ class ed_tree_main_htm extends ed_tree_main
 			//TODO: localization
 		$this->add_item_list=Array(
 			'htm_node'=>'htm_node',
-			'htm_node_nc'=>'htm_node_nc',
 			'htm_text'=>'htm_text',
 			'htm_group'=>'htm_group',
 			);
@@ -5636,50 +5658,6 @@ class ed_tree_main_htm_test extends dom_div
 	}
 }
 $tests_m_array[]='ed_tree_main_htm_test';
-
-class ed_imm_qv extends dom_div
-{
-	function __construct()
-	{
-		parent::__construct();
-		$this->etype=get_class($this);
-		editor_generic::addeditor('imm',new editor_text);
-		editor_generic::addeditor('qv',new editor_text_autosuggest);
-		$this->modeswitch=new dom_any_noterm('img');
-		$this->modeswitch->attributes['src']='/i/ed_imm_qv_i.png';
-		$this->append_child($this->modeswitch);
-		$this->append_child($this->editors['imm']);
-		$this->append_child($this->editors['qv']);
-	}
-	
-	function bootstrap()
-	{
-	}
-		
-	function handle_event($ev)
-	{
-		editor_generic::handle_event($ev);
-	}
-}
-
-
-class ed_css_editor extends dom_div
-{
-	function __construct()
-	{
-		parent::__construct();
-		$this->etype=get_class($this);
-	}
-	
-	function bootstrap()
-	{
-	}
-		
-	function handle_event($ev)
-	{
-		editor_generic::handle_event($ev);
-	}
-}
 
 
 
@@ -5832,14 +5810,18 @@ class htm_node
 	function result($p)
 	{
 		if($this->tag=='')$this->tag='div';
-		$n=new dom_any($this->tag);
+		$n=new dom_query_node;
+		$n->node_name=$this->tag;
 		$p->append_child($n);
+		if(is_array($this->attributes))foreach($this->attributes as $a)
+		{
+			$n->attributes[$a->name]=$a->value->main;
+		}
 		
-		if($this->title != '')$n->attributes['title']=$this->title;
 		
 		//replace with correct
-		if($this->css_style != '')$n->attributes['style']=$this->css_style;
-		if($this->css_class != '')$n->attributes['class']=$this->css_class;
+		#if($this->css_style != '')$n->attributes['style']=$this->css_style;
+		#if($this->css_class != '')$n->attributes['class']=$this->css_class;
 		//replace with correct
 		
 		if(is_array($this->exprs) && count($this->exprs)>0)foreach($this->exprs as $e)
@@ -5847,22 +5829,6 @@ class htm_node
 	}
 }
 
-class htm_node_nc
-{
-	
-	function result($p)
-	{
-		if($this->tag=='')$this->tag='br';
-		$n=new dom_any($this->tag);
-		$p->append_child($n);
-		if($this->title != '')$n->attributes['title']=$this->title;
-		
-		//replace with correct
-		if($this->css_style != '')$n->attributes['style']=$this->css_style;
-		if($this->css_class != '')$n->attributes['class']=$this->css_class;
-		//replace with correct
-	}
-}
 
 class htm_text
 {
@@ -5899,6 +5865,7 @@ class ed_immediate_or_var extends dom_div
 	{
 		parent::__construct();
 		$this->etype=get_class($this);
+		$this->main=$this;
 		editor_generic::addeditor('isref',new editor_checkbox);
 		$this->append_child($this->editors['isref']);
 		editor_generic::addeditor('main',new editor_text);
@@ -5960,16 +5927,25 @@ class ed_attributes extends dom_table
 		$this->action_cell=new dom_td;
 		$this->tr->append_child($this->action_cell);
 		
-		editor_generic::append_child('name',new editor_text);
+		editor_generic::addeditor('name',new editor_text);
 		$this->name_cell->append_child($this->editors['name']);
 		
-		editor_generic::append_child('value',new ed_immediate_or_var);
+		editor_generic::addeditor('value',new ed_immediate_or_var);
 		$this->value_cell->append_child($this->editors['value']);
 		
-		editor_generic::append_child('del',new editor_button);
+		editor_generic::addeditor('del',new editor_button);
 		$this->editors['del']->attributes['value']='X';
 		$this->action_cell->append_child($this->editors['del']);
 		
+		$this->trl=new dom_tr;
+		$this->append_child($this->trl);
+		$this->trl->append_child(new dom_td);
+		$this->trl->append_child(new dom_td);
+		$this->add_cell=new dom_td;
+		$this->trl->append_child($this->add_cell);
+		editor_generic::addeditor('add',new editor_button);
+		$this->editors['add']->attributes['value']='+';
+		$this->add_cell->append_child($this->editors['add']);
 		
 		
 	}
@@ -5978,11 +5954,11 @@ class ed_attributes extends dom_table
 	{
 		$this->long_name=editor_generic::long_name();
 		if(!is_array($this->args))$this->args=Array();
-		foreach($this->editors as $i=>$e)
+		if(is_array($this->editors))foreach($this->editors as $i=>$e)
 		{
 			$e->oid=$this->oid;
 			$e->context=&$this->context;
-			$e->keys=$this->keys;
+			$e->keys=&$this->keys;
 			$e->args=&$this->args;
 			$this->context[$this->long_name.'.'.$i]['var']=$i;
 		}
@@ -5991,7 +5967,7 @@ class ed_attributes extends dom_table
 	function html_inner()
 	{
 		$a=$this->args[$this->context[$this->long_name]['var']];
-		foreach($a as $i => $v)
+		if(is_array($a))foreach($a as $i => $v)
 		{
 			$this->args['name']=$v->name;
 			$this->args['value']=$v->value;
@@ -6001,10 +5977,18 @@ class ed_attributes extends dom_table
 				$e->bootstrap();
 			$this->tr->html();
 		}
+		$this->editors['add']->bootstrap();
+		$this->trl->html();
 	}
 	
 	function handle_event($ev)
 	{
+		if($ev->rem_name=='name')
+		{
+			$ev->current->attributes[$ev->keys['attributes']]->name=$_POST['val'];
+			$ev->do_store=true;
+		}
+		editor_generic::handle_event($ev);
 	}
 }
 
@@ -6017,106 +6001,107 @@ class ed_attributes extends dom_table
 
 
 $html_tags_list=Array(
-"a",
-"abbr",
-"acronym",
-"address",
-"applet",
-"area",
-"b",
-"base",
-"basefont",
-"bdo",
-"bgsound",
-"big",
-"blink",
-"blockquote",
-"body",
-"br",
-"button",
-"caption",
-"center",
-"cite",
-"code",
-"col",
-"colgroup",
-"dd",
-"del",
-"dfn",
-"dir",
-"div",
-"dl",
-"dt",
-"em",
-"embed",
-"fieldset",
-"font",
-"form",
-"frame",
-"frameset",
-"h1",
-"h2",
-"h3",
-"h4",
-"h5",
-"h6",
-"head",
-"hr",
-"html",
-"i",
-"iframe",
-"img",
-"input",
-"ins",
-"isindex",
-"kbd",
-"label",
-"legend",
-"li",
-"link",
-"map",
-"marquee",
-"menu",
-"meta",
-"nobr",
-"noembed",
-"noframes",
-"noscript",
-"object",
-"ol",
-"optgroup",
-"option",
-"p",
-"param",
-"plaintext",
-"pre",
-"q",
-"s",
-"samp",
-"script",
-"select",
-"small",
-"span",
-"strike",
-"strong",
-"style",
-"sub",
-"sup",
-"table",
-"tbody",
-"td",
-"textarea",
-"tfoot",
-"th",
-"thead",
-"title",
-"tr",
-"tt",
-"u",
-"ul",
-"var",
-"wbr",
-"xmp",);
+Array("a","accesskey","href","name","rel","tabindex","target","title"),
+Array("abbr","title"),
+Array("acronym","title"),
+Array("address"),
+Array("applet","align","alt","archive","code","codebase","height","hspace","vspace","width"),
+Array("area","alt","coords","href","nohref","shape","target"),
+Array("b"),
+Array("base","href","target"),
+Array("basefont","color","face","size"),
+Array("bdo","dir"),
+Array("bgsound","balance","loop","src","volume"),
+Array("big"),
+Array("blink"),
+Array("blockquote"),
+Array("body","alink","background","bgcolor","bgproperties","bottommargin","leftmargin","link","rightmargin","scroll","text","topmargin","vlink"),
+Array("br","clear"),
+Array("button","disabled","name","type","value"),
+Array("caption","align","valign"),
+Array("center"),
+Array("cite"),
+Array("code"),
+Array("col","align","span","valign","width"),
+Array("colgroup","align","span","valign","width"),
+Array("dd"),
+Array("del"),
+Array("dfn"),
+Array("dir"),
+Array("div","align","title"),
+Array("dl"),
+Array("dt"),
+Array("em"),
+Array("embed","align","height","hidden","hspace","pluginspage","src","type","vspace","width"),
+Array("fieldset","title"),
+Array("font","color","face","size"),
+Array("form","action","autocomplete","enctype","method","name","target"),
+Array("frame","bordercolor","frameborder","name","noresize","scrolling","src"),
+Array("frameset","border","bordercolor","cols","frameborder","framespacing","rows"),
+Array("h1","align"),
+Array("h2","align"),
+Array("h3","align"),
+Array("h4","align"),
+Array("h5","align"),
+Array("h6","align"),
+Array("head"),
+Array("hr","align","color","noshade","size","width"),
+Array("html","title"),
+Array("i"),
+Array("iframe","align","frameborder","height","hspace","name","scrolling","src","vspace","width"),
+Array("img","align","alt","border","height","hspace","ismap","src","vspace","width","usemap"),
+Array("input","align","alt","autocomplete","border","checked","disabled","maxlength","name","readonly","size","src","type","value"),
+Array("ins"),
+Array("isindex","action","prompt"),
+Array("kbd"),
+Array("label","accesskey","for"),
+Array("legend","align","title"),
+Array("li","type","value"),
+Array("link","href","media","rel","type"),
+Array("map","name"),
+Array("marquee","behavior","bgcolor","direction","height","hspace","loop","scrollamount","scrolldelay","truespeed","vspace","width"),
+Array("menu"),
+Array("meta","content","http-equiv","name"),
+Array("nobr"),
+Array("noembed"),
+Array("noframes"),
+Array("noscript"),
+Array("object","align","classid","code","codebase","codetype","data","height","hspace","type","vspace","width"),
+Array("ol","type","start"),
+Array("optgroup","label"),
+Array("option","disabled","selected","value"),
+Array("p","align"),
+Array("param","name","value"),
+Array("plaintext"),
+Array("pre"),
+Array("q"),
+Array("s"),
+Array("samp"),
+Array("script","defer","language","src","type"),
+Array("select","disabled","multiple","name","size"),
+Array("small"),
+Array("span"),
+Array("strike"),
+Array("strong"),
+Array("style","media","type"),
+Array("sub"),
+Array("sup"),
+Array("table","align","background","bgcolor","border","bordercolor","cellpadding","cellspacing","cols","frame","height","rules","width"),
+Array("tbody","align","bgcolor","valign"),
+Array("td","align","background","bgcolor","bordercolor","colspan","height","nowrap","rowspan","valign","width"),
+Array("textarea","cols","disabled","name","readonly","rows"),
+Array("tfoot","align","bgcolor","valign"),
+Array("th","align","background","bgcolor","bordercolor","colspan","height","nowrap","rowspan","valign","width"),
+Array("thead","align","bgcolor","valign"),
+Array("title"),
+Array("tr","align","bgcolor","bordercolor","valign"),
+Array("tt"),
+Array("u"),
+Array("ul","type"),
+Array("var"),
+Array("wbr"),
+Array("xmp"),
+);
 
 
 
