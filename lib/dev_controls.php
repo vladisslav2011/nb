@@ -5291,6 +5291,9 @@ class ed_tree_main_query_gen_ext_test extends dom_div
 		{
 			$prev->strip_aliases();
 			$tbl=new query_result_v;
+			$tbl->col->css_style['border']='1px solid red';
+			$tbl->col->css_style['padding']='0.1em';
+			$tbl->tbl->css_style['border-collapse']='collapse';
 			$tbl->query=$prev->result();
 			print "\$i('".$ev->context[$ev->parent_name]['query_result_div_id']."').innerHTML=";
 			reload_object($tbl,true);
@@ -5302,6 +5305,8 @@ class ed_tree_main_query_gen_ext_test extends dom_div
 			
 			$after->strip_aliases();
 			print "\$i('".$result_div_id."').textContent='".js_escape($after->result())."';";
+			print "\$i('".$ev->context[$ev->parent_name]['store_a_id']."').href='".
+				js_escape('/dump.php?n=edtmqgt.csv&d=,&e=UTF-8&q='.rawurlencode($after->result()))."';";
 			//print "\$i('".$result_div_id."').textContent='undef';";
 		}
 	}
