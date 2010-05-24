@@ -5482,7 +5482,7 @@ class ed_htm_editor extends ed_tree_item_editor//virtual component injector
 		{
 		case 'htm_node':
 			//TODO: localization
-			$this->field_add($obj,'tag','tag',new editor_text);
+			$this->field_add($obj,'tag','tag',new editor_txtasg_tagname);
 			$this->field_add($obj,'attributes','attributes',new ed_attributes);
 #			$this->field_add($obj,'css_class','css_class',new editor_text);
 #			$this->field_add($obj,'css_style','css_style',new editor_text);
@@ -5516,8 +5516,28 @@ class ed_htm_editor extends ed_tree_item_editor//virtual component injector
 		}
 		if($n=='attributes.name')
 		{
-			print 'alert("'.$_POST['val'].'");';
 			$ev->current->attributes[$ev->keys['attributes']]->name=$_POST['val'];
+			$ev->do_store=true;
+			editor_generic::handle_event($ev);
+			return;
+		}
+		if($n=='attributes.value.isref')
+		{
+			$ev->current->attributes[$ev->keys['attributes']]->value->isref=$_POST['val'];
+			$ev->do_store=true;
+			editor_generic::handle_event($ev);
+			return;
+		}
+		if($n=='attributes.value.main')
+		{
+			$ev->current->attributes[$ev->keys['attributes']]->value->main=$_POST['val'];
+			$ev->do_store=true;
+			editor_generic::handle_event($ev);
+			return;
+		}
+		if($n=='attributes.value.unit')
+		{
+			$ev->current->attributes[$ev->keys['attributes']]->value->unit=$_POST['val'];
 			$ev->do_store=true;
 			editor_generic::handle_event($ev);
 			return;
@@ -5871,12 +5891,16 @@ class ed_immediate_or_var extends dom_div
 		parent::__construct();
 		$this->etype=get_class($this);
 		$this->main=$this;
+		$e=new dom_table;
+		$tr=new auto_tr;
+		$e->append_child($tr);
+		$this->append_child($e);
 		editor_generic::addeditor('isref',new editor_checkbox);
-		$this->append_child($this->editors['isref']);
+		$tr->append_child($this->editors['isref']);
 		editor_generic::addeditor('main',new editor_text);
-		$this->append_child($this->editors['main']);
+		$tr->append_child($this->editors['main']);
 		editor_generic::addeditor('unit',new editor_select);
-		$this->append_child($this->editors['unit']);
+		$tr->append_child($this->editors['unit']);
 		$this->editors['unit']->options=Array(
 			"px"=>"px",
 			"%"=>"%",
@@ -5891,12 +5915,22 @@ class ed_immediate_or_var extends dom_div
 		
 		
 	}
+	
+	function html_inner()
+	{
+		$this->args['isref']=$this->args[$this->context[$this->long_name]['var']]->isref;
+		$this->args['main']=$this->args[$this->context[$this->long_name]['var']]->main;
+		$this->args['unit']=$this->args[$this->context[$this->long_name]['var']]->unit;
+		parent::html_inner();
+	}
+	
 	function bootstrap()
 	{
 		$this->long_name=editor_generic::long_name();
 		if(!is_array($this->args))$this->args=Array();
 		foreach($this->editors as $i=>$e)
 		{
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
 			$e->oid=$this->oid;
 			$e->context=&$this->context;
 			$e->keys=$this->keys;
@@ -5912,7 +5946,6 @@ class ed_immediate_or_var extends dom_div
 	}
 	
 }
-
 
 ##############################################################################################################################
 #                                                        class ed_attributes
@@ -5932,7 +5965,7 @@ class ed_attributes extends dom_table
 		$this->action_cell=new dom_td;
 		$this->tr->append_child($this->action_cell);
 		
-		editor_generic::addeditor('name',new editor_text);
+		editor_generic::addeditor('name',new editor_txtasg_attr);
 		$this->name_cell->append_child($this->editors['name']);
 		
 		editor_generic::addeditor('value',new ed_immediate_or_var);
@@ -5997,6 +6030,35 @@ class ed_attributes extends dom_table
 	}
 }
 
+class editor_txtasg_attr extends editor_txtasg
+{
+	function fetch_list($ev,$k=NULL)
+	{
+		global $html_tags_list;
+		foreach($html_tags_list as $key => $v)
+		{
+			$f=false;
+			foreach($v as $t)
+				if($f)
+					$rx[$t]=1;
+				else
+					$f=true;
+		}
+		foreach($rx as $kk =>$v)if($k===NULL || strpos($kk,$k)!==FALSE)$ra[]=Array('val'=>$kk);
+		return $ra;
+	}
+}
+
+class editor_txtasg_tagname extends editor_txtasg
+{
+	function fetch_list($ev,$k=NULL)
+	{
+		global $html_tags_list;
+		foreach($html_tags_list as $key => $v)
+			if($k===NULL || strpos($key,$k)!==FALSE)$ra[]=Array('val'=>$key);
+		return $ra;
+	}
+}
 
 
 
@@ -6006,106 +6068,106 @@ class ed_attributes extends dom_table
 
 
 $html_tags_list=Array(
-Array("a","accesskey","href","name","rel","tabindex","target","title"),
-Array("abbr","title"),
-Array("acronym","title"),
-Array("address"),
-Array("applet","align","alt","archive","code","codebase","height","hspace","vspace","width"),
-Array("area","alt","coords","href","nohref","shape","target"),
-Array("b"),
-Array("base","href","target"),
-Array("basefont","color","face","size"),
-Array("bdo","dir"),
-Array("bgsound","balance","loop","src","volume"),
-Array("big"),
-Array("blink"),
-Array("blockquote"),
-Array("body","alink","background","bgcolor","bgproperties","bottommargin","leftmargin","link","rightmargin","scroll","text","topmargin","vlink"),
-Array("br","clear"),
-Array("button","disabled","name","type","value"),
-Array("caption","align","valign"),
-Array("center"),
-Array("cite"),
-Array("code"),
-Array("col","align","span","valign","width"),
-Array("colgroup","align","span","valign","width"),
-Array("dd"),
-Array("del"),
-Array("dfn"),
-Array("dir"),
-Array("div","align","title"),
-Array("dl"),
-Array("dt"),
-Array("em"),
-Array("embed","align","height","hidden","hspace","pluginspage","src","type","vspace","width"),
-Array("fieldset","title"),
-Array("font","color","face","size"),
-Array("form","action","autocomplete","enctype","method","name","target"),
-Array("frame","bordercolor","frameborder","name","noresize","scrolling","src"),
-Array("frameset","border","bordercolor","cols","frameborder","framespacing","rows"),
-Array("h1","align"),
-Array("h2","align"),
-Array("h3","align"),
-Array("h4","align"),
-Array("h5","align"),
-Array("h6","align"),
-Array("head"),
-Array("hr","align","color","noshade","size","width"),
-Array("html","title"),
-Array("i"),
-Array("iframe","align","frameborder","height","hspace","name","scrolling","src","vspace","width"),
-Array("img","align","alt","border","height","hspace","ismap","src","vspace","width","usemap"),
-Array("input","align","alt","autocomplete","border","checked","disabled","maxlength","name","readonly","size","src","type","value"),
-Array("ins"),
-Array("isindex","action","prompt"),
-Array("kbd"),
-Array("label","accesskey","for"),
-Array("legend","align","title"),
-Array("li","type","value"),
-Array("link","href","media","rel","type"),
-Array("map","name"),
-Array("marquee","behavior","bgcolor","direction","height","hspace","loop","scrollamount","scrolldelay","truespeed","vspace","width"),
-Array("menu"),
-Array("meta","content","http-equiv","name"),
-Array("nobr"),
-Array("noembed"),
-Array("noframes"),
-Array("noscript"),
-Array("object","align","classid","code","codebase","codetype","data","height","hspace","type","vspace","width"),
-Array("ol","type","start"),
-Array("optgroup","label"),
-Array("option","disabled","selected","value"),
-Array("p","align"),
-Array("param","name","value"),
-Array("plaintext"),
-Array("pre"),
-Array("q"),
-Array("s"),
-Array("samp"),
-Array("script","defer","language","src","type"),
-Array("select","disabled","multiple","name","size"),
-Array("small"),
-Array("span"),
-Array("strike"),
-Array("strong"),
-Array("style","media","type"),
-Array("sub"),
-Array("sup"),
-Array("table","align","background","bgcolor","border","bordercolor","cellpadding","cellspacing","cols","frame","height","rules","width"),
-Array("tbody","align","bgcolor","valign"),
-Array("td","align","background","bgcolor","bordercolor","colspan","height","nowrap","rowspan","valign","width"),
-Array("textarea","cols","disabled","name","readonly","rows"),
-Array("tfoot","align","bgcolor","valign"),
-Array("th","align","background","bgcolor","bordercolor","colspan","height","nowrap","rowspan","valign","width"),
-Array("thead","align","bgcolor","valign"),
-Array("title"),
-Array("tr","align","bgcolor","bordercolor","valign"),
-Array("tt"),
-Array("u"),
-Array("ul","type"),
-Array("var"),
-Array("wbr"),
-Array("xmp"),
+"a"=>Array("a","accesskey","href","name","rel","tabindex","target","title"),
+"abbr"=>Array("abbr","title"),
+"acronym"=>Array("acronym","title"),
+"address"=>Array("address"),
+"applet"=>Array("applet","align","alt","archive","code","codebase","height","hspace","vspace","width"),
+"area"=>Array("area","alt","coords","href","nohref","shape","target"),
+"b"=>Array("b"),
+"base"=>Array("base","href","target"),
+"basefont"=>Array("basefont","color","face","size"),
+"bdo"=>Array("bdo","dir"),
+"bgsound"=>Array("bgsound","balance","loop","src","volume"),
+"big"=>Array("big"),
+"blink"=>Array("blink"),
+"blockquote"=>Array("blockquote"),
+"body"=>Array("body","alink","background","bgcolor","bgproperties","bottommargin","leftmargin","link","rightmargin","scroll","text","topmargin","vlink"),
+"br"=>Array("br","clear"),
+"button"=>Array("button","disabled","name","type","value"),
+"caption"=>Array("caption","align","valign"),
+"center"=>Array("center"),
+"cite"=>Array("cite"),
+"code"=>Array("code"),
+"col"=>Array("col","align","span","valign","width"),
+"colgroup"=>Array("colgroup","align","span","valign","width"),
+"dd"=>Array("dd"),
+"del"=>Array("del"),
+"dfn"=>Array("dfn"),
+"dir"=>Array("dir"),
+"div"=>Array("div","align","title"),
+"dl"=>Array("dl"),
+"dt"=>Array("dt"),
+"em"=>Array("em"),
+"embed"=>Array("embed","align","height","hidden","hspace","pluginspage","src","type","vspace","width"),
+"fieldset"=>Array("fieldset","title"),
+"font"=>Array("font","color","face","size"),
+"form"=>Array("form","action","autocomplete","enctype","method","name","target"),
+"frame"=>Array("frame","bordercolor","frameborder","name","noresize","scrolling","src"),
+"frameset"=>Array("frameset","border","bordercolor","cols","frameborder","framespacing","rows"),
+"h1"=>Array("h1","align"),
+"h2"=>Array("h2","align"),
+"h3"=>Array("h3","align"),
+"h4"=>Array("h4","align"),
+"h5"=>Array("h5","align"),
+"h6"=>Array("h6","align"),
+"head"=>Array("head"),
+"hr"=>Array("hr","align","color","noshade","size","width"),
+"html"=>Array("html","title"),
+"i"=>Array("i"),
+"iframe"=>Array("iframe","align","frameborder","height","hspace","name","scrolling","src","vspace","width"),
+"img"=>Array("img","align","alt","border","height","hspace","ismap","src","vspace","width","usemap"),
+"input"=>Array("input","align","alt","autocomplete","border","checked","disabled","maxlength","name","readonly","size","src","type","value"),
+"ins"=>Array("ins"),
+"isindex"=>Array("isindex","action","prompt"),
+"kbd"=>Array("kbd"),
+"label"=>Array("label","accesskey","for"),
+"legend"=>Array("legend","align","title"),
+"li"=>Array("li","type","value"),
+"link"=>Array("link","href","media","rel","type"),
+"map"=>Array("map","name"),
+"marquee"=>Array("marquee","behavior","bgcolor","direction","height","hspace","loop","scrollamount","scrolldelay","truespeed","vspace","width"),
+"menu"=>Array("menu"),
+"meta"=>Array("meta","content","http-equiv","name"),
+"nobr"=>Array("nobr"),
+"noembed"=>Array("noembed"),
+"noframes"=>Array("noframes"),
+"noscript"=>Array("noscript"),
+"object"=>Array("object","align","classid","code","codebase","codetype","data","height","hspace","type","vspace","width"),
+"ol"=>Array("ol","type","start"),
+"optgroup"=>Array("optgroup","label"),
+"option"=>Array("option","disabled","selected","value"),
+"p"=>Array("p","align"),
+"param"=>Array("param","name","value"),
+"plaintext"=>Array("plaintext"),
+"pre"=>Array("pre"),
+"q"=>Array("q"),
+"s"=>Array("s"),
+"samp"=>Array("samp"),
+"script"=>Array("script","defer","language","src","type"),
+"select"=>Array("select","disabled","multiple","name","size"),
+"small"=>Array("small"),
+"span"=>Array("span"),
+"strike"=>Array("strike"),
+"strong"=>Array("strong"),
+"style"=>Array("style","media","type"),
+"sub"=>Array("sub"),
+"sup"=>Array("sup"),
+"table"=>Array("table","align","background","bgcolor","border","bordercolor","cellpadding","cellspacing","cols","frame","height","rules","width"),
+"tbody"=>Array("tbody","align","bgcolor","valign"),
+"td"=>Array("td","align","background","bgcolor","bordercolor","colspan","height","nowrap","rowspan","valign","width"),
+"textarea"=>Array("textarea","cols","disabled","name","readonly","rows"),
+"tfoot"=>Array("tfoot","align","bgcolor","valign"),
+"th"=>Array("th","align","background","bgcolor","bordercolor","colspan","height","nowrap","rowspan","valign","width"),
+"thead"=>Array("thead","align","bgcolor","valign"),
+"title"=>Array("title"),
+"tr"=>Array("tr","align","bgcolor","bordercolor","valign"),
+"tt"=>Array("tt"),
+"u"=>Array("u"),
+"ul"=>Array("ul","type"),
+"var"=>Array("var"),
+"wbr"=>Array("wbr"),
+"xmp"=>Array("xmp"),
 );
 
 
