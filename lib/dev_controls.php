@@ -5542,7 +5542,7 @@ class ed_htm_editor extends ed_tree_item_editor//virtual component injector
 			editor_generic::handle_event($ev);
 			return;
 		}
-		if($n != 'fo')
+		if(($n != 'fo')&&(! preg_match('/^attributes\..*/',$n)))
 		{
 			$ev->current->$n=$_POST['val'];
 			print "\$i('".$ev->context[$ev->parent_name]['cid']."').childNodes[1][text_content]='".js_escape($ev->ma->text($ev->current))."';";
