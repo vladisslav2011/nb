@@ -5485,7 +5485,7 @@ class ed_htm_editor extends ed_tree_item_editor//virtual component injector
 			$this->field_add($obj,'tag','tag',new editor_txtasg_tagname);
 			$this->field_add($obj,'attributes','attributes',new ed_attributes);
 #			$this->field_add($obj,'css_class','css_class',new editor_text);
-#			$this->field_add($obj,'css_style','css_style',new editor_text);
+			$this->field_add($obj,'css_style','css_style',new ed_css_props);
 			break;
 		case 'htm_text':
 			$this->field_add($obj,'text','text',new editor_text);
@@ -5542,7 +5542,55 @@ class ed_htm_editor extends ed_tree_item_editor//virtual component injector
 			editor_generic::handle_event($ev);
 			return;
 		}
-		if(($n != 'fo')&&(! preg_match('/^attributes\..*/',$n)))
+
+		if($n=='css_style.add')
+		{
+			$ev->current->css_style[]=(object)Array('name'=>'','value'=>'');
+			$ev->reload_right=true;
+			$ev->do_store=true;
+			return;
+		}
+		if($n=='css_style.del')
+		{
+			$na=Array();
+			foreach($ev->current->css_style as $k => $v)
+				if($k != $ev->keys['css_style'])$na[]=$v;
+			$ev->current->css_style=$na;
+			$ev->reload_right=true;
+			$ev->do_store=true;
+			return;
+		}
+		if($n=='css_style.name')
+		{
+			$ev->current->css_style[$ev->keys['css_style']]->name=$_POST['val'];
+			$ev->do_store=true;
+			editor_generic::handle_event($ev);
+			return;
+		}
+		if($n=='css_style.value.isref')
+		{
+			$ev->current->css_style[$ev->keys['css_style']]->value->isref=$_POST['val'];
+			$ev->do_store=true;
+			editor_generic::handle_event($ev);
+			return;
+		}
+		if($n=='css_style.value.main')
+		{
+			$ev->current->css_style[$ev->keys['css_style']]->value->main=$_POST['val'];
+			$ev->do_store=true;
+			editor_generic::handle_event($ev);
+			return;
+		}
+		if($n=='css_style.value.unit')
+		{
+			$ev->current->css_style[$ev->keys['css_style']]->value->unit=$_POST['val'];
+			$ev->do_store=true;
+			editor_generic::handle_event($ev);
+			return;
+		}
+
+
+		if(($n != 'fo')&&(! preg_match('/^attributes\..*/',$n))&&(! preg_match('/^css_style\..*/',$n)))
 		{
 			$ev->current->$n=$_POST['val'];
 			print "\$i('".$ev->context[$ev->parent_name]['cid']."').childNodes[1][text_content]='".js_escape($ev->ma->text($ev->current))."';";
@@ -5902,6 +5950,7 @@ class ed_immediate_or_var extends dom_div
 		editor_generic::addeditor('unit',new editor_select);
 		$tr->append_child($this->editors['unit']);
 		$this->editors['unit']->options=Array(
+			""=>"",
 			"px"=>"px",
 			"%"=>"%",
 			"em"=>"em",
@@ -6044,7 +6093,7 @@ class editor_txtasg_attr extends editor_txtasg
 				else
 					$f=true;
 		}
-		foreach($rx as $kk =>$v)if($k===NULL || strpos($kk,$k)!==FALSE)$ra[]=Array('val'=>$kk);
+		foreach($rx as $kk =>$v)if($k===NULL || $k==="" || strpos($kk,$k)!==FALSE)$ra[]=Array('val'=>$kk);
 		return $ra;
 	}
 }
@@ -6060,6 +6109,105 @@ class editor_txtasg_tagname extends editor_txtasg
 	}
 }
 
+##############################################################################################################################
+#                                                        class ed_attributes
+##############################################################################################################################
+class ed_css_props extends dom_table
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		$this->tr=new dom_tr;
+		$this->append_child($this->tr);
+		$this->name_cell=new dom_td;
+		$this->tr->append_child($this->name_cell);
+		$this->value_cell=new dom_td;
+		$this->tr->append_child($this->value_cell);
+		$this->action_cell=new dom_td;
+		$this->tr->append_child($this->action_cell);
+		
+		editor_generic::addeditor('name',new editor_txtasg_css_prop);
+		$this->name_cell->append_child($this->editors['name']);
+		
+		editor_generic::addeditor('value',new ed_immediate_or_var);
+		$this->value_cell->append_child($this->editors['value']);
+		
+		editor_generic::addeditor('del',new editor_button);
+		$this->editors['del']->attributes['value']='X';
+		$this->action_cell->append_child($this->editors['del']);
+		
+		$this->trl=new dom_tr;
+		$this->append_child($this->trl);
+		$this->trl->append_child(new dom_td);
+		$this->trl->append_child(new dom_td);
+		$this->add_cell=new dom_td;
+		$this->trl->append_child($this->add_cell);
+		editor_generic::addeditor('add',new editor_button);
+		$this->editors['add']->attributes['value']='+';
+		$this->add_cell->append_child($this->editors['add']);
+		
+		
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		if(!is_array($this->args))$this->args=Array();
+		if(is_array($this->editors))foreach($this->editors as $i=>$e)
+		{
+			$e->oid=$this->oid;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+		}
+	}
+	
+	function html_inner()
+	{
+		$a=$this->args[$this->context[$this->long_name]['var']];
+		if(is_array($a))foreach($a as $i => $v)
+		{
+			$this->args['name']=$v->name;
+			$this->args['value']=$v->value;
+			$this->keys[$this->name]=$i;
+			$this->tr->id_alloc();
+			foreach($this->editors as $e)
+				$e->bootstrap();
+			$this->tr->html();
+		}
+		$this->editors['add']->bootstrap();
+		$this->trl->html();
+	}
+	
+	function handle_event($ev)
+	{
+		if($ev->rem_name=='name')
+		{
+			$ev->current->attributes[$ev->keys['css_style']]->name=$_POST['val'];
+			$ev->do_store=true;
+		}
+		editor_generic::handle_event($ev);
+	}
+}
+
+
+
+
+
+class editor_txtasg_css_prop extends editor_txtasg
+{
+	function fetch_list($ev,$k=NULL)
+	{
+		global $html_css_attributes;
+		foreach($html_css_attributes as $v)
+		{
+			if($k===NULL || $k==="" || strpos($kk,$k)!==FALSE)$ra[]=Array('val'=>$v[1]);
+		}
+		return $ra;
+	}
+}
 
 
 
@@ -6170,7 +6318,188 @@ $html_tags_list=Array(
 "xmp"=>Array("xmp"),
 );
 
-
+$html_css_attributes=Array(
+	Array('azimuth','azimuth'),
+	Array('background','background'),
+	Array('backgroundAttachment','background-attachment'),
+	Array('backgroundColor','background-color'),
+	Array('backgroundImage','background-image'),
+	Array('backgroundPosition','background-position'),
+	Array('backgroundRepeat','background-repeat'),
+	Array('border','border'),
+	Array('borderCollapse','border-collapse'),
+	Array('borderColor','border-color'),
+	Array('borderSpacing','border-spacing'),
+	Array('borderStyle','border-style'),
+	Array('borderTop','border-top'),
+	Array('borderRight','border-right'),
+	Array('borderBottom','border-bottom'),
+	Array('borderLeft','border-left'),
+	Array('borderTopColor','border-top-color'),
+	Array('borderRightColor','border-right-color'),
+	Array('borderBottomColor','border-bottom-color'),
+	Array('borderLeftColor','border-left-color'),
+	Array('borderTopStyle','border-top-style'),
+	Array('borderRightStyle','border-right-style'),
+	Array('borderBottomStyle','border-bottom-style'),
+	Array('borderLeftStyle','border-left-style'),
+	Array('borderTopWidth','border-top-width'),
+	Array('borderRightWidth','border-right-width'),
+	Array('borderBottomWidth','border-bottom-width'),
+	Array('borderLeftWidth','border-left-width'),
+	Array('borderWidth','border-width'),
+	Array('bottom','bottom'),
+	Array('captionSide','caption-side'),
+	Array('clear','clear'),
+	Array('clip','clip'),
+	Array('color','color'),
+	Array('content','content'),
+	Array('counterIncrement','counter-increment'),
+	Array('counterReset','counter-reset'),
+	Array('cue','cue'),
+	Array('cueAfter','cue-after'),
+	Array('cueBefore','cue-before'),
+	Array('cursor','cursor'),
+	Array('direction','direction'),
+	Array('display','display'),
+	Array('elevation','elevation'),
+	Array('emptyCells','empty-cells'),
+	Array('cssFloat','css-float'),
+	Array('font','font'),
+	Array('fontFamily','font-family'),
+	Array('fontSize','font-size'),
+	Array('fontSizeAdjust','font-size-adjust'),
+	Array('fontStretch','font-stretch'),
+	Array('fontStyle','font-style'),
+	Array('fontVariant','font-variant'),
+	Array('fontWeight','font-weight'),
+	Array('height','height'),
+	Array('left','left'),
+	Array('letterSpacing','letter-spacing'),
+	Array('lineHeight','line-height'),
+	Array('listStyle','list-style'),
+	Array('listStyleImage','list-style-image'),
+	Array('listStylePosition','list-style-position'),
+	Array('listStyleType','list-style-type'),
+	Array('margin','margin'),
+	Array('marginTop','margin-top'),
+	Array('marginRight','margin-right'),
+	Array('marginBottom','margin-bottom'),
+	Array('marginLeft','margin-left'),
+	Array('markerOffset','marker-offset'),
+	Array('marks','marks'),
+	Array('maxHeight','max-height'),
+	Array('maxWidth','max-width'),
+	Array('minHeight','min-height'),
+	Array('minWidth','min-width'),
+	Array('orphans','orphans'),
+	Array('outline','outline'),
+	Array('outlineColor','outline-color'),
+	Array('outlineStyle','outline-style'),
+	Array('outlineWidth','outline-width'),
+	Array('overflow','overflow'),
+	Array('padding','padding'),
+	Array('paddingTop','padding-top'),
+	Array('paddingRight','padding-right'),
+	Array('paddingBottom','padding-bottom'),
+	Array('paddingLeft','padding-left'),
+	Array('page','page'),
+	Array('pageBreakAfter','page-break-after'),
+	Array('pageBreakBefore','page-break-before'),
+	Array('pageBreakInside','page-break-inside'),
+	Array('pause','pause'),
+	Array('pauseAfter','pause-after'),
+	Array('pauseBefore','pause-before'),
+	Array('pitch','pitch'),
+	Array('pitchRange','pitch-range'),
+	Array('position','position'),
+	Array('quotes','quotes'),
+	Array('richness','richness'),
+	Array('right','right'),
+	Array('size','size'),
+	Array('speak','speak'),
+	Array('speakHeader','speak-header'),
+	Array('speakNumeral','speak-numeral'),
+	Array('speakPunctuation','speak-punctuation'),
+	Array('speechRate','speech-rate'),
+	Array('stress','stress'),
+	Array('tableLayout','table-layout'),
+	Array('textAlign','text-align'),
+	Array('textDecoration','text-decoration'),
+	Array('textIndent','text-indent'),
+	Array('textShadow','text-shadow'),
+	Array('textTransform','text-transform'),
+	Array('top','top'),
+	Array('unicodeBidi','unicode-bidi'),
+	Array('verticalAlign','vertical-align'),
+	Array('visibility','visibility'),
+	Array('voiceFamily','voice-family'),
+	Array('volume','volume'),
+	Array('whiteSpace','white-space'),
+	Array('widows','widows'),
+	Array('width','width'),
+	Array('wordSpacing','word-spacing'),
+	Array('zIndex','z-index'),
+/*	Array('MozAppearance','MozAppearance'),
+	Array('MozBackgroundClip','MozBackgroundClip'),
+	Array('MozBackgroundInlinePolicy','MozBackgroundInlinePolicy'),
+	Array('MozBackgroundOrigin','MozBackgroundOrigin'),
+	Array('MozBinding','MozBinding'),
+	Array('MozBorderBottomColors','MozBorderBottomColors'),
+	Array('MozBorderLeftColors','MozBorderLeftColors'),
+	Array('MozBorderRightColors','MozBorderRightColors'),
+	Array('MozBorderTopColors','MozBorderTopColors'),
+	Array('MozBorderRadius','MozBorderRadius'),
+	Array('MozBorderRadiusTopleft','MozBorderRadiusTopleft'),
+	Array('MozBorderRadiusTopright','MozBorderRadiusTopright'),
+	Array('MozBorderRadiusBottomleft','MozBorderRadiusBottomleft'),
+	Array('MozBorderRadiusBottomright','MozBorderRadiusBottomright'),
+	Array('MozBoxAlign','MozBoxAlign'),
+	Array('MozBoxDirection','MozBoxDirection'),
+	Array('MozBoxFlex','MozBoxFlex'),
+	Array('MozBoxOrient','MozBoxOrient'),
+	Array('MozBoxOrdinalGroup','MozBoxOrdinalGroup'),
+	Array('MozBoxPack','MozBoxPack'),
+	Array('MozBoxSizing','MozBoxSizing'),
+	Array('MozColumnCount','MozColumnCount'),
+	Array('MozColumnWidth','MozColumnWidth'),
+	Array('MozColumnGap','MozColumnGap'),
+	Array('MozFloatEdge','MozFloatEdge'),
+	Array('MozForceBrokenImageIcon','MozForceBrokenImageIcon'),
+	Array('MozImageRegion','MozImageRegion'),
+	Array('MozMarginEnd','MozMarginEnd'),
+	Array('MozMarginStart','MozMarginStart'),
+	Array('MozOpacity','MozOpacity'),
+	Array('MozOutline','MozOutline'),
+	Array('MozOutlineColor','MozOutlineColor'),
+	Array('MozOutlineRadius','MozOutlineRadius'),
+	Array('MozOutlineRadiusTopleft','MozOutlineRadiusTopleft'),
+	Array('MozOutlineRadiusTopright','MozOutlineRadiusTopright'),
+	Array('MozOutlineRadiusBottomleft','MozOutlineRadiusBottomleft'),
+	Array('MozOutlineRadiusBottomright','MozOutlineRadiusBottomright'),
+	Array('MozOutlineStyle','MozOutlineStyle'),
+	Array('MozOutlineWidth','MozOutlineWidth'),
+	Array('MozOutlineOffset','MozOutlineOffset'),
+	Array('MozPaddingEnd','MozPaddingEnd'),
+	Array('MozPaddingStart','MozPaddingStart'),
+	Array('MozUserFocus','MozUserFocus'),
+	Array('MozUserInput','MozUserInput'),
+	Array('MozUserModify','MozUserModify'),
+	Array('MozUserSelect','MozUserSelect'),*/
+	Array('opacity','opacity'),
+	Array('outlineOffset','outline-offset'),
+	Array('overflowX','overflow-x'),
+	Array('overflowY','overflow-y'),
+	Array('imeMode','ime-mode')/*,
+	Array('MozBorderEnd','MozBorderEnd'),
+	Array('MozBorderEndColor','MozBorderEndColor'),
+	Array('MozBorderEndStyle','MozBorderEndStyle'),
+	Array('MozBorderEndWidth','MozBorderEndWidth'),
+	Array('MozBorderStart','MozBorderStart'),
+	Array('MozBorderStartColor','MozBorderStartColor'),
+	Array('MozBorderStartStyle','MozBorderStartStyle'),
+	Array('MozBorderStartWidth','MozBorderStartWidth')*/
+);
 
 
 
