@@ -5842,7 +5842,7 @@ class dom_query_node extends dom_void
 					$css_style[]=$n.':'.(is_object($v)?($this->query_root->vars[$v->ref].$v->unit):$v);
 				}
 				if(count($css_style)>0)
-					$this->rootnode->out(' style="'.htmlspecialchars(implode('; ',$css_class),ENT_QUOTES).'"');
+					$this->rootnode->out(' style="'.htmlspecialchars(implode('; ',$css_style),ENT_QUOTES).'"');
 			}else{
 				$this->rootnode->out(' style="'.htmlspecialchars(
 					is_object($this->css_style)?$this->query_root->vars[$this->css_style->ref]:$this->css_style,ENT_QUOTES).'"');
@@ -5889,6 +5889,10 @@ class htm_node
 		if(is_array($this->attributes))foreach($this->attributes as $a)
 		{
 			$n->attributes[$a->name]=$a->value->main;
+		}
+		if(is_array($this->css_style))foreach($this->css_style as $a)
+		{
+			$n->css_style[$a->name]=$a->value->main;
 		}
 		
 		
@@ -6110,7 +6114,7 @@ class editor_txtasg_tagname extends editor_txtasg
 }
 
 ##############################################################################################################################
-#                                                        class ed_attributes
+#                                                        class ed_css_propss
 ##############################################################################################################################
 class ed_css_props extends dom_table
 {
@@ -6203,7 +6207,7 @@ class editor_txtasg_css_prop extends editor_txtasg
 		global $html_css_attributes;
 		foreach($html_css_attributes as $v)
 		{
-			if($k===NULL || $k==="" || strpos($kk,$k)!==FALSE)$ra[]=Array('val'=>$v[1]);
+			if($k===NULL || $k==="" || strpos($v[1],$k)!==FALSE)$ra[]=Array('val'=>$v[1]);
 		}
 		return $ra;
 	}
