@@ -22,6 +22,7 @@ require_once('lib/component_sandbox.php');
 require_once('lib/meta_editor.php');
 require_once('lib/table_xml_load.php');
 require_once('lib/keyboard-test.php');
+require_once('lib/samples_db.php');
 
 
 class get_parser

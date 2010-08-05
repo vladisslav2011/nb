@@ -663,11 +663,17 @@ class editor_file_upload extends dom_div
 		$txt=new dom_statictext;
 		$txt->text='Uploading.....';
 		$this->res_div->append_child($txt);
+		$this->main=$this->file_inp;
 		
 	}
 	
 	function bootstrap()
 	{
+		editor_generic::bootstrap_part();
+/*		
+		$this->main->attributes['onfocus']='';
+		$this->main->attributes['onblur']='';
+		if(!isset($this->no_restore_focus))editor_generic::add_focus_restore();*/
 	}
 	
 	function html_inner()
@@ -679,20 +685,31 @@ class editor_file_upload extends dom_div
 			"\$i('".$this->res_div->id_gen()."').style.display='none';".
 			"\$i('".$this->file_inp->id_gen()."').value='';".
 			"\$i('".$this->file_inp->id_gen()."').style.display='';\$i('".$this->subm_btn->id_gen()."').style.display='';";
-		if(isset($this->onload))
+		if(isset($this->normal_postback))
 		{
-			$this->res->attributes['onload']="this.reset=function(){".$reset."};if(this.is_uploading){".
-				"var resdiv=\$i('".$this->res_div->id_gen()."');".
-				$this->onload.
+			$this->res->attributes['onload']="if(this.is_uploading){".
+				"chse.send_or_push({static:".$this->send.",val:this.contentWindow.document.firstChild[text_content],c_id:this.id});".
+				"\$i('".$this->res_div->id_gen()."').style.display='none';".
+				"\$i('".$this->file_inp->id_gen()."').value='';".
+				"\$i('".$this->file_inp->id_gen()."').style.display='';\$i('".$this->subm_btn->id_gen()."').style.display='';".
 				"this.is_uploading=false;};"
 				;
 		}else{
-			
-			$this->res->attributes['onload']="if(this.is_uploading){".
-				"\$i('".$this->res_div->id_gen()."').innerHTML=this.contentWindow.document.firstChild.innerHTML;".
-				//"alert(this.contentWindow.document.firstChild.textContent);".
-				"this.is_uploading=false;};"
-				;
+			if(isset($this->onload))
+			{
+				$this->res->attributes['onload']="this.reset=function(){".$reset."};if(this.is_uploading){".
+					"var resdiv=\$i('".$this->res_div->id_gen()."');".
+					$this->onload.
+					"this.is_uploading=false;};"
+					;
+			}else{
+				
+				$this->res->attributes['onload']="if(this.is_uploading){".
+					"\$i('".$this->res_div->id_gen()."').innerHTML=this.contentWindow.document.firstChild.innerHTML;".
+					//"alert(this.contentWindow.document.firstChild.textContent);".
+					"this.is_uploading=false;};"
+					;
+			}
 		}
 		//$this->file_inp->attributes['onchange']="alert(this.value);if(\$i('".js_escape($this->form->id_gen())."').submit())this.style.display='none';";
 		$this->res->attributes['name']=$this->res->id_gen();
@@ -750,13 +767,18 @@ class editor_file_upload_test_custom extends dom_div
 	{
 		parent::__construct();
 		$this->etype=get_class($this);
-		for($k=1;$k<=10;$k++)
-		{
+		$this->append_child(new dom_statictext('custom_js:'));
+		$k=1;
 			editor_generic::addeditor('t'.$k,new editor_file_upload);
 			$this->append_child($this->editors['t'.$k]);
 			$this->editors['t'.$k]->type_hidden->attributes['value']='rawname';
-			$this->editors['t'.$k]->onload="resdiv.innerHTML=this.contentWindow.document.firstChild.innerHTML;";
-		}
+			$this->editors['t'.$k]->onload="resdiv.innerHTML=this.contentWindow.document.firstChild[text_content];";
+		$this->append_child(new dom_statictext('normal_postback:'));
+		$k=2;
+			editor_generic::addeditor('t'.$k,new editor_file_upload);
+			$this->append_child($this->editors['t'.$k]);
+			$this->editors['t'.$k]->type_hidden->attributes['value']='rawname';
+			$this->editors['t'.$k]->normal_postback=1;
 	}
 	
 	function bootstrap()
@@ -777,6 +799,10 @@ class editor_file_upload_test_custom extends dom_div
 	
 	function handle_event($ev)
 	{
+		if($ev->rem_name=='t2')
+		{
+			print "alert('Got file: ".js_escape($_POST['val'])."');";
+		};
 		editor_generic::handle_event($ev);
 	}
 }

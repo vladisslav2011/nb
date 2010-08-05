@@ -1859,14 +1859,17 @@ class query_result_viewer_codessel extends dom_any
 		
 		$sql->query("UPDATE `barcodes_print` SET `printed`=".$count." WHERE `id`=".$row['id']." AND `task`=".$current_task);
 
-		
+		if(preg_match('/^[ 0]+$/',$barcode))
+			$barcode_part="";
+		else
+			$barcode_part="B10,80,0,E30,4,4,120,B,\"".$barcode."\"\n";
 		if(strlen($name)<55)
 		{
 			$print=	"N\n".
 					"I8,10,001\n".
 					"A8,10,0,4,1,1,N,\"".$s1."\"\n".
 					"A8,39,0,4,1,1,N,\"".$s2."\"\n".
-					"B10,80,0,E30,4,4,120,B,\"".$barcode."\"\n".
+					$barcode_part.
 					"P".$count."\n";
 		}else{
 			$print=	"N\n".
@@ -1874,7 +1877,7 @@ class query_result_viewer_codessel extends dom_any
 					"A7,10,0,2,1,1,N,\"".$s1."\"\n".
 					"A7,31,0,2,1,1,N,\"".$s2."\"\n".
 					"A7,52,0,2,1,1,N,\"".$s3."\"\n".
-					"B10,80,0,E30,4,4,120,B,\"".$barcode."\"\n".
+					$barcode_part.
 					"P".$count."\n";
 		}
 		$this->print_job($print);
