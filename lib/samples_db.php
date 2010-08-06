@@ -210,6 +210,8 @@ class samples_db_item extends dom_div
 		
 		editor_generic::addeditor('aadd',new editor_file_upload);
 		$this->append_child($this->editors['aadd']);
+		$this->editors['aadd']->type_hidden->attributes['value']='rawname';
+		$this->editors['aadd']->normal_postback=1;
 		
 		
 		
