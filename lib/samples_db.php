@@ -28,13 +28,16 @@ Array(
  'name' => 'samples_attachments',
  'cols' => Array(
   #Array('name' =>'', 'sql_type' =>'', 'sql_null' =>, 'sql_default' =>'', 'sql_sequence' => 0, 'sql_comment' =>NULL),
-  Array('name' =>'id',		'sql_type' =>'int(10)',  'sql_null' =>0, 'sql_default' =>NULL,		'sql_sequence' => 1,	'sql_comment' =>NULL, 'hname'=>'Идентификатор'),
+  Array('name' =>'id',		'sql_type' =>'int(10)',  'sql_null' =>0, 'sql_default' =>NULL,		'sql_sequence' => 1,	'sql_comment' =>NULL, 'hname'=>'Объект'),
+  Array('name' =>'aid',		'sql_type' =>'int(10)',  'sql_null' =>0, 'sql_default' =>NULL,		'sql_sequence' => 1,	'sql_comment' =>NULL, 'hname'=>'Идентификатор'),
   Array('name' =>'type',	'sql_type' =>'varchar(100)', 'sql_null' =>1, 'sql_default' =>'',	'sql_sequence' => 0,	'sql_comment' =>NULL, 'hname'=>'Тип'),
+  Array('name' =>'description',	'sql_type' =>'varchar(255)', 'sql_null' =>1, 'sql_default' =>'',	'sql_sequence' => 0,	'sql_comment' =>NULL, 'hname'=>'Описание'),
   Array('name' =>'filename',	'sql_type' =>'varchar(255)', 'sql_null' =>1, 'sql_default' =>'',	'sql_sequence' => 0,	'sql_comment' =>NULL, 'hname'=>'Имя файла')
  ),
  'keys' => Array(
 #  Array('key' =>'PRIMARY', 'name' =>'', 'sub' => NULL)
   Array('key' =>'PRIMARY', 'name' =>'id', 'sub' => NULL),
+  Array('key' =>'PRIMARY', 'name' =>'фid', 'sub' => NULL),
   Array('key' =>'filename', 'name' =>'filename', 'sub' => NULL)
  )
 );
@@ -84,6 +87,7 @@ class samples_db_list extends dom_div
 	{
 		$this->long_name=editor_generic::long_name();
 		$this->context[$this->long_name]['oid']=$this->oid;
+		$this->context[$this->long_name]['ed_list_id']=$this->editors['ed_list']->id_gen();
 		foreach($this->editors as $e)
 		{
 			$e->oid=$this->oid;
@@ -105,13 +109,63 @@ class samples_db_list extends dom_div
 	
 	function handle_event($ev)
 	{
-		global $sql;
+		global $sql,$ddc_tables;
 		$ev->do_reload=false;
 		$this->long_name=$ev->parent_name;
 		$this->oid=$ev->context[$ev->parent_name]['oid'];
 		$st=new settings_tool;
 		switch($ev->rem_name)
 		{
+			case 'ed_new':
+				if($sql->query("INSERT INTO `samples_raw` SET id=''")!==false)
+				{
+					$r=$sql->qv("SELECT LAST_INSERT_ID()");
+					print "window.location.href='".js_escape('?p=samples_db_item&id='.urlencode($r[0]))."';";
+					exit;
+					$ev->do_reload=true;
+				}else{
+					print "alert('Не удалось добавить запись.');";
+				};
+				break;
+			case 'ed_list.del':
+				$qg=new query_gen_ext('DELETE');
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				$qg->from->exprs[]=new sql_column(NULL,'samples_raw');
+				$sql->query($qg->result());
+				$ev->do_reload=true;
+				break;
+			case 'ed_list.clone':
+				$qg=new query_gen_ext('INSERT SELECT');
+				$qg->into->exprs[]=new sql_column(NULL,'samples_raw');
+				$qg->from->exprs[]=new sql_column(NULL,'samples_raw');
+				foreach($ddc_tables['samples_raw']->cols as $col)
+				{
+					if($col['name']!='id')
+						$qg->what->exprs[]=new sql_column(NULL,NULL,$col['name'],$col['name']);
+				}
+				$qg->what->exprs[]=new sql_immed('','id');
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				
+				if($sql->query($qg->result())!==false)
+				{
+					$r=$sql->qv("SELECT LAST_INSERT_ID()");
+					print "window.location.href='".js_escape('?p=samples_db_item&id='.urlencode($r[0]))."';";
+					exit;
+					$ev->do_reload=true;
+				}else{
+					print "alert('Не удалось добавить запись.');";
+				};
+				break;
+			case 'ed_list.edit':
+				print "window.location.href='".js_escape('?p=samples_db_item&id='.urlencode($ev->keys['id']))."';";
+				exit;
+				break;
 			case 'ed_pager.ed_offset':
 				$sql->query($st->set_query($this->oid,$this->long_name.'._offset',$_SESSION['uid'],0,$_POST['val']));
 				$ev->do_reload=true;
@@ -124,7 +178,22 @@ class samples_db_list extends dom_div
 		
 		
 		editor_generic::handle_event($ev);
-		
+		if($ev->do_reload)
+		{
+			$r=new sdb_QR;
+			
+			$r->context=&$ev->context;
+			$r->keys=&$ev->keys;
+			$r->oid=$oid;
+			$r->args=$this->args;
+			$r->name=$ev->parent_name.".ed_list";
+			$r->etype=$ev->parent_type.".sdb_QR";
+
+			print "var nya=\$i('".js_escape($ev->context[$this->long_name]['ed_list_id'])."');";
+			print "try{nya.innerHTML=";
+			reload_object($r,true);
+			print "}catch(e){/* window.location.reload(true);*/};";
+		}
 		
 		
 	}
@@ -185,8 +254,10 @@ class samples_db_item extends dom_div
 		
 		$this->attachments=new dom_table;
 		$this->append_child($this->attachments);
+		
 		$this->atr=new dom_tr;
 		$this->attachments->append_child($this->atr);
+		
 		$td=new dom_td;
 		$this->atr->append_child($td);
 		unset($td->id);
@@ -200,7 +271,7 @@ class samples_db_item extends dom_div
 		$td->append_child($this->editors['alink']);
 		$this->editors['alink']->href='/uploads/%s';
 		editor_generic::addeditor('aname',new editor_statictext);
-		$this->editors['href']->main->append_child($this->editors['aname']);
+		$this->editors['alink']->main->append_child($this->editors['aname']);
 		
 		$td=new dom_td;
 		$this->atr->append_child($td);
@@ -208,12 +279,17 @@ class samples_db_item extends dom_div
 		editor_generic::addeditor('adel',new editor_button_image);
 		$td->append_child($this->editors['adel']);
 		
+		$this->ahtr=new dom_tr;
+		$this->attachments->append_child($this->ahtr);
+		
+		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('№ п/п'));
+		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Вложение'));
+		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Операции'));
+		
 		editor_generic::addeditor('aadd',new editor_file_upload);
 		$this->append_child($this->editors['aadd']);
 		$this->editors['aadd']->type_hidden->attributes['value']='rawname';
 		$this->editors['aadd']->normal_postback=1;
-		
-		
 		
 		
 		
@@ -224,7 +300,9 @@ class samples_db_item extends dom_div
 	{
 		$this->long_name=editor_generic::long_name();
 		$this->context[$this->long_name]['oid']=$this->oid;
-		foreach($this->editors as $e)
+		if(!is_array($this->args))$this->args=Array();
+		if(!is_array($this->keys))$this->keys=Array();
+		foreach($this->editors as $i=>$e)
 		{
 			$e->oid=$this->oid;
 			$e->context=&$this->context;
@@ -239,26 +317,117 @@ class samples_db_item extends dom_div
 	function html_inner()
 	{
 		global $sql,$ddc_tables;
+		$can_edit=true;
+		$qg=new query_gen_ext('SELECT');
+		$qg->from->exprs[]=new sql_column(NULL,'samples_raw',NULL,'s');
 		
-		parent::html_inner();
+		foreach($ddc_tables['samples_raw']->cols as $col)
+		{
+			$qg->what->exprs[]=new sql_column(NULL,'s',$col['name']);
+		}
+		
+		$qg->where->exprs[]=new sql_expression('=',
+			Array(
+				new sql_column(NULL,'s','id'),
+				new sql_immed($_GET['id'])
+				));
+		$qc=$qg->result();
+		$res=$sql->query($qc);
+		while($row=$sql->fetcha($res))
+		{
+			foreach($row as $ri => $rv)
+			{
+				$this->args[($can_edit?'e':'v').$ri]=$rv;
+			}
+		}
+		$this->keys['id']=$_GET['id'];
+		if($can_edit)
+		{
+			foreach($this->editors as $e)
+				$e->bootstrap();
+			$this->editing->html();
+		}
+		else
+		{
+			foreach($this->editors as $e)
+				$e->bootstrap();
+			$this->viewonly->html();
+		}
+			
+		$qg->from->exprs=Array(new sql_column(NULL,'samples_attachments',NULL,'s'));
+		$qg->what->exprs=Array();
+		foreach($ddc_tables['samples_attachments']->cols as $col)
+		{
+			$qg->what->exprs[]=new sql_column(NULL,'s',$col['name']);
+		}
+		
+		$qc=$qg->result();
+		
+		$res=$sql->query($qc);
+		$this->attachments->html_head();
+		$this->ahtr->html();
+		$no_allachments=true;
+		$nn=1;
+		while($row=$sql->fetcha($res))
+		{
+			$this->args['alink']=$row['aid'];
+			$this->args['anum']=$nn;
+			$nn++;
+			$this->keys['aid']=$row['aid'];
+			$this->args['aname']=$row['filename'];
+			$this->atr->html();
+			$no_allachments=false;
+			
+		}
+		if($no_allachments)
+		{
+			$this->args['alink']=-1;
+			$this->keys['aid']=-1;
+			$this->args['aname']='Нет вложений';
+			$this->atr->html();
+			$no_allachments=false;
+		}
+		$this->attachments->html_tail();
+		$this->editors['aadd']->html();
+		
+		
+		
 	}
 	
 	function handle_event($ev)
 	{
-		global $sql;
+		global $sql,$ddc_tables;
 		$ev->do_reload=false;
 		$this->long_name=$ev->parent_name;
 		$this->oid=$ev->context[$ev->parent_name]['oid'];
 		$st=new settings_tool;
+		foreach($ddc_tables['samples_raw']->cols as $col)
+			if($ev->rem_name=='e'.$col['name'])
+			{
+				$qg=new query_gen_ext('update');
+				$qg->into->exprs[]=new sql_column(NULL,'samples_raw',NULL,'s');
+				$qg->where->exprs[]=new sql_expression('=',
+					Array(
+						new sql_column(NULL,'s','id'),
+						new sql_immed($ev->keys['id'])
+						));
+				$qg->set->exprs[]=new sql_expression('=',
+					Array(
+						new sql_column(NULL,'s',$col['name']),
+						new sql_immed($_POST['val'])
+						));
+				$r=$sql->query($qg->result());
+/*				if($r===false)
+					print "alert('".js_escape($qg->result())."');";*/
+			}
+
+
 		switch($ev->rem_name)
 		{
-			case 'ed_pager.ed_offset':
-				$sql->query($st->set_query($this->oid,$this->long_name.'._offset',$_SESSION['uid'],0,$_POST['val']));
-				$ev->do_reload=true;
+			case 'aadd':
+				print "alert('".js_escape($_POST['val'])."');";
 				break;
-			case 'ed_pager.ed_count':
-				$sql->query($st->set_query($this->oid,$this->long_name.'._count',$_SESSION['uid'],0,$_POST['val']));
-				$ev->do_reload=true;
+			case 'adel':
 				break;
 		};
 		
@@ -707,10 +876,13 @@ class sdb_QR extends dom_div
 		
 		editor_generic::addeditor('del',new editor_button_image);
 		$this->td_b->append_child($this->editors['del']);
+		$this->editors['del']->attributes['title']='Удалить';
 		editor_generic::addeditor('edit',new editor_button_image);
 		$this->td_b->append_child($this->editors['edit']);
+		$this->editors['edit']->attributes['title']='Редактировать/просмотреть';
 		editor_generic::addeditor('clone',new editor_button_image);
 		$this->td_b->append_child($this->editors['clone']);
+		$this->editors['clone']->attributes['title']='Копировать';
 	}
 	
 	function bootstrap()
