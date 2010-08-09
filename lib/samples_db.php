@@ -89,7 +89,7 @@ class samples_db_list extends dom_div
 		$this->long_name=editor_generic::long_name();
 		$this->context[$this->long_name]['oid']=$this->oid;
 		$this->context[$this->long_name]['ed_list_id']=$this->editors['ed_list']->id_gen();
-		foreach($this->editors as $e)
+		foreach($this->editors as $i => $e)
 		{
 			$e->oid=$this->oid;
 			$e->context=&$this->context;
@@ -105,7 +105,40 @@ class samples_db_list extends dom_div
 	{
 		$this->args['ed_count']=$this->rootnode->setting_val($this->oid,$this->long_name.'._count',20);
 		$this->args['ed_offset']=$this->rootnode->setting_val($this->oid,$this->long_name.'._offset',0);
+		$this->args['ed_filters']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._filters',0));
+		$this->args['ed_order']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._order',0));
 		parent::html_inner();
+	}
+	
+	function cascade_delete($id)
+	{
+		global $sql;
+		$doc_root=$_SERVER['DOCUMENT_ROOT'];
+		if(preg_match('#.*[^/]$#',$doc_root))$doc_root.='/';
+		$qg=new query_gen_ext("SELECT");
+		$qg->from->exprs[]=new sql_column(NULL,'samples_attachments');
+		$qg->where->exprs[]=new sql_expression('=',Array(
+			new sql_column(NULL,NULL,'id'),
+			new sql_immed($id)
+		));
+		$qg->what->exprs[]=new sql_column(NULL,NULL,'aid');
+		$qg->what->exprs[]=new sql_column(NULL,NULL,'filename');
+		$res=$sql->query($qg->result());
+		while($row=$sql->fetchn($res))
+		{
+			$full=$doc_root.'si/o/'.$id.'/'.$row[1];
+			$thumb=$doc_root.'si/t/'.$id.'/'.$row[1];
+			if(file_exists($full))unlink($full);
+			if(file_exists($thumb))unlink($thumb);
+		}
+		$qg=new query_gen_ext("DELETE");
+		$qg->from->exprs[]=new sql_column(NULL,'samples_attachments');
+		$qg->where->exprs[]=new sql_expression('=',Array(
+			new sql_column(NULL,NULL,'id'),
+			new sql_immed($id)
+		));
+		$sql->query($qg->result());
+		
 	}
 	
 	function handle_event($ev)
@@ -115,6 +148,10 @@ class samples_db_list extends dom_div
 		$this->long_name=$ev->parent_name;
 		$this->oid=$ev->context[$ev->parent_name]['oid'];
 		$st=new settings_tool;
+		$filters=$sql->qv($st->single_query($this->oid,$this->long_name."._filters",$_SESSION['uid'],0));
+		$ev->settings->filters=unserialize($filters[0]);
+		$order=$sql->qv($st->single_query($this->oid,$this->long_name."._order",$_SESSION['uid'],0));
+		$ev->settings->order=unserialize($order[0]);
 		switch($ev->rem_name)
 		{
 			case 'ed_new':
@@ -129,6 +166,7 @@ class samples_db_list extends dom_div
 				};
 				break;
 			case 'ed_list.del':
+				$this->cascade_delete($ev->keys['id']);
 				$qg=new query_gen_ext('DELETE');
 				$qg->where->exprs[]=new sql_expression('=',Array(
 					new sql_column(NULL,NULL,'id'),
@@ -179,8 +217,19 @@ class samples_db_list extends dom_div
 		
 		
 		editor_generic::handle_event($ev);
+		if($ev->filters_changed)
+			$sql->query($st->set_query($this->oid,$this->long_name."._filters",$_SESSION['uid'],0,serialize($ev->settings->filters)));
+		if($ev->order_changed)
+			$sql->query($st->set_query($this->oid,$this->long_name."._order",$_SESSION['uid'],0,serialize($ev->settings->order)));
+		if($ev->changed)$ev->do_reload=true;
 		if($ev->do_reload)
 		{
+			$offset_a=$sql->qv($st->single_query($this->oid,$this->long_name."._offset",$_SESSION['uid'],0));
+			$count_a=$sql->qv($st->single_query($this->oid,$this->long_name."._count",$_SESSION['uid'],0));
+			$this->args['ed_offset']=$offset_a[0];
+			$this->args['ed_count']=$count_a[0];
+			$this->args['ed_filters']=$ev->settings->filters;
+			$this->args['ed_order']=$ev->settings->order;
 			$r=new sdb_QR;
 			
 			$r->context=&$ev->context;
@@ -190,10 +239,10 @@ class samples_db_list extends dom_div
 			$r->name=$ev->parent_name.".ed_list";
 			$r->etype=$ev->parent_type.".sdb_QR";
 
-			print "var nya=\$i('".js_escape($ev->context[$this->long_name]['ed_list_id'])."');";
+			print "(function(){var nya=\$i('".js_escape($ev->context[$this->long_name]['ed_list_id'])."');";
 			print "try{nya.innerHTML=";
 			reload_object($r,true);
-			print "}catch(e){/* window.location.reload(true);*/};";
+			print "}catch(e){/* window.location.reload(true);*/};})();";
 		}
 		
 		
@@ -353,16 +402,16 @@ class samples_db_item extends dom_div
 					print "alert('".js_escape($qg->result())."');";*/
 			}
 
-
+		$doc_root=$_SERVER['DOCUMENT_ROOT'];
+		if(preg_match('#.*[^/]$#',$doc_root))$doc_root.='/';
 		switch($ev->rem_name)
 		{
 			case 'attachments.aadd':
 				$name=$_POST['val'];
-				$doc_root=$_SERVER['DOCUMENT_ROOT'];
-				if(preg_match('#.*[^/]$#',$doc_root))$doc_root.='/';
 				$odir = $doc_root.'si/o/'.$ev->keys['id'];
 				if(!file_exists($odir))mkdir($odir,0777,true);
-				$new_name=$odir.'/'.preg_replace('#.*/#','',$name);
+				$file_name=preg_replace('#.*/#','',$name);
+				$new_name=$odir.'/'.$file_name;
 				rename($name,$new_name);
 				$pv_name=$this->gen_preview($new_name);
 				$qg=new query_gen_ext("INSERT");
@@ -385,7 +434,7 @@ class samples_db_item extends dom_div
 					));
 				$qg->set->exprs[]=new sql_expression('=',Array(
 					new sql_column(NULL,NULL,'filename'),
-					new sql_immed($new_name)
+					new sql_immed($file_name)
 					));
 				$qg->set->exprs[]=new sql_expression('=',Array(
 					new sql_column(NULL,NULL,'thumb'),
@@ -428,9 +477,10 @@ class samples_db_item extends dom_div
 				{
 					//handle error
 				}
-				
-				if(file_exists($r[0]['filename']))unlink($r[0]['filename']);
-				if(file_exists($r[0]['thumb']))unlink($r[0]['thumb']);
+				$full=$doc_root.'si/o/'.$ev->keys['id'].'/'.$r[0]['filename'];
+				$thumb=$doc_root.'si/t/'.$ev->keys['id'].'/'.$r[0]['filename'];
+				if(file_exists($full))unlink($full);
+				if(file_exists($thumb))unlink($thumb);
 					
 					
 				$qg=new query_gen_ext("DELETE");
@@ -557,6 +607,11 @@ class sdb_attachments extends dom_div
 		$this->editors['aadd']->normal_postback=1;
 		
 		
+		$this->notr=new dom_tr;
+		$this->attachments->append_child($this->notr);
+		$td=new dom_td;	$this->notr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Нет вложений'));
+		$td->attributes['colspan']='4';$td->css_style['text-align']='center';
+		
 		
 		
 	}
@@ -606,11 +661,11 @@ class sdb_attachments extends dom_div
 		$nn=1;
 		while($row=$sql->fetcha($res))
 		{
-			$this->args['alink']='/si/o/'.$row['id'].'/'.preg_replace('#.*/#','',$row['filename']);
+			$this->args['alink']='/si/o/'.$row['id'].'/'.$row['filename'];
 			$this->args['anum']=$nn;
 			$nn++;
 			$this->keys['aid']=$row['aid'];
-			$this->args['aname']=preg_replace('#.*/#','',$row['filename']);
+			$this->args['aname']=$row['filename'];
 			$this->args['adescr']=$row['description'];
 			$this->id_alloc();
 			foreach($this->editors as $e)
@@ -621,14 +676,7 @@ class sdb_attachments extends dom_div
 		}
 		if($no_allachments)
 		{
-			$this->args['alink']=-1;
-			$this->keys['aid']=-1;
-			$this->args['aname']='Нет вложений';
-			$this->id_alloc();
-			foreach($this->editors as $e)
-				$e->bootstrap();
-			$this->atr->html();
-			$no_allachments=false;
+			$this->notr->html();
 		}
 		$this->attachments->html_tail();
 		$this->editors['aadd']->html();
@@ -661,6 +709,7 @@ class sdb_filters extends dom_div
 {
 	function __construct()
 	{
+		global $ddc_tables;
 		parent::__construct();
 		$this->etype=get_class($this);
 		$this->tbl=new dom_table;
@@ -670,9 +719,9 @@ class sdb_filters extends dom_div
 		
 		$this->row_caps=new dom_tr;
 		$this->tbl->append_child($this->row_caps);
-		$this->add_cap('Col');
-		$this->add_cap('Oper');
-		$this->add_cap('Val');
+		$this->add_cap('Столбец');
+		$this->add_cap('Операция');
+		$this->add_cap('Значение');
 		$this->add_cap('-');
 		
 		$this->cells=Array();
@@ -682,16 +731,22 @@ class sdb_filters extends dom_div
 		
 		$this->colcn=0;
 		
-		$ed=new editor_text_autosuggest_query;
-		//$ed->list_class='etasl_fch_c';
-		$this->add_col($ed,'col');
-		$ed->name='col';
+		$this->add_col(new editor_select,'col');
+		$this->editors['col']->options['any']='Везде';
+		foreach($ddc_tables['samples_raw']->cols as $c)
+			$this->editors['col']->options[$c['name']]=(isset($c['hname'])?$c['hname']:$c['name']);
 		
-		$ed=new editor_text_autosuggest;
-		$ed->list_class='etasl_fch_o';
-		$ed->ed->css_style['width']='3em';
-		$this->add_col($ed,'oper');
-		$ed->name='oper';
+		$this->add_col(new editor_select,'oper');
+		$this->editors['oper']->options=Array(
+			'~=' => '~=',
+			'=' => '=',
+			'>' => '>',
+			'<' => '<',
+			'>=' => '>=',
+			'<=' => '<=',
+			'!=' => '!=',
+			'!~=' => '!~='
+			);
 		
 		$ed=new editor_text;
 		$this->add_col($ed,'val');
@@ -726,12 +781,8 @@ class sdb_filters extends dom_div
 	function bootstrap()
 	{
 		$this->long_name=editor_generic::long_name();
-		if($this->settings->ed_db!='')$dbe='`'.sql::esc($this->settings->ed_db).'`.';
-		$this->context[$this->long_name.'.col']['rawquery']=
-			'show columns from '.$dbe.'`'.sql::esc($this->settings->ed_table).'`';
-		
 		$this->context[$this->long_name]['retid']=$this->id_gen();
-		$this->context[$this->long_name]['io_class']=get_class($this->settings_io);
+		$this->context[$this->long_name]['oid']=$this->oid;
 		
 		if(is_array($this->editors))
 			foreach($this->editors as $k => $e)
@@ -749,16 +800,15 @@ class sdb_filters extends dom_div
 	
 	function html_inner()
 	{
-		$this->filters_where=unserialize($this->settings->filters_where);
+		$this->filters_where=$this->args[$this->context[$this->long_name]['var']];
 		$this->tbl->html_head();
 		$this->row_caps->html();
 		$nn=0;
 		if(is_array($this->filters_where))foreach($this->filters_where as $f)
 		{
-			$this->args['col']=$f->exprs[0]->col;
+			$this->args['col']=$f->col;
 			$this->args['oper']=$f->operator;
-			if($this->args['oper']=='like')$this->args['oper']='~=';
-			$this->args['val']=$f->exprs[1]->val;
+			$this->args['val']=$f->val;
 			$this->keys['n']=$nn;
 			$nn++;
 			foreach($this->editors as $e)$e->bootstrap();
@@ -784,27 +834,23 @@ class sdb_filters extends dom_div
 		$reload_self=false;
 		$this->long_name=$ev->parent_name;
 		$this->context=&$ev->context;
-		$sio=$ev->context[$ev->parent_name]['io_class'];
-		$this->settings_io=new $sio;
-		unset($this->settings);
-		$this->settings_io->load($this,true);
-		$this->filters_where=unserialize($this->settings->filters_where);
+		$this->filters_where=$ev->settings->filters;
 		
 		
 		$v=$_POST['val'];
 		if($ev->rem_name=='col')
 		{
-			$this->filters_where[$ev->keys['n']]->exprs[0]->col=$v;
+			$this->filters_where[$ev->keys['n']]->col=$v;
 			$changed=true;
 		}
 		if($ev->rem_name=='oper')
 		{
-			$this->filters_where[$ev->keys['n']]->operator=($v=='~=')?'like':$v;
+			$this->filters_where[$ev->keys['n']]->operator=$v;
 			$changed=true;
 		}
 		if($ev->rem_name=='val')
 		{
-			$this->filters_where[$ev->keys['n']]->exprs[1]->val=$v;
+			$this->filters_where[$ev->keys['n']]->val=$v;
 			$changed=true;
 		}
 		if($ev->rem_name=='del')
@@ -815,15 +861,17 @@ class sdb_filters extends dom_div
 					if($k!=$ev->keys['n'])$nfl[]=$this->filters_where[$k];
 					$this->filters_where=$nfl;
 			}else{
-				$this->filters_where[$ev->keys['n']]=new sql_expression('',
-					Array(new sql_column,new sql_immed),NULL);
+				$n->col='any';
+				$n->operator='~=';
+				$n->val='';
+				$this->filters_where[$ev->keys['n']]=$n;
 			}
 			$changed=true;
 			$reload_self=true;
 		}
 		
-		$this->settings->filters_where=serialize($this->filters_where);
-		if($changed) $this->settings_io->store($this);
+		$ev->settings->filters=$this->filters_where;
+		if($changed) $ev->filters_changed=true;
 		if($reload_self)
 		{
 			
@@ -839,14 +887,13 @@ class sdb_filters extends dom_div
 			$r->custom_id=$customid;
 			$r->name=$ev->parent_name;
 			$r->etype=$ev->parent_type;
-			$r->settings=&$this->settings;
-			$r->settings_io=&$this->settings_io;
+			$r->args[$r->context[$ev->parent_name]['var']]=&$ev->settings->filters;
 
 			$r->bootstrap();
-			print "var nya=\$i('".js_escape($customid)."');";
+			print "(function(){var nya=\$i('".js_escape($customid)."');";
 			print "try{nya.innerHTML=";
 			reload_object($r,true);
-			print "nya.scrollTop=0;}catch(e){ window.location.reload(true);};";
+			print "nya.scrollTop=0;}catch(e){ window.location.reload(true);};})();";
 			//common part
 		}
 		editor_generic::handle_event($ev);
@@ -858,6 +905,7 @@ class sdb_order extends dom_div
 {
 	function __construct()
 	{
+		global $ddc_tables;
 		parent::__construct();
 		$this->etype=get_class($this);
 		$this->tbl=new dom_table;
@@ -867,8 +915,8 @@ class sdb_order extends dom_div
 		
 		$this->row_caps=new dom_tr;
 		$this->tbl->append_child($this->row_caps);
-		$this->add_cap('Col');
-		$this->add_cap('rev');
+		$this->add_cap('Столбец');
+		$this->add_cap('В обратном порядке');
 		$this->add_cap('-');
 		
 		$this->cells=Array();
@@ -878,10 +926,9 @@ class sdb_order extends dom_div
 		
 		$this->colcn=0;
 		
-		$ed=new editor_text_autosuggest_query;
-		//$ed->list_class='etasl_fch_c';
-		$this->add_col($ed,'col');
-		$ed->name='col';
+		$this->add_col(new editor_select,'col');
+		foreach($ddc_tables['samples_raw']->cols as $c)
+			$this->editors['col']->options[$c['name']]=(isset($c['hname'])?$c['hname']:$c['name']);
 		
 		$ed=new editor_checkbox;
 		$this->add_col($ed,'rev');
@@ -944,7 +991,7 @@ class sdb_order extends dom_div
 	function html_inner()
 	{
 			
-		$order=unserialize($this->settings->order);
+		$order=$this->args[$this->context[$this->long_name]['var']];
 		$this->tbl->html_head();
 		$this->row_caps->html();
 		$nn=0;
@@ -976,11 +1023,7 @@ class sdb_order extends dom_div
 		$reload_self=false;
 		$this->long_name=$ev->parent_name;
 		$this->context=&$ev->context;
-		$sio=$ev->context[$ev->parent_name]['io_class'];
-		$this->settings_io=new $sio;
-		unset($this->settings);
-		$this->settings_io->load($this,true);
-		$order=unserialize($this->settings->order);
+		$order=$ev->settings->order;
 		
 		$v=$_POST['val'];
 		if($ev->rem_name=='col')
@@ -1002,14 +1045,16 @@ class sdb_order extends dom_div
 					if($k!=$ev->keys['n'])$nfl[]=$order[$k];
 					$order=$nfl;
 			}else{
-				$order[$ev->keys['n']]=new sql_column;
+				$order[$ev->keys['n']]->col='';
+				$order[$ev->keys['n']]->invert=0;
+				
 			}
 			$changed=true;
 			$reload_self=true;
 		}
 		
-		$this->settings->order=serialize($order);
-		if($changed) $this->settings_io->store($this);
+		$ev->settings->order=$order;
+		if($changed) $ev->order_changed=true;
 		if($reload_self)
 		{
 			
@@ -1024,15 +1069,13 @@ class sdb_order extends dom_div
 			$r->oid=$oid;
 			$r->name=$ev->parent_name;
 			$r->etype=$ev->parent_type;
-			$r->settings=&$this->settings;
-			$r->settings_io=$this->settings_io;
 			$r->custom_id=$customid;
+			$r->args[$r->context[$ev->parent_name]['var']]=&$order;
 
-			$r->bootstrap();
-			print "var nya=\$i('".js_escape($customid)."');";
+			print "(function(){var nya=\$i('".js_escape($customid)."');";
 			print "try{nya.innerHTML=";
 			reload_object($r,true);
-			print "nya.scrollTop=0;}catch(e){ window.location.reload(true);};";
+			print "nya.scrollTop=0;}catch(e){ window.location.reload(true);};})();";
 			//common part
 		}
 		editor_generic::handle_event($ev);
@@ -1094,7 +1137,7 @@ class sdb_QR extends dom_div
 	function bootstrap()
 	{
 		$this->long_name=editor_generic::long_name();
-		foreach($this->editors as $e)
+		foreach($this->editors as $i => $e)
 		{
 			$e->oid=$this->oid;
 			$e->context=&$this->context;
@@ -1104,6 +1147,31 @@ class sdb_QR extends dom_div
 		}
 		foreach($this->editors as $e)
 			$e->bootstrap();
+	}
+	
+	function map_op($op)
+	{
+		switch($op)
+		{
+			case "~=":
+				return 'LIKE';
+			case "!~=":
+				return 'NOT LIKE';
+			default:
+				return $op;
+		}
+	}
+	
+	function transform_val($op,$val)
+	{
+		switch($op)
+		{
+			case "~=":
+			case "!~=":
+				return preg_replace('/ +/','%'," ".$val." ");
+			default:
+				return $val;
+		}
 	}
 	
 	function html_inner()
@@ -1129,6 +1197,38 @@ class sdb_QR extends dom_div
 		$this->td_b->attributes['title']='Операции';
 		$this->td->html();
 		$this->tr->html_tail();
+		
+		if(is_array($this->args['ed_filters']))
+			foreach($this->args['ed_filters'] as $e)
+				if($e->col=='any')
+				{
+					$op=new sql_expression('OR');
+					foreach($ddc_tables['samples_raw']->cols as $col)
+					{
+						$op->exprs[]=new sql_expression($this->map_op($e->operator),Array(
+							new sql_column(NULL,NULL,$col['name']),
+							new sql_immed($this->transform_val($e->operator,$e->val))
+							));
+					}
+					$qg->where->exprs[]=$op;
+				}else{
+					$qg->where->exprs[]=new sql_expression($this->map_op($e->operator),Array(
+						new sql_column(NULL,NULL,$e->col),
+						new sql_immed($this->transform_val($e->operator,$e->val))
+						));
+				};
+		
+		if(is_array($this->args['ed_order']))
+			foreach($this->args['ed_order'] as $e)
+			{
+				$col=($e->col=='')?$ddc_tables['samples_raw']->cols[0]['name']:$e->col;
+				$m=new sql_column(NULL,NULL,$col);
+				$m->invert=$e->invert;
+				$qg->order->exprs[]=$m;
+					
+			}
+		$qg->lim_count=$this->args['ed_count'];
+		$qg->lim_offset=$this->args['ed_offset'];
 		$qc=$qg->result();
 		
 		$res=$sql->query($qc);
@@ -1168,1033 +1268,6 @@ class sdb_QR extends dom_div
 //###################################################################################################################
 //###################################################################################################################
 
-
-/*
-class query_result_viewer_any extends dom_any
-{
-	function __construct()
-	{
-		parent::__construct;
-		$this->etype=get_class($this);
-		$this->sdiv=new dom_div;
-		$this->append_child($this->sdiv);
-		
-		
-		
-		
-		editor_generic::addeditor('ed_filters',new sdb_filters);
-		$this->sdiv->append_child($this->editors['ed_filters']);
-		
-		editor_generic::addeditor('ed_order',new sdb_order);
-		$this->sdiv->append_child($this->editors['ed_order']);
-		
-		
-		$this->rdiv=new dom_div;
-		$this->append_child($this->rdiv);
-		editor_generic::addeditor('qw',new query_result_viewer_codes);
-		$this->rdiv->append_child($this->editors['qw']);
-		
-		editor_generic::addeditor('an',new editor_insert_ch);
-		$this->append_child($this->editors['an']);
-		
-		$this->settings->ed_count=10;
-		$this->settings->ed_offset=0;
-		$this->settings->ed_table='barcodes_raw';
-		$this->settings->ed_db='';
-		$this->settings->order=serialize(Array());
-		$this->settings->filters_where=serialize(Array());
-		$this->settings->insert_args=serialize(Array());
-		//print(isset($this->settings->ed_table));
-		$this->settings_io=new QRVA_settings_io;
-		$this->struct_io=new qrva_guess_struct;
-	}
-	
-	function is_pk($a,$structure)
-	{
-		if(is_array($structure->keys))
-			foreach($structure->keys as $key)
-				if($key['key']=='PRIMARY' && $key['name']==$a) return 1;
-		return 0;
-	}
-	
-	function setup($qw)
-	{
-		global $ddc_tables;
-		if($this->settings->ed_count==0)$this->settings->ed_count=1;
-		$fl->edittbl=$this->settings->ed_table;
-		$fl->editdb=$this->settings->ed_db;
-		//$fl->filters_where;
-		//print_r($_SESSION);
-		
-		#$qw=&$this->editors['qw'];
-		#$qw->compiled='show columns from `*settings`';
-		$qw->css_style['border-collapse']='collapse';
-		$qw->cell->css_style['border-collapse']='collapse';
-		$qw->cell->css_style['border']='2px solid black';
-		
-		$qw->query=new query_gen_ext;
-		$qr=&$qw->query;
-		$n=0;
-		//structure request
-		//$structure=$ddc_tables[$this->settings->ed_table];
-		$structure=$this->struct_io->load($this);
-		
-		//$list=Array('id' => 'id','name' => 'Наименование','code' => 'Штрихкод');
-		if(is_array($structure->cols))
-			foreach($structure->cols as $col)
-			{
-				if($this->is_pk($col['name'],$structure))
-					$edtr=new editor_statictext;
-				elseif(isset($col['editor']) && $col['editor']!='')
-					$edtr=new $col['editor']($col);
-				else
-					$edtr=new editor_text_st1;
-				
-				$n++;
-				$qr->what->exprs[]=new sql_column(NULL,'t',$col['name'],$col['name']);
-				$qw->add_col(isset($col['hname'])?$col['hname']:$col['name'],$edtr,$col['name']);
-			}
-		//delete button
-		$del=new editor_button;
-		$del->attributes['value']='-';
-		$qw->add_col('-',$del,'-');
-		$del->name='del';
-		
-		$qr->from->exprs[]=new sql_column($this->settings->ed_db,$this->settings->ed_table,NULL,'t');
-		$qr->order->exprs=unserialize($this->settings->order);
-		$qr->where->exprs=unserialize($this->settings->filters_where);
-		$qr->lim_count=$this->settings->ed_count;
-		$qr->lim_offset=$this->settings->ed_offset;
-		
-		$qcount=clone $qr;
-		$qcount->what->exprs=Array(new sql_list('count',Array(new sql_immed(1)),'c'));
-		unset($qcount->lim_offset);
-		unset($qcount->lim_count);
-		unset($qcount->order->exprs);
-		unset($this->editors['ed_rowcount']->query);
-		$this->editors['ed_rowcount']->query=$qcount;
-		
-		#$qw->editdb='dbfp';
-		$qw->edittbl=$this->settings->ed_table;
-		$qw->editdb=$this->settings->ed_db;
-//		$this->editors['an']->edittbl=$this->settings->ed_table;
-//		$this->editors['an']->editdb=$this->settings->ed_db;
-		
-		unset($qw->keycols);
-		if(is_array($structure->keys))
-			foreach($structure->keys as $key)
-				if($key['key']=='PRIMARY')
-				{
-					$qw->keycols[]=$key['name'];
-					$this->editors['an']->add_col($key['name'],new editor_text,$key['name']);
-				}
-		
-	}
-	
-	function selclear()
-	{
-		global $sql;
-		$q=new query_gen_ext('delete');
-		$q->from->exprs[]=new sql_column(NULL,'barcodes_print',NULL,NULL);
-		$query=$q->result();
-		$sql->query($query);
-		
-	}
-	
-	function del_single($keys)
-	{
-		global $sql;
-		$q=new query_gen_ext('delete');
-		$q->from->exprs[]=new sql_column($this->settings->ed_db,$this->settings->ed_table,NULL,NULL);
-		foreach($keys as $k => $v)
-			$q->where->exprs[]=new sql_expression('=',Array(new sql_column(NULL,NULL,$k,NULL),new sql_immed($v,NULL)),NULL);
-		$query=$q->result();
-		$sql->query($query);
-		//print 'alert(\''.js_escape($query).'\');';
-		
-	}
-	
-	function bootstrap()
-	{
-		$this->long_name=editor_generic::long_name();
-		$this->settings_io->load($this);
-		
-		$this->editors['ed_order']->settings=&$this->settings;
-		$this->editors['ed_order']->settings_io=&$this->settings_io;
-		
-		$this->editors['ed_filters']->settings=&$this->settings;
-		$this->editors['ed_filters']->settings_io=&$this->settings_io;
-		
-		$this->editors['an']->settings=&$this->settings;
-		$this->editors['an']->settings_io=&$this->settings_io;
-		
-		
-		$this->setup($this->editors['qw']);
-		$this->context[$this->long_name.'.ed_rowcount']['var']='@@ed_rowcount';
-		$this->context[$this->long_name.'.ed_count']['var']='@@ed_count';
-		$this->context[$this->long_name.'.ed_offset']['var']='@@ed_offset';
-		$this->context[$this->long_name.'.ed_table']['var']='@@ed_table';
-		$this->context[$this->long_name.'.ed_table']['rawquery']=
-			($this->settings->ed_db=='')?'SHOW TABLES':'SHOW TABLES FROM `'.$this->settings->ed_db.'`';
-		$this->context[$this->long_name.'.ed_db']['var']='@@ed_db';
-		$this->context[$this->long_name.'.ed_db']['rawquery']='SHOW DATABASES';
-		$this->context[$this->long_name]['retid']=$this->rdiv->id_gen();
-		
-		$this->context[$this->long_name]['ed_rowcount_id']=$this->editors['ed_rowcount']->main_id();
-		$this->context[$this->long_name]['ed_filters_id']=$this->editors['ed_filters']->main_id();
-		$this->context[$this->long_name]['ed_order_id']=$this->editors['ed_order']->main_id();
-		$this->context[$this->long_name]['an_id']=$this->editors['an']->main_id();
-		$this->context[$this->long_name]['link_save_xml_id']=$this->link_save_xml->id_gen();
-		$this->context[$this->long_name]['link_save_csv_id']=$this->link_save_csv->id_gen();
-		
-		$this->context[$this->long_name]['ed_offset_id']=$this->editors['ed_offset']->main_id();
-//		$this->context[$this->long_name.'.ed_filters']['retid']=$this->fldiv->id_gen();
-		$this->args['@@ed_count']=$this->settings->ed_count;
-		$this->args['@@ed_offset']=$this->settings->ed_offset;
-		$this->args['@@ed_table']=$this->settings->ed_table;
-		$this->link_save_xml->attributes['href']="/ext/table_xml_dump.php?table=".urlencode($this->settings->ed_table);
-		$this->link_save_csv->attributes['href']="/ext/table_csv_dump.php?table=".urlencode($this->settings->ed_table);
-		$this->args['@@ed_db']=$this->settings->ed_db;
-		
-		$this->ed_more->attributes['onclick']=
-			"var ofs=\$i('".$this->editors['ed_offset']->main_id()."');".
-			"var cnt=\$i('".$this->editors['ed_count']->main_id()."');".
-			"ofs.focus();".
-			"var iofs=isNaN(ofs.value)?0:parseInt(ofs.value);".
-			"var icnt=isNaN(cnt.value)?0:parseInt(cnt.value);".
-			"ofs.value=iofs+icnt;".
-//			"this.focus();".
-			"";
-		$this->ed_less->attributes['onclick']=
-			"var ofs=\$i('".$this->editors['ed_offset']->main_id()."');".
-			"var cnt=\$i('".$this->editors['ed_count']->main_id()."');".
-			"ofs.focus();".
-			"var iofs=isNaN(ofs.value)?0:parseInt(ofs.value);".
-			"var icnt=isNaN(cnt.value)?0:parseInt(cnt.value);".
-			"ofs.value=(iofs>=icnt)?iofs-icnt:0;".
-//			"this.focus();".
-			"";
-		$this->ed_zero->attributes['onclick']=
-			"var ofs=\$i('".$this->editors['ed_offset']->main_id()."');".
-			"ofs.focus();".
-			"ofs.value=0;".
-			"this.focus();".
-			"";
-		foreach($this->editors as $e)
-		{
-			$e->context=&$this->context;
-			if(!isset($e->keys))$e->keys=&$this->keys;
-			if(!isset($e->args))$e->args=&$this->args;
-			$e->bootstrap();
-		}
-	}
-	
-	function handle_event($ev)
-	{
-		$changed=false;
-		$reload_an=false;
-		$this->settings_io->load($this);
-		if($ev->rem_name=='qw.del')
-		{
-			//child node targeted event
-			$this->del_single($ev->keys);
-			$changed=true;
-			$reload_an=true;
-			//$reload_an=true;
-		}
-		if($ev->rem_name=='ed_table')
-		{
-			$ev->context[$ev->long_name]['rawquery']=
-				($this->settings->ed_db=='')?'SHOW TABLES':'SHOW TABLES FROM `'.$this->settings->ed_db.'`';
-			//child node targeted event
-			if($this->settings->ed_table!=$_POST['val'])
-			{
-				$this->settings->ed_table=$_POST['val'];
-				print "\$i('".js_escape($ev->context[$ev->parent_name]['link_save_xml_id'])."').setAttribute('href','".js_escape("/ext/table_xml_dump.php?table=".urlencode($this->settings->ed_table))."');";
-				print "\$i('".js_escape($ev->context[$ev->parent_name]['link_save_csv_id'])."').setAttribute('href','".js_escape("/ext/table_csv_dump.php?table=".urlencode($this->settings->ed_table))."');";
-				$changed=true;
-				$reload_an=true;
-			}
-		}
-		if($ev->rem_name=='ed_db')
-		{
-			//child node targeted event
-			if($this->settings->ed_db!=$_POST['val'])
-			{
-				$this->settings->ed_db=$_POST['val'];
-				$changed=true;
-				$reload_an=true;
-			}
-		}
-		if($ev->rem_name=='ed_count')
-		{
-			//child node targeted event
-			$this->settings->ed_count=intval($_POST['val']);
-			$changed=true;
-		}
-		if($ev->rem_name=='ed_offset')
-		{
-			//child node targeted event
-			$this->settings->ed_offset=intval($_POST['val']);
-			$changed=true;
-		}
-		if($ev->rem_name=='clear_btn')
-		{
-			//child node targeted event
-			
-			//$_SESSION['selonly']=0;
-			$_SESSION['selonly']=0;
-			print "\$i('".js_escape($ev->context[$ev->parent_name]['selonly_id'])."').checked=0;";
-			$this->selclear();
-			$changed=true;
-		}
-		$this->settings_io->store($this);
-		//common part
-		$customid=$ev->context[$ev->parent_name]['retid'];
-		$anid=$ev->context[$ev->parent_name]['anid'];
-		$ed_rowcount_id=$ev->context[$ev->parent_name]['ed_rowcount_id'];
-		$oid=$ev->context[$ev->long_name]['oid'];
-		$htmlid=$ev->context[$ev->long_name]['htmlid'];
-		$rel=Array('an','ed_filters','ed_order','ed_rowcount');
-		foreach($rel as $e)if($reload_an || ($e=='ed_rowcount'))
-		{
-			$ids[$e]=js_escape($ev->context[$ev->parent_name][$e."_id"]);
-			$ee=$this->editors[$e];
-			$ee->context=&$ev->context;
-			$ee->keys=Array();
-			$ee->oid=$oid;
-			$ee->name=$ev->parent_name.'.'.$e;
-			$ee->etype=$ev->parent_type.'.'.get_class($ee);
-			$ee->settings=&$this->settings;
-			$ee->settings_io=&$this->settings_io;
-			unset($ee->com_parent);
-		}
-		
-		$r=new query_result_viewer_codes;
-		$r->context=&$ev->context;
-		$r->keys=Array();
-		$r->oid=$oid;
-		$r->name=$ev->parent_name.'.qw';
-		$r->etype=$ev->parent_type.'.query_result_viewer_codes';
-		editor_generic::handle_event($ev);
-		$this->settings_io->load($this);
-		if($changed || $ev->changed)
-		{
-			$this->setup($r);
-			$r->bootstrap();
-			foreach($rel as $e)if($reload_an || ($e=='ed_rowcount'))
-				$this->editors[$e]->bootstrap();
-			print "var nya=\$i('".js_escape($customid)."');";
-			foreach($rel as $e)if($reload_an || ($e=='ed_rowcount'))
-				print "\n\nvar ".$e."_r=\$i('".$ids[$e]."');\n\n";
-			print "try{nya.innerHTML=";
-			reload_object($r);
-			foreach($rel as $e)if($reload_an || ($e=='ed_rowcount'))
-			{
-				print $e."_r.innerHTML=";
-				reload_object($this->editors[$e],true);
-			}
-			print "nya.scrollTop=0;}catch(e){ };";
-		}
-		//$this->clean_zeroes();
-	}
-	
-}
-
-
-class QRVA_settings_io
-{
-	function load($class,$force=false)
-	{
-		if($force)
-		{
-			if(!is_array($_SESSION['QRVA']))return 1;
-			foreach($_SESSION['QRVA'] as $s => $v)
-			{
-				$class->settings->$s=$v;
-			}
-		}else{
-			if(! isset($class->settings))return 1;//no settings
-			if(! is_object($class->settings)) return 2; //settings structure is invalid
-			foreach($class->settings as $s => $v)
-				if(isset($_SESSION['QRVA'][$s]))$ns->$s=$_SESSION['QRVA'][$s];
-			if(is_object($ns))foreach($ns as $k => $v)$class->settings->$k=$v;
-		}
-	}
-	function store($class)
-	{
-		if(! isset($class->settings))return 1;//no settings
-		if(! is_object($class->settings)) return 2; //settings structure is invalid
-		unset($_SESSION['QRVA']);
-		foreach($class->settings as $s => $v)
-			$_SESSION['QRVA'][$s]=$v;
-	}
-}
-
-$tests_m_array[]='query_result_viewer_any';
-
-class editor_insert_ch extends dom_div
-{
-	function __construct()
-	{
-		parent::__construct();
-		$this->tbl=new dom_table;
-		$this->append_child($this->tbl);
-		$this->etype='editor_insert_ch';
-		$this->row=new dom_tr;
-		$this->tbl->append_child($this->row);
-		
-		$this->row_caps=new dom_tr;
-		$this->tbl->append_child($this->row_caps);
-		$this->cell_caps=new dom_td;
-		$this->row_caps->append_child($this->cell_caps);
-		$this->text_caps=new dom_statictext;
-		$this->cell_caps->append_child($this->text_caps);
-		
-		$this->cells=Array();
-		
-		$this->keys=Array();
-		$this->args=Array();
-		
-		$this->colcn=0;
-		
-	}
-	
-	function cleanup()
-	{
-		unset($this->row->nodes);
-		unset($this->cells);
-		unset($this->editors);
-		unset($this->col_caps);
-		unset($this->col_vars);
-		$this->cells=Array();
-	}
-	
-	function add_col($capt,$editor,$arg)
-	{
-		$this->col_caps[$this->colcn]=$capt;
-		$this->col_vars[$this->colcn]=$arg;
-		editor_generic::addeditor('ed'.$this->colcn,$editor);
-		$this->cells[$this->colcn]=new dom_td;
-		//inherit properties from template???
-		$this->row->append_child($this->cells[$this->colcn]);
-		$this->cells[$this->colcn]->append_child($editor);
-		$this->colcn++;
-	}
-	
-	
-	function bootstrap()
-	{
-		$this->long_name=editor_generic::long_name();
-		$this->args=unserialize($this->settings->insert_args);
-		//$this->temp_storage->load($this);
-		//if($this->editdb!='')$this->context[$this->long_name]['dbname']=$this->editdb;
-		//$this->context[$this->long_name]['tblname']=$this->edittbl;
-		$this->context[$this->long_name]['io_class']=get_class($this->settings_io);
-		
-		if(!isset($this->editors['submit']))
-		{
-			editor_generic::addeditor('submit',new editor_button);
-			$this->editors['submit']->attributes['value']='+';
-			$this->cells[$this->colcn]=new dom_td;
-			$this->row->append_child($this->cells[$this->colcn]);
-			$this->cells[$this->colcn]->append_child($this->editors['submit']);
-		}
-		
-		$this->context[$this->long_name]['submit_id']=$this->editors['submit']->main_id();
-		if(!$this->test_submit())$this->editors['submit']->attributes['disabled']='disabled';
-		
-		if(is_array($this->col_vars))
-			foreach($this->col_vars as $n => $arg)
-			{
-				$this->context[$this->long_name.'.ed'.$n]['var']=$arg;
-				$this->context[$this->long_name.'.ed'.$n]['colname']=$arg;
-				
-			}
-		if(is_array($this->editors))
-			foreach($this->editors as $k => $e)
-			{
-				$e->keys=&$this->keys;
-				$e->args=&$this->args;
-				$e->context=&$this->context;
-				if(isset($e->validator_class))$this->context[$this->long_name.'.'.$k]['validator_class']=$e->validator_class;
-				$e->bootstrap();
-			}
-		
-	}
-	
-	
-	function html_inner()
-	{
-			
-		$this->tbl->html_head();
-		$this->row_caps->html_head();
-		$cnt=0;
-		if(is_array($this->col_caps))
-			foreach($this->col_caps as $e)
-			{
-				$this->text_caps->text=$e;
-				$cnt++;
-				$this->cell_caps->html();
-				$this->cell_caps->id_alloc();
-			}
-		$this->row_caps->html_tail();
-		
-		unset($first_editor);
-		unset($dst_rows);
-a=$i(\''.js_escape($this->editors['ed0']->id_gen()).'\');a.focus();a.selectionStart=0;a.selectionEnd=a.value.length;'
-		$this->row->html();
-		$this->tbl->html_tail();
-	}
-	
-	function test_submit()
-	{
-		global $sql;
-		$qq=new query_gen_ext;
-		if(!is_array($this->args))return false;
-		
-		foreach($this->args as $i => $a)
-		$qq->where->exprs[]=new sql_expression('=',
-			Array(
-				new sql_column(NULL,$this->edittbl,$i,NULL),
-				new sql_immed($a,NULL)
-			),NULL
-		);
-		$qq->from->exprs[]=new sql_column($this->editdb,$this->edittbl,NULL,NULL);
-		//$qq->what->exprs[]=new sql_list('COUNT',Array(new sql_column(NULL,$a,NULL,NULL)),NULL);
-		$qq->what->exprs[]=new sql_list('COUNT',Array(new sql_immed('1')),NULL);
-		$r=$sql->fetch1($sql->query($qq->result()));
-		return ($r==0);
-	}
-	
-	function try_insert()
-	{
-		global $sql;
-		$ca=$sql->qa("SHOW COLUMNS FROM `".$sql->esc($this->edittbl)."`");
-		if(!is_array($ca))return false;
-		$qq=new query_gen_ext('INSERT IGNORE');
-		$qq->into->exprs[]=new sql_column($this->editdb,$this->edittbl,NULL,NULL);
-		foreach($ca as $row)
-			if(isset($this->args[$row['Field']]) && $row['Key']=='PRI')
-			{
-				$qq->set->exprs[]=
-					new sql_expression('=',
-						Array(
-						new sql_column(NULL,NULL,$row['Field']),
-						new sql_immed($this->args[$row['Field']])
-					),NULL
-				);
-			}
-		$q=$qq->result();
-		$res=$sql->query($q);
-		$ar=$sql->ar();
-		return ($ar>0);
-	}
-	
-	function handle_event($ev)
-	{
-		$changed=false;
-		$this->long_name=$ev->parent_name;
-		$this->context=&$ev->context;
-		$sio=$ev->context[$ev->parent_name]['io_class'];
-		$this->settings_io=new $sio;
-		unset($this->settings);
-		$this->settings_io->load($this,true);
-		$this->editdb=$this->settings->ed_db;
-		$this->edittbl=$this->settings->ed_table;
-		$this->args=unserialize($this->settings->insert_args);
-		
-		
-		if(preg_match('/ed.* /',$ev->rem_name))
-		{
-			$this->args[$this->context[$this->long_name.'.'.$ev->rem_name]['colname']]=$_POST['val'];
-			//$changed=true;
-			$this->settings->insert_args=serialize($this->args);
-			$this->settings_io->store($this);
-			if($this->test_submit())
-			{
-				//disable submit button
-				print '$i(\''.js_escape($this->context[$this->long_name]['submit_id']).'\').disabled=false;';
-			}else{
-				//enable submit button
-				print '$i(\''.js_escape($this->context[$this->long_name]['submit_id']).'\').disabled=true;';
-			}
-		}
-		
-		if($ev->rem_name=='submit')
-		{
-			if($this->try_insert())
-			{
-				$changed=true;
-			}else{
-				print 'alert(\'insert failed\')';
-			}
-		}
-		
-		if($changed)
-		{
-			$this->settings->insert_args=serialize($this->args);
-			$this->settings_io->store($this);
-			//common part
-			$customid=$ev->context[$ev->parent_name]['retid'];
-			$oid=$ev->context[$ev->long_name]['oid'];
-			$htmlid=$ev->context[$ev->long_name]['htmlid'];
-			print "window.location.reload(true);";
-		}
-		editor_generic::handle_event($ev);
-	}
-	
-
-}
-
-
-
-
-####################################################
-class editor_filters_ch extends dom_div
-{
-	function __construct()
-	{
-		parent::__construct();
-		$this->etype='editor_filters_ch';
-		$this->tbl=new dom_table;
-		$this->append_child($this->tbl);
-		$this->row=new dom_tr;
-		$this->tbl->append_child($this->row);
-		
-		$this->row_caps=new dom_tr;
-		$this->tbl->append_child($this->row_caps);
-		$this->add_cap('Col');
-		$this->add_cap('Oper');
-		$this->add_cap('Val');
-		$this->add_cap('-');
-		
-		$this->cells=Array();
-		
-		$this->keys=Array();
-		$this->args=Array();
-		
-		$this->colcn=0;
-		
-		$ed=new editor_text_autosuggest_query;
-		//$ed->list_class='etasl_fch_c';
-		$this->add_col($ed,'col');
-		$ed->name='col';
-		
-		$ed=new editor_text_autosuggest;
-		$ed->list_class='etasl_fch_o';
-		$ed->ed->css_style['width']='3em';
-		$this->add_col($ed,'oper');
-		$ed->name='oper';
-		
-		$ed=new editor_text;
-		$this->add_col($ed,'val');
-		$ed->name='val';
-		
-		$ed=new editor_button;
-		$ed->attributes['value']='-';
-		$this->add_col($ed,'del');
-		$ed->name='del';
-		
-	}
-	function add_cap($t)
-	{
-		$cell_caps=new dom_td;
-		$this->row_caps->append_child($cell_caps);
-		$text_caps=new dom_statictext;
-		$cell_caps->append_child($text_caps);
-		$text_caps->text=$t;
-	}
-	
-	function add_col($editor,$arg)
-	{
-		editor_generic::addeditor($arg,$editor);
-		$this->cells[$this->colcn]=new dom_td;
-		//inherit properties from template???
-		$this->row->append_child($this->cells[$this->colcn]);
-		$this->cells[$this->colcn]->append_child($editor);
-		$this->colcn++;
-	}
-	
-	
-	function bootstrap()
-	{
-		$this->long_name=editor_generic::long_name();
-		if($this->settings->ed_db!='')$dbe='`'.sql::esc($this->settings->ed_db).'`.';
-		$this->context[$this->long_name.'.col']['rawquery']=
-			'show columns from '.$dbe.'`'.sql::esc($this->settings->ed_table).'`';
-		
-		$this->context[$this->long_name]['retid']=$this->id_gen();
-		$this->context[$this->long_name]['io_class']=get_class($this->settings_io);
-		
-		if(is_array($this->editors))
-			foreach($this->editors as $k => $e)
-			{
-				$this->context[$this->long_name.'.'.$k]['var']=$k;
-				$e->keys=&$this->keys;
-				$e->args=&$this->args;
-				$e->context=&$this->context;
-				if(isset($e->validator_class))$this->context[$this->long_name.'.'.$k]['validator_class']=$e->validator_class;
-				$e->bootstrap();
-			}
-		
-	}
-	
-	
-	function html_inner()
-	{
-		$this->filters_where=unserialize($this->settings->filters_where);
-		$this->tbl->html_head();
-		$this->row_caps->html();
-		$nn=0;
-		if(is_array($this->filters_where))foreach($this->filters_where as $f)
-		{
-			$this->args['col']=$f->exprs[0]->col;
-			$this->args['oper']=$f->operator;
-			if($this->args['oper']=='like')$this->args['oper']='~=';
-			$this->args['val']=$f->exprs[1]->val;
-			$this->keys['n']=$nn;
-			$nn++;
-			foreach($this->editors as $e)$e->bootstrap();
-			$this->row->html();
-			$this->row->id_alloc();
-		}
-		$this->editors['col']->main->css_style['display']='none';
-		$this->editors['oper']->main->css_style['display']='none';
-		$this->editors['val']->main->css_style['display']='none';
-		$this->editors['del']->attributes['value']='+';
-		$this->keys['n']=$nn;
-		$nn++;
-		foreach($this->editors as $e)$e->bootstrap();
-		$this->row->html();
-		$this->row->id_alloc();
-		$this->tbl->html_tail();
-	}
-	
-	
-	function handle_event($ev)
-	{
-		$changed=false;
-		$reload_self=false;
-		$this->long_name=$ev->parent_name;
-		$this->context=&$ev->context;
-		$sio=$ev->context[$ev->parent_name]['io_class'];
-		$this->settings_io=new $sio;
-		unset($this->settings);
-		$this->settings_io->load($this,true);
-		$this->filters_where=unserialize($this->settings->filters_where);
-		
-		
-		$v=$_POST['val'];
-		if($ev->rem_name=='col')
-		{
-			$this->filters_where[$ev->keys['n']]->exprs[0]->col=$v;
-			$changed=true;
-		}
-		if($ev->rem_name=='oper')
-		{
-			$this->filters_where[$ev->keys['n']]->operator=($v=='~=')?'like':$v;
-			$changed=true;
-		}
-		if($ev->rem_name=='val')
-		{
-			$this->filters_where[$ev->keys['n']]->exprs[1]->val=$v;
-			$changed=true;
-		}
-		if($ev->rem_name=='del')
-		{
-			if(isset($this->filters_where[$ev->keys['n']]))
-			{
-				for($k=0;$k<count($this->filters_where);$k++)
-					if($k!=$ev->keys['n'])$nfl[]=$this->filters_where[$k];
-					$this->filters_where=$nfl;
-			}else{
-				$this->filters_where[$ev->keys['n']]=new sql_expression('',
-					Array(new sql_column,new sql_immed),NULL);
-			}
-			$changed=true;
-			$reload_self=true;
-		}
-		
-		$this->settings->filters_where=serialize($this->filters_where);
-		if($changed) $this->settings_io->store($this);
-		if($reload_self)
-		{
-			
-			$customid=$ev->context[$ev->parent_name]['retid'];
-			$oid=$ev->context[$ev->parent_name]['oid'];
-			//$htmlid=$ev->context[$ev->long_name]['htmlid'];
-			
-			$class=get_class($this);
-			$r=new $class;
-			$r->context=&$ev->context;
-			$r->keys=&$ev->keys;
-			$r->oid=$oid;
-			$r->custom_id=$customid;
-			$r->name=$ev->parent_name;
-			$r->etype=$ev->parent_type;
-			$r->settings=&$this->settings;
-			$r->settings_io=&$this->settings_io;
-
-			$r->bootstrap();
-			print "var nya=\$i('".js_escape($customid)."');";
-			print "try{nya.innerHTML=";
-			reload_object($r,true);
-			print "nya.scrollTop=0;}catch(e){ window.location.reload(true);};";
-			//common part
-		}
-		editor_generic::handle_event($ev);
-		if($changed)$ev->changed=true;
-	}
-	
-
-}
-
-class etasl_fch_c extends editor_text_autosuggest_list_example
-{
-	function __construct()
-	{
-		parent::__construct();
-		$this->list_items=Array();
-	}
-}
-
-class etasl_fch_o extends editor_text_autosuggest_list_example
-{
-	function __construct()
-	{
-		parent::__construct();
-		$this->list_items=Array('<','<=','=','>=','>','<>','~=');
-		$this->nofilter=1;
-	}
-}
-
-
-class qrva_guess_struct
-{
-	function load($o)
-	{
-		global $sql,$ddc_tables;
-		$db=$o->settings->ed_db;
-		$tbl=$o->settings->ed_table;
-		if(($db=='') && isset($ddc_tables[$tbl]))
-			return $ddc_tables[$tbl];
-		if($db!='')$xdb="`".$sql->esc($db)."`.";
-		$res=$sql->query("SHOW FULL COLUMNS FROM ".$xdb."`".$sql->esc($tbl)."`");
-		while($r=$sql->fetcha($res))
-		{
-			$ra->name=$tbl;
-			$c['name']=$r['Field'];
-			$c['sql_type']=$r['type'];
-			$c['sql_null']=($r['null']=='YES');
-			$c['sql_default']=$r['Default'];
-			$c['sql_sequence']=($r['Extra']=='auto_increment')?1:0;
-			$c['sql_comment']=$r['Comment'];
-			
-			$ra->cols[]=$c;
-		}
-		$res=$sql->query("SHOW INDEXES FROM ".$xdb."`".$sql->esc($tbl)."`");
-		while($r=$sql->fetcha($res))
-		{
-			$c['key']=$r['Key_name'];
-			$c['name']=$r['Column_name'];
-			$c['sub']=$r['Sub_part'];
-			
-			$ra->keys[]=$c;
-		}
-		return $ra;
-	}
-}
-####################################################
-class editor_order_ch extends dom_div
-{
-	function __construct()
-	{
-		parent::__construct();
-		$this->etype=get_class($this);
-		$this->tbl=new dom_table;
-		$this->append_child($this->tbl);
-		$this->row=new dom_tr;
-		$this->tbl->append_child($this->row);
-		
-		$this->row_caps=new dom_tr;
-		$this->tbl->append_child($this->row_caps);
-		$this->add_cap('Col');
-		$this->add_cap('rev');
-		$this->add_cap('-');
-		
-		$this->cells=Array();
-		
-		$this->keys=Array();
-		$this->args=Array();
-		
-		$this->colcn=0;
-		
-		$ed=new editor_text_autosuggest_query;
-		//$ed->list_class='etasl_fch_c';
-		$this->add_col($ed,'col');
-		$ed->name='col';
-		
-		$ed=new editor_checkbox;
-		$this->add_col($ed,'rev');
-		
-		$ed=new editor_button;
-		$ed->attributes['value']='-';
-		$this->add_col($ed,'del');
-		$ed->name='del';
-		
-		
-	}
-	function add_cap($t)
-	{
-		$cell_caps=new dom_td;
-		$this->row_caps->append_child($cell_caps);
-		$text_caps=new dom_statictext;
-		$cell_caps->append_child($text_caps);
-		$text_caps->text=$t;
-	}
-	
-	function add_col($editor,$arg)
-	{
-		editor_generic::addeditor($arg,$editor);
-		$this->cells[$this->colcn]=new dom_td;
-		//inherit properties from template???
-		$this->row->append_child($this->cells[$this->colcn]);
-		$this->cells[$this->colcn]->append_child($editor);
-		$this->colcn++;
-	}
-	
-	
-	function bootstrap()
-	{
-		$this->long_name=editor_generic::long_name();
-		//if(!isset($this->settings))$this->settings_io->load($this);
-		//if($this->settings->ed_db!='')$this->context[$this->long_name]['dbname']=$this->settings->ed_db;
-		//$this->context[$this->long_name]['tblname']=$this->edittbl;
-		
-		if($this->settings->ed_db!='')$dbe='`'.sql::esc($this->settings->ed_db).'`.';
-		$this->context[$this->long_name.'.col']['rawquery']=
-			'show columns from '.$dbe.'`'.sql::esc($this->settings->ed_table).'`';
-		
-		$this->context[$this->long_name]['retid']=$this->id_gen();
-		$this->context[$this->long_name]['io_class']=get_class($this->settings_io);
-		
-		if(is_array($this->editors))
-			foreach($this->editors as $k => $e)
-			{
-				$this->context[$this->long_name.'.'.$k]['var']=$k;
-				$e->keys=&$this->keys;
-				$e->args=&$this->args;
-				$e->context=&$this->context;
-				if(isset($e->validator_class))$this->context[$this->long_name.'.'.$k]['validator_class']=$e->validator_class;
-				$e->bootstrap();
-			}
-		
-	}
-	
-	
-	function html_inner()
-	{
-			
-		$order=unserialize($this->settings->order);
-		$this->tbl->html_head();
-		$this->row_caps->html();
-		$nn=0;
-		if(is_array($order))foreach($order as $f)
-		{
-			$this->args['col']=$f->col;
-			$this->args['rev']=$f->invert;
-			$this->keys['n']=$nn;
-			$nn++;
-			foreach($this->editors as $e)$e->bootstrap();
-			$this->row->html();
-			$this->row->id_alloc();
-		}
-		$this->editors['col']->main->css_style['display']='none';
-		$this->editors['rev']->css_style['display']='none';
-		$this->editors['del']->attributes['value']='+';
-		$this->keys['n']=$nn;
-		$nn++;
-		foreach($this->editors as $e)$e->bootstrap();
-		$this->row->html();
-		$this->row->id_alloc();
-		$this->tbl->html_tail();
-	}
-	
-	
-	function handle_event($ev)
-	{
-		$changed=false;
-		$reload_self=false;
-		$this->long_name=$ev->parent_name;
-		$this->context=&$ev->context;
-		$sio=$ev->context[$ev->parent_name]['io_class'];
-		$this->settings_io=new $sio;
-		unset($this->settings);
-		$this->settings_io->load($this,true);
-		$order=unserialize($this->settings->order);
-		
-		$v=$_POST['val'];
-		if($ev->rem_name=='col')
-		{
-			$order[$ev->keys['n']]->col=$v;
-			$changed=true;
-		}
-		if($ev->rem_name=='rev')
-		{
-			$order[$ev->keys['n']]->invert=$v;
-			//print 'alert(\''.$v.'\');';
-			$changed=true;
-		}
-		if($ev->rem_name=='del')
-		{
-			if(isset($order[$ev->keys['n']]))
-			{
-				for($k=0;$k<count($order);$k++)
-					if($k!=$ev->keys['n'])$nfl[]=$order[$k];
-					$order=$nfl;
-			}else{
-				$order[$ev->keys['n']]=new sql_column;
-			}
-			$changed=true;
-			$reload_self=true;
-		}
-		
-		$this->settings->order=serialize($order);
-		if($changed) $this->settings_io->store($this);
-		if($reload_self)
-		{
-			
-			$customid=$ev->context[$ev->parent_name]['retid'];
-			$oid=$ev->context[$ev->parent_name]['oid'];
-			//$htmlid=$ev->context[$ev->long_name]['htmlid'];
-			
-			$class=get_class($this);
-			$r=new $class;
-			$r->context=&$ev->context;
-			$r->keys=&$ev->keys;
-			$r->oid=$oid;
-			$r->name=$ev->parent_name;
-			$r->etype=$ev->parent_type;
-			$r->settings=&$this->settings;
-			$r->settings_io=$this->settings_io;
-			$r->custom_id=$customid;
-
-			$r->bootstrap();
-			print "var nya=\$i('".js_escape($customid)."');";
-			print "try{nya.innerHTML=";
-			reload_object($r,true);
-			print "nya.scrollTop=0;}catch(e){ window.location.reload(true);};";
-			//common part
-		}
-		editor_generic::handle_event($ev);
-		if($changed)$ev->changed=true;
-	}
-	
-
-}
-
-*/
 
 
 
