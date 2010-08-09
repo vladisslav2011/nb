@@ -32,7 +32,8 @@ Array(
   Array('name' =>'aid',		'sql_type' =>'int(10)',  'sql_null' =>0, 'sql_default' =>NULL,		'sql_sequence' => 1,	'sql_comment' =>NULL, 'hname'=>'Идентификатор'),
   Array('name' =>'type',	'sql_type' =>'varchar(100)', 'sql_null' =>1, 'sql_default' =>'',	'sql_sequence' => 0,	'sql_comment' =>NULL, 'hname'=>'Тип'),
   Array('name' =>'description',	'sql_type' =>'varchar(255)', 'sql_null' =>1, 'sql_default' =>'',	'sql_sequence' => 0,	'sql_comment' =>NULL, 'hname'=>'Описание'),
-  Array('name' =>'filename',	'sql_type' =>'varchar(255)', 'sql_null' =>1, 'sql_default' =>'',	'sql_sequence' => 0,	'sql_comment' =>NULL, 'hname'=>'Имя файла')
+  Array('name' =>'filename',	'sql_type' =>'varchar(255)', 'sql_null' =>1, 'sql_default' =>'',	'sql_sequence' => 0,	'sql_comment' =>NULL, 'hname'=>'Имя файла'),
+  Array('name' =>'thumb',	'sql_type' =>'varchar(255)', 'sql_null' =>1, 'sql_default' =>'',	'sql_sequence' => 0,	'sql_comment' =>NULL, 'hname'=>'Файл предпросмотра')
  ),
  'keys' => Array(
 #  Array('key' =>'PRIMARY', 'name' =>'', 'sub' => NULL)
@@ -252,46 +253,8 @@ class samples_db_item extends dom_div
 			
 		}
 		
-		$this->attachments=new dom_table;
-		$this->append_child($this->attachments);
-		
-		$this->atr=new dom_tr;
-		$this->attachments->append_child($this->atr);
-		
-		$td=new dom_td;
-		$this->atr->append_child($td);
-		unset($td->id);
-		editor_generic::addeditor('anum',new editor_statictext);
-		$td->append_child($this->editors['anum']);
-		
-		$td=new dom_td;
-		$this->atr->append_child($td);
-		unset($td->id);
-		editor_generic::addeditor('alink',new editor_href);
-		$td->append_child($this->editors['alink']);
-		$this->editors['alink']->href='/uploads/%s';
-		editor_generic::addeditor('aname',new editor_statictext);
-		$this->editors['alink']->main->append_child($this->editors['aname']);
-		
-		$td=new dom_td;
-		$this->atr->append_child($td);
-		unset($td->id);
-		editor_generic::addeditor('adel',new editor_button_image);
-		$td->append_child($this->editors['adel']);
-		
-		$this->ahtr=new dom_tr;
-		$this->attachments->append_child($this->ahtr);
-		
-		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('№ п/п'));
-		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Вложение'));
-		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Операции'));
-		
-		editor_generic::addeditor('aadd',new editor_file_upload);
-		$this->append_child($this->editors['aadd']);
-		$this->editors['aadd']->type_hidden->attributes['value']='rawname';
-		$this->editors['aadd']->normal_postback=1;
-		
-		
+		editor_generic::addeditor('attachments',new sdb_attachments);
+		$this->append_child($this->editors['attachments']);
 		
 		
 	}
@@ -300,6 +263,7 @@ class samples_db_item extends dom_div
 	{
 		$this->long_name=editor_generic::long_name();
 		$this->context[$this->long_name]['oid']=$this->oid;
+		$this->context[$this->long_name]['attachments_id']=$this->editors['attachments']->id_gen();
 		if(!is_array($this->args))$this->args=Array();
 		if(!is_array($this->keys))$this->keys=Array();
 		foreach($this->editors as $i=>$e)
@@ -353,45 +317,13 @@ class samples_db_item extends dom_div
 				$e->bootstrap();
 			$this->viewonly->html();
 		}
+		$this->editors['attachments']->html();
 			
-		$qg->from->exprs=Array(new sql_column(NULL,'samples_attachments',NULL,'s'));
-		$qg->what->exprs=Array();
-		foreach($ddc_tables['samples_attachments']->cols as $col)
-		{
-			$qg->what->exprs[]=new sql_column(NULL,'s',$col['name']);
-		}
-		
-		$qc=$qg->result();
-		
-		$res=$sql->query($qc);
-		$this->attachments->html_head();
-		$this->ahtr->html();
-		$no_allachments=true;
-		$nn=1;
-		while($row=$sql->fetcha($res))
-		{
-			$this->args['alink']=$row['aid'];
-			$this->args['anum']=$nn;
-			$nn++;
-			$this->keys['aid']=$row['aid'];
-			$this->args['aname']=$row['filename'];
-			$this->atr->html();
-			$no_allachments=false;
-			
-		}
-		if($no_allachments)
-		{
-			$this->args['alink']=-1;
-			$this->keys['aid']=-1;
-			$this->args['aname']='Нет вложений';
-			$this->atr->html();
-			$no_allachments=false;
-		}
-		$this->attachments->html_tail();
-		$this->editors['aadd']->html();
-		
-		
-		
+	}
+	
+	function gen_preview($name)
+	{
+		return $name;
 	}
 	
 	function handle_event($ev)
@@ -424,16 +356,137 @@ class samples_db_item extends dom_div
 
 		switch($ev->rem_name)
 		{
-			case 'aadd':
-				print "alert('".js_escape($_POST['val'])."');";
+			case 'attachments.aadd':
+				$name=$_POST['val'];
+				$doc_root=$_SERVER['DOCUMENT_ROOT'];
+				if(preg_match('#.*[^/]$#',$doc_root))$doc_root.='/';
+				$odir = $doc_root.'si/o/'.$ev->keys['id'];
+				if(!file_exists($odir))mkdir($odir,0777,true);
+				$new_name=$odir.'/'.preg_replace('#.*/#','',$name);
+				rename($name,$new_name);
+				$pv_name=$this->gen_preview($new_name);
+				$qg=new query_gen_ext("INSERT");
+				$qg->into->exprs[]=new sql_column(NULL,'samples_attachments');
+				$qg->set->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'aid'),
+					new sql_immed('')
+					));
+				$qg->set->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				$qg->set->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'type'),
+					new sql_immed('unknown')
+					));
+				$qg->set->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'description'),
+					new sql_immed('')
+					));
+				$qg->set->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'filename'),
+					new sql_immed($new_name)
+					));
+				$qg->set->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'thumb'),
+					new sql_immed($pv_name)
+					));
+				$res=$sql->query($qg->result());
+				if($res===NULL)
+				{
+					//handle error
+				}
+				$aid=$sql->qv("SELECT LAST_INSERT_ID()");
+				if($aid===NULL)
+				{
+					//handle error
+				}
+				$aid=$aid[0];
+				$ev->do_reload=true;
+				$ev->activate_aid=$aid;
+				
+				
+				
 				break;
-			case 'adel':
+			case 'attachments.adel':
+				
+				$qg=new query_gen_ext("SELECT");
+				$qg->from->exprs[]=new sql_column(NULL,'samples_attachments');
+				
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'aid'),
+					new sql_immed($ev->keys['aid'])
+					));
+				$qg->what->exprs[]=new sql_column(NULL,NULL,'filename');
+				$qg->what->exprs[]=new sql_column(NULL,NULL,'thumb');
+				$r=$sql->qa($qg->result());
+				if($r===false)
+				{
+					//handle error
+				}
+				
+				if(file_exists($r[0]['filename']))unlink($r[0]['filename']);
+				if(file_exists($r[0]['thumb']))unlink($r[0]['thumb']);
+					
+					
+				$qg=new query_gen_ext("DELETE");
+				$qg->from->exprs[]=new sql_column(NULL,'samples_attachments');
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'aid'),
+					new sql_immed($ev->keys['aid'])
+					));
+				$res=$sql->query($qg->result());
+				$ev->do_reload=true;
+				break;
+			case 'attachments.adescr':
+				$qg=new query_gen_ext("UPDATE");
+				$qg->into->exprs[]=new sql_column(NULL,'samples_attachments');
+				
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'aid'),
+					new sql_immed($ev->keys['aid'])
+					));
+				$qg->set->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'description'),
+					new sql_immed($_POST['val'])
+					));
+//				print "alert('".js_escape($qg->result())."');";
+				$sql->query($qg->result());
+				
 				break;
 		};
 		
 		
 		editor_generic::handle_event($ev);
 		
+		if($ev->do_reload)
+		{
+			$r=new sdb_attachments;
+			
+			$r->context=&$ev->context;
+			$r->keys=&$ev->keys;
+			$r->oid=$oid;
+			$r->args=$this->args;
+			$r->name=$ev->parent_name.".attachments";
+			$r->etype=$ev->parent_type.".sdb_attachments";
+
+			print "var nya=\$i('".js_escape($ev->context[$this->long_name]['attachments_id'])."');";
+			print "try{nya.innerHTML=";
+			reload_object($r,true);
+			print "}catch(e){/* window.location.reload(true);*/};";
+		}
 		
 		
 	}
@@ -446,6 +499,159 @@ class samples_db_users extends dom_div
 {
 };
 $tests_m_array[]='samples_db_users';
+
+
+
+class sdb_attachments extends dom_div
+{
+	function __construct()
+	{
+		global $sql,$ddc_tables;
+		parent::__construct();
+		$this->etype=get_class($this);
+		
+		$this->attachments=new dom_table;
+		$this->append_child($this->attachments);
+		
+		$this->atr=new dom_tr;
+		$this->attachments->append_child($this->atr);
+		
+		$td=new dom_td;
+		$this->atr->append_child($td);
+		unset($td->id);
+		editor_generic::addeditor('anum',new editor_statictext);
+		$td->append_child($this->editors['anum']);
+		
+		$td=new dom_td;
+		$this->atr->append_child($td);
+		unset($td->id);
+		editor_generic::addeditor('alink',new editor_href);
+		$td->append_child($this->editors['alink']);
+		$this->editors['alink']->href='%s';
+		editor_generic::addeditor('aname',new editor_statictext);
+		$this->editors['alink']->main->append_child($this->editors['aname']);
+		
+		$td=new dom_td;
+		$this->atr->append_child($td);
+		unset($td->id);
+		editor_generic::addeditor('adescr',new editor_text);
+		$td->append_child($this->editors['adescr']);
+		
+		$td=new dom_td;
+		$this->atr->append_child($td);
+		unset($td->id);
+		editor_generic::addeditor('adel',new editor_button_image);
+		$td->append_child($this->editors['adel']);
+		
+		$this->ahtr=new dom_tr;
+		$this->attachments->append_child($this->ahtr);
+		
+		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('№ п/п'));
+		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Вложение'));
+		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Описание'));
+		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Операции'));
+		
+		editor_generic::addeditor('aadd',new editor_file_upload);
+		$this->append_child($this->editors['aadd']);
+		$this->editors['aadd']->type_hidden->attributes['value']='rawname';
+		$this->editors['aadd']->normal_postback=1;
+		
+		
+		
+		
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		$this->context[$this->long_name]['oid']=$this->oid;
+		if(!is_array($this->args))$this->args=Array();
+		if(!is_array($this->keys))$this->keys=Array();
+		foreach($this->editors as $i=>$e)
+		{
+			$e->oid=$this->oid;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+		}
+		foreach($this->editors as $e)
+			$e->bootstrap();
+	}
+	
+	function html_inner()
+	{
+		global $sql,$ddc_tables;
+		$can_edit=true;
+		$qg=new query_gen_ext('SELECT');
+		
+		$qg->where->exprs[]=new sql_expression('=',
+			Array(
+				new sql_column(NULL,'s','id'),
+				new sql_immed($_GET['id'])
+				));
+		$qg->from->exprs=Array(new sql_column(NULL,'samples_attachments',NULL,'s'));
+		$qg->what->exprs=Array();
+		foreach($ddc_tables['samples_attachments']->cols as $col)
+		{
+			$qg->what->exprs[]=new sql_column(NULL,'s',$col['name']);
+		}
+		
+		$qc=$qg->result();
+		
+		$res=$sql->query($qc);
+		$this->attachments->html_head();
+		$this->ahtr->html();
+		$no_allachments=true;
+		$nn=1;
+		while($row=$sql->fetcha($res))
+		{
+			$this->args['alink']='/si/o/'.$row['id'].'/'.preg_replace('#.*/#','',$row['filename']);
+			$this->args['anum']=$nn;
+			$nn++;
+			$this->keys['aid']=$row['aid'];
+			$this->args['aname']=preg_replace('#.*/#','',$row['filename']);
+			$this->args['adescr']=$row['description'];
+			$this->id_alloc();
+			foreach($this->editors as $e)
+				$e->bootstrap();
+			$this->atr->html();
+			$no_allachments=false;
+			
+		}
+		if($no_allachments)
+		{
+			$this->args['alink']=-1;
+			$this->keys['aid']=-1;
+			$this->args['aname']='Нет вложений';
+			$this->id_alloc();
+			foreach($this->editors as $e)
+				$e->bootstrap();
+			$this->atr->html();
+			$no_allachments=false;
+		}
+		$this->attachments->html_tail();
+		$this->editors['aadd']->html();
+		
+		
+		
+	}
+	
+	function handle_event($ev)
+	{
+		editor_generic::handle_event($ev);
+	}
+	
+}
+
+
+
+
+
+
+
+
+
 
 
 
