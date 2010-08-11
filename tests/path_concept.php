@@ -1,10 +1,10 @@
 <?php
+$profiler=microtime(true);
 ini_set('memory_limit', '16M');
 set_include_path($_SERVER['DOCUMENT_ROOT']);
 session_start();
 //$_SESSION['uid']=0;
 //$_SESSION['sql_design']=false;
-$profiler=microtime(true);
 require_once('lib/ddc_meta.php');
 require_once('lib/dom.php');
 require_once('lib/settings.php');
@@ -109,7 +109,7 @@ class path_backend_tree
 }
 
 
-class path_backend_static
+class path_backend_static_
 {
 	function __construct()
 	{
@@ -232,6 +232,105 @@ class path_backend_static
 	}
 }
 
+
+class path_backend_static
+{
+	function __construct()
+	{
+		global $tests_m_array;
+		$this->path='home';//default path
+		$obj->id='home';
+		$obj->val='home';
+		$this->add_child('',$obj);unset($obj);
+		
+		$this->add_r('home',$tests_m_array);
+	}
+	
+	
+	function add_r($to,$arr)
+	{
+		if(is_array($arr))
+			foreach($arr as $name => $val)
+			{
+				unset($obj);
+				$obj->id=$name;
+				$obj->val=$name;
+				if(!is_array($val))
+					$obj->class_n=$val;
+				$this->add_child($to,$obj);
+				if(is_array($val))
+					$this->add_r($name,$val);
+			}
+	}
+	
+	function add_test($n)
+	{
+		$obj->id=$n;
+		$obj->val=$n;
+		$obj->class_n=$n;
+		$this->add_child('com_tests',$obj);unset($obj);
+	}
+	
+	function add_test_m($n)
+	{
+		$obj->id=$n;
+		$obj->val=$n;
+		$obj->class_n=$n;
+		$this->add_child('test3',$obj);unset($obj);
+	}
+	
+	/* core functions */
+	function getpath($id)
+	{
+		$ni=$id;
+		$out=Array();
+		while($ni != '')
+		{
+			$out[]=$ni;
+			$ni=$this->nodes[$ni]->parent;
+		}
+		return $out;
+	}
+	function getchildren($id)
+	{
+		if( ! is_array($this->nodes))return null;
+		foreach($this->nodes as $n)if($n->parent==$id)$res[]=$n->id;
+		return $res;
+	}
+	function getnear($id)
+	{
+		if( ! is_array($this->nodes))return Array();
+		if( ! isset($this->nodes[$id]))return Array();
+		$nid=$this->nodes[$id]->parent;
+		foreach($this->nodes as $n)if(($n->parent==$nid)&&($n->id!=$id))$res[]=$n->id;
+		return $res;
+	}
+	function getclass($id)
+	{
+		if( ! is_array($this->nodes))return null;
+		return $this->nodes[$id]->class_n;
+	}
+	
+	function getval($id)
+	{
+		return $this->nodes[$id]->val;
+	}
+	
+	/*manipulation functions*/
+	function add_child($id,$node)
+	{
+		if($id=='')
+		{
+			unset($node->parent);
+			$this->nodes[$node->id]=$node;
+		}else{
+			if(! isset($this->nodes[$id]))die('path_backend_static: trying to add child to nonexisting node:'.$id.'. Operation order needs review');
+			$node->parent=$id;
+			unset($this->nodes[$node->id]);
+			$this->nodes[$node->id]=$node;
+		}
+	}
+}
 
 
 
@@ -749,6 +848,90 @@ function prepare_keyboard($dom_root)
 
 
 
+class page_developer extends dom_root_print
+{
+	function __construct()
+	{
+		global $path_keys,$sql;
+		parent::__construct();
+		$this->context=Array();
+		$this->title='path concept tests';
+		$this->endscripts=Array();
+		
+		
+		$locker=new dom_table_x(1,1);
+		$txt_div=new dom_div;
+		$txt_div->css_style['margin']='auto';
+		#$txt_div->css_style['text-align']='center';
+		$txt_div->css_style['position']='relative';
+		$txt_div->css_style['background-color']='red';
+		$txt_div->css_style['opacity']='1';
+		$locker->cells[0][0]->append_child($txt_div);
+		$txt_div->append_child(new dom_statictext('LOADING'));
+		$unlock=new dom_div;
+		$locker->cells[0][0]->append_child($unlock);
+		$unlock->append_child(new dom_statictext('UNLOCK'));
+		$unlock->attributes['onclick']="\$i('".js_escape($locker->id_gen())."').style.display='none';";
+		
+		$locker->css_style['position']='fixed';
+		$locker->css_style['width']='100%';
+		$locker->css_style['height']='100%';
+		$locker->cells[0][0]->css_style['width']='100%';
+		$locker->cells[0][0]->css_style['height']='100%';
+		$locker->css_style['opacity']='0.5';
+		$locker->css_style['background-color']='white';
+		$locker->css_style['z-index']='100000';
+		
+		$locker->css_style['text-align']='center';
+		$this->append_child($locker);
+		$lockerid=$locker->id_gen();
+		
+		$this->endscripts[]="\$i('$lockerid').style.display='none';";
+		
+		
+		
+		
+		//$pk=new path_view_control;
+		$pk=new locationbar;
+		$pk->name='pk';
+		
+		$pc=new path_view_children;
+		$this->append_child($pk);
+		$this->append_child($pc);
+		
+		$pk->context=&$this->context;
+		if($_SESSION['settings_preset']=='')$_SESSION['settings_preset']=0;
+		$settings_tool=new settings_tool;
+		
+		
+		$this->for_each_set('oid',-1);
+		
+		$pk->bootstrap();
+		
+		$class=$path_keys->path_backend->getclass($path_keys->path);
+		if(isset($class))
+		{
+			$c=new $class;
+			$c->name='tester';
+			$c->oid=$path_keys->oid;
+			$this->append_child($c);
+			$c->context=&$this->context;
+			$c->bootstrap();
+		}
+		
+		$fill=new dom_div;
+		unset($fill->id);
+		$fill->css_class='bottom_fill';
+		$this->append_child($fill);
+		$dbg=new dom_div;
+		$dbg->custom_id='debug';
+		$this->append_child($dbg);
+		
+		$this->collect_oids($settings_tool);
+		$this->settings_array=$settings_tool->read_oids($sql);
+	}
+	
+}
 
 
 
@@ -780,6 +963,7 @@ function prepare_keyboard($dom_root)
 
 
 
+if(false){
 $page=new dom_root_print;
 prepare_keyboard($page);
 $page->context=Array();
@@ -830,17 +1014,6 @@ $page->append_child($pk);
 $page->append_child($pc);
 
 $pk->context=&$page->context;
-if(false)					//disabled
-{
-$test= new path_view;
-$test->name='main';
-$test->oid=-1;
-$test->css_style['border']='1px solid red';
-$page->append_child($test);
-$test->path_backend=&$path_backend;
-$test->context=&$page->context;
-$test->bootstrap();
-}
 if($_SESSION['settings_preset']=='')$_SESSION['settings_preset']=0;
 $settings_tool=new settings_tool;
 
@@ -870,73 +1043,12 @@ $page->append_child($dbg);
 
 $page->collect_oids($settings_tool);
 $page->settings_array=$settings_tool->read_oids($sql);
+}
 
 
-
-/*
-$b=new dom_any_noterm('input');
-$b->attributes['type']='submit';
-$b->attributes['onclick']='window.xxx=1;if(window.driven==1){window.close();}else{var w=window.open(window.location.href,\'selector\');w.driven=1;w=window.open(window.location.href,\'selector\');w.driven=1;}';
-$page->append_child($b);
-*/
-
-
-
-
-
-$page->inlinescripts[]=<<<aaaa
-
-
-
-aaaa;
-
-//$page->endscripts[]='setTimeout(\'window.location.reload(true)\',100);';
-
-
-
-
-
-
-
-
-
-//$tree_width=$page->setting_val(-1,'tree_width','');
-//$tree_height=$page->setting_val(-1,'tree_height','');
-
+$page=new page_developer;
+prepare_keyboard($page);
 $page->styles[]='/css/default.css';
-/*
-$page->inlinestyles[]=<<<aaaa
-body{
-font-family:arial;
-font-size:16px;
-}
-
-input{
-border: 1px solid blue;
-}
-
-
-
-.left{
-border:4px solid black;
-position:fixed;
-overflow:hidden;
-top:40px;
-}
-.left:hover{
-border:4px solid red;
-position:fixed;
-overflow:hidden;
-top:40px;
-}
-
-
-
-aaaa;
-
-*/
-
-//$leftdiv->oid=-1;
 $page->after_build();
 print $page->html();
 

@@ -139,7 +139,7 @@ class keyboard_test extends dom_div
 	}
 }
 
-$tests_m_array[]='keyboard_test';
+$tests_m_array['sandbox']['keyboard_test']='keyboard_test';
 
 
 

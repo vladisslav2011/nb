@@ -481,7 +481,7 @@ class editor_search_pick_test extends dom_div
 }
 
 
-$tests_m_array[]='editor_search_pick_test';
+$tests_m_array['complex']['editor_search_pick_test']='editor_search_pick_test';
 
 
 ##########################################################################################################################################
@@ -611,7 +611,7 @@ class editor_search_pick_b_test extends dom_div
 }
 
 
-$tests_m_array[]='editor_search_pick_b_test';
+$tests_m_array['complex']['editor_search_pick_b_test']='editor_search_pick_b_test';
 
 
 
@@ -759,7 +759,7 @@ class editor_file_upload_test extends dom_div
 }
 
 
-$tests_m_array[]='editor_file_upload_test';
+$tests_m_array['simple']['editor_file_upload_test']='editor_file_upload_test';
 
 class editor_file_upload_test_custom extends dom_div
 {
@@ -808,7 +808,7 @@ class editor_file_upload_test_custom extends dom_div
 }
 
 
-$tests_m_array[]='editor_file_upload_test_custom';
+$tests_m_array['simple']['editor_file_upload_test_custom']='editor_file_upload_test_custom';
 
 
 ######################################################################################################################
@@ -980,7 +980,7 @@ class container_resize_scroll_test extends dom_div
 }
 
 
-$tests_m_array[]='container_resize_scroll_test';
+$tests_m_array['simple']['container_resize_scroll_test']='container_resize_scroll_test';
 
 
 
@@ -1176,7 +1176,7 @@ class editor_static_menu_test extends dom_div
 	}
 }
 
-$tests_m_array[]='editor_static_menu_test';
+$tests_m_array['simple']['editor_static_menu_test']='editor_static_menu_test';
 
 
 
@@ -1389,7 +1389,7 @@ class editor_dropdown_list_test extends dom_div
 
 
 
-$tests_m_array[]='editor_dropdown_list_test';
+$tests_m_array['simple']['editor_dropdown_list_test']='editor_dropdown_list_test';
 
 
 
@@ -1584,7 +1584,7 @@ class container_dropdown_div_test extends dom_div
 
 
 
-$tests_m_array[]='container_dropdown_div_test';
+$tests_m_array['simple']['container_dropdown_div_test']='container_dropdown_div_test';
 
 
 
@@ -1726,7 +1726,7 @@ class editor_dropdown_set_test extends dom_div
 
 
 
-$tests_m_array[]='editor_dropdown_set_test';
+$tests_m_array['simple']['editor_dropdown_set_test']='editor_dropdown_set_test';
 
 
 ###################################################################3
@@ -1902,7 +1902,7 @@ class file_pick_or_upload_test extends dom_div
 
 
 
-$tests_m_array[]='file_pick_or_upload_test';
+$tests_m_array['complex']['file_pick_or_upload_test']='file_pick_or_upload_test';
 
 
 ###################################################################3
@@ -2056,7 +2056,7 @@ class util_small_pager_test extends dom_div
 
 
 
-$tests_m_array[]='util_small_pager_test';
+$tests_m_array['complex']['util_small_pager_test']='util_small_pager_test';
 
 
 

@@ -3,7 +3,7 @@ set_include_path($_SERVER['DOCUMENT_ROOT']);
 require_once('lib/ddc_meta.php');
 require_once('lib/settings.php');
 require_once('lib/commctrls.php');
-$tests_m_array[]='test_controls_hover_buttons';
+$tests_m_array['sandbox']['test_controls_hover_buttons']='test_controls_hover_buttons';
 class test_controls_hover_buttons extends dom_div
 {
 	function __construct()
@@ -64,7 +64,6 @@ class hiera_test extends dom_div
 
 
 
-$tests_m_array[]='test_controls_hover_buttons';
 
 
 

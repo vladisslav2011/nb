@@ -197,8 +197,8 @@ class query_result_viewer_single_test2 extends query_result_viewer_single_test
 }
 
 
-$tests_m_array[]='query_result_viewer_single_test';
-$tests_m_array[]='query_result_viewer_single_test2';
+$tests_m_array['simple']['query_result_viewer_single_test']='query_result_viewer_single_test';
+$tests_m_array['simple']['query_result_viewer_single_test2']='query_result_viewer_single_test2';
 #--------------------------------------------------------------------------------------------------------------
 
 
@@ -359,7 +359,7 @@ class query_result_viewer_multiline_test extends dom_any
 	}
 	
 }
-$tests_m_array[]='query_result_viewer_multiline_test';
+$tests_m_array['simple']['query_result_viewer_multiline_test']='query_result_viewer_multiline_test';
 
 #-------------------------------------------------------------------------
 
@@ -587,7 +587,7 @@ class validator_integer
 }
 
 
-$tests_m_array[]='editor_text_st1_test';
+$tests_m_array['complex']['editor_text_st1_test']='editor_text_st1_test';
 
 
 #-------------------------------------------------------------------------
@@ -684,7 +684,7 @@ class editor_text_autofetch_test extends dom_any
 	
 }
 
-$tests_m_array[]='editor_text_autofetch_test';
+$tests_m_array['simple']['editor_text_autofetch_test']='editor_text_autofetch_test';
 
 #-------------------------------------------------------------------------
 
@@ -1073,7 +1073,7 @@ class query_result_viewer_codes_test extends dom_any
 	
 }
 
-$tests_m_array[]='query_result_viewer_codes_test';
+$tests_m_array['simple']['query_result_viewer_codes_test']='query_result_viewer_codes_test';
 
 class query_result_viewer_srch_test extends dom_any
 {
@@ -1200,7 +1200,7 @@ class query_result_viewer_srch_test extends dom_any
 	
 }
 
-$tests_m_array[]='query_result_viewer_srch_test';
+$tests_m_array['sandbox']['query_result_viewer_srch_test']='query_result_viewer_srch_test';
 
 ##########################################################################################
 class editor_code_ref extends dom_any
@@ -2074,7 +2074,7 @@ $ipp->printJob();
 	
 }
 
-$tests_m_array[]='query_result_viewer_codessel';
+$tests_m_array['util']['query_result_viewer_codessel']='query_result_viewer_codessel';
 
 //###################################################################################################################
 //###################################################################################################################
@@ -2529,7 +2529,7 @@ class QRVA_settings_io
 	}
 }
 
-$tests_m_array[]='query_result_viewer_any';
+$tests_m_array['util']['query_result_viewer_any']='query_result_viewer_any';
 
 class editor_insert_ch extends dom_div
 {
@@ -3282,7 +3282,7 @@ class act_codes_cleanup extends dom_div
 
 
 
-$tests_m_array[]='act_codes_cleanup';
+$tests_m_array['util']['act_codes_cleanup']='act_codes_cleanup';
 
 
 
@@ -3660,7 +3660,7 @@ class codes_import_xdiv extends dom_div
 
 
 
-$tests_m_array[]='codes_import';
+$tests_m_array['util']['codes_import']='codes_import';
 
 
 

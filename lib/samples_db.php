@@ -249,7 +249,7 @@ class samples_db_list extends dom_div
 	}
 	
 };
-$tests_m_array[]='samples_db_list';
+$tests_m_array['samples_db']['samples_db_list']='samples_db_list';
 
 class samples_db_item extends dom_div
 {
@@ -532,10 +532,10 @@ class samples_db_item extends dom_div
 			$r->name=$ev->parent_name.".attachments";
 			$r->etype=$ev->parent_type.".sdb_attachments";
 
-			print "(function(){var nya=\$i('".js_escape($ev->context[$this->long_name]['attachments_id'])."');";
+			print "var nya=\$i('".js_escape($ev->context[$this->long_name]['attachments_id'])."');";
 			print "try{nya.innerHTML=";
 			reload_object($r,true);
-			print "}catch(e){/* window.location.reload(true);*/};})();";
+			print "}catch(e){/* window.location.reload(true);*/};";
 		}
 		
 		
@@ -543,12 +543,12 @@ class samples_db_item extends dom_div
 	
 
 };
-$tests_m_array[]='samples_db_item';
+$tests_m_array['samples_db']['samples_db_item']='samples_db_item';
 
 class samples_db_users extends dom_div
 {
 };
-$tests_m_array[]='samples_db_users';
+$tests_m_array['samples_db']['samples_db_users']='samples_db_users';
 
 
 

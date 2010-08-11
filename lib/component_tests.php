@@ -713,7 +713,7 @@ class editor_select_test extends dom_div
 
 
 
-$tests_m_array[]='editor_select_test';
+$tests_m_array['simple']['editor_select_test']='editor_select_test';
 
 
 class test_long_run extends dom_div
@@ -782,7 +782,21 @@ class test_long_run extends dom_div
 
 
 
-$tests_m_array[]='test_long_run';
+$tests_m_array['complex']['test_long_run']='test_long_run';
+
+$tests_m_array['simple']['editor_text_test']='editor_text_test';
+$tests_m_array['simple']['editor_button_test']='editor_button_test';
+$tests_m_array['simple']['editor_checkbox_test']='editor_checkbox_test';
+$tests_m_array['simple']['editor_text_submit_test']='editor_text_submit_test';
+$tests_m_array['simple']['editor_textarea_test']='editor_textarea_test';
+$tests_m_array['simple']['editor_text_autosuggest_test']='editor_text_autosuggest_test';
+$tests_m_array['simple']['editor_text_autosuggest_session_test']='editor_text_autosuggest_session_test';
+$tests_m_array['simple']['editor_container_hidden_test']='editor_container_hidden_test';
+$tests_m_array['simple']['editor_debugger_test']='editor_debugger_test';
+//$tests_m_array['simple']['']='';
+$tests_m_array['complex']['workers_container_test']='workers_container_test';
+$tests_m_array['complex']['workers_container_test1']='workers_container_test1';
+$tests_m_array['complex']['query_merge_test']='query_merge_test';
 
 
 

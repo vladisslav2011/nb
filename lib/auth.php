@@ -16,7 +16,8 @@ Array(
   Array('name' =>'uid',		'sql_type' =>'bigint(20)',  'sql_null' =>0, 'sql_default' =>NULL,		'sql_sequence' => 1,	'sql_comment' =>NULL),
   Array('name' =>'name',	'sql_type' =>'varchar(64)', 'sql_null' =>0, 'sql_default' =>'dummy',	'sql_sequence' => 0,			'sql_comment' =>NULL),
   Array('name' =>'pass',	'sql_type' =>'varchar(64)', 'sql_null' =>0, 'sql_default' =>md5('dummy'),	'sql_sequence' => 0,			'sql_comment' =>NULL, 'editor'=>'editor_text_pass_md5'),
-  Array('name' =>'reflink',	'sql_type' =>'bigint(20)',  'sql_null' =>1, 'sql_default' =>NULL,		'sql_sequence' => 0,			'sql_comment' =>NULL),
+  Array('name' =>'reflink',	'sql_type' =>'bigint(20)',  'sql_null' =>1, 'sql_default' =>NULL),
+  Array('name' =>'interface',	'sql_type' =>'varchar(100)',  'sql_null' =>0, 'sql_default' =>''),
   Array('name' =>'isgroup',	'sql_type' =>'tinyint(1)',  'sql_null' =>0, 'sql_default' =>NULL,		'sql_sequence' => 0,			'sql_comment' =>NULL, 'editor' => 'editor_checkbox_st1u'),
   Array('name' =>'isactive',	'sql_type' =>'tinyint(1)',  'sql_null' =>0, 'sql_default' =>NULL,		'sql_sequence' => 0,			'sql_comment' =>NULL, 'editor' => 'editor_checkbox_st1u')
  ),

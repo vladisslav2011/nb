@@ -1187,7 +1187,7 @@ class editor_search_pick_txl_io
 
 
 
-$tests_m_array[]='table_xml_load_ui';
+$tests_m_array['util']['table_xml_load_ui']='table_xml_load_ui';
 
 
 

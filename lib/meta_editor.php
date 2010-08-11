@@ -2113,13 +2113,13 @@ class editor_meta_tree_inh extends dom_div
 
 
 
-$tests_m_array[]='editor_meta_tree';
-$tests_m_array[]='editor_meta_tree_diff';
+$tests_m_array['meta_tree']['editor_meta_tree']='editor_meta_tree';
+$tests_m_array['meta_tree']['editor_meta_tree_diff']='editor_meta_tree_diff';
 
-$tests_m_array[]='editor_meta_tree_logerrors';
-$tests_m_array[]='editor_meta_tree_sqlerrors';
-$tests_m_array[]='editor_meta_tree_cmpold';
-$tests_m_array[]='editor_meta_tree_inh';
+$tests_m_array['meta_tree']['editor_meta_tree_logerrors']='editor_meta_tree_logerrors';
+$tests_m_array['meta_tree']['editor_meta_tree_sqlerrors']='editor_meta_tree_sqlerrors';
+$tests_m_array['meta_tree']['editor_meta_tree_cmpold']='editor_meta_tree_cmpold';
+$tests_m_array['meta_tree']['editor_meta_tree_inh']='editor_meta_tree_inh';
 
 
 

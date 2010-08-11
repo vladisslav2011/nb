@@ -2573,7 +2573,7 @@ class editor_txtasg_list extends dom_table
 
 }
 
-$tests_m_array['editor_txtasg']='editor_txtasg';
+$tests_m_array['simple']['editor_txtasg']='editor_txtasg';
 
 
 

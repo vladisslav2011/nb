@@ -194,7 +194,7 @@ class editor_object_list extends dom_div
 	}
 }
 
-$tests_m_array[]='editor_object_list';
+$tests_m_array['simple']['editor_object_list']='editor_object_list';
 
 
 
@@ -1918,7 +1918,7 @@ class editor_m_object_variants extends dom_div
 	}
 }
 
-$tests_m_array[]='editor_m_object';
+$tests_m_array['complex']['editor_m_object']='editor_m_object';
 
 
 
@@ -2580,7 +2580,7 @@ class filters_m_test extends dom_div
 	}
 }
 
-$tests_m_array[]='filters_m_test';
+$tests_m_array['complex']['filters_m_test']='filters_m_test';
 
 
 
@@ -4688,7 +4688,7 @@ class ed_tree_main_test extends dom_div
 	}
 }
 
-$tests_m_array[]='ed_tree_main_test';
+$tests_m_array['complex']['ed_tree_main_test']='ed_tree_main_test';
 
 
 /*
@@ -5312,7 +5312,7 @@ class ed_tree_main_query_gen_ext_test extends dom_div
 	}
 }
 
-$tests_m_array[]='ed_tree_main_query_gen_ext_test';
+$tests_m_array['complex']['ed_tree_main_query_gen_ext_test']='ed_tree_main_query_gen_ext_test';
 
 
 
@@ -5730,7 +5730,7 @@ class ed_tree_main_htm_test extends dom_div
 		}
 	}
 }
-$tests_m_array[]='ed_tree_main_htm_test';
+$tests_m_array['complex']['ed_tree_main_htm_test']='ed_tree_main_htm_test';
 
 
 

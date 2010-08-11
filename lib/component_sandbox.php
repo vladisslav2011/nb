@@ -96,7 +96,7 @@ class test_xml_viewer_test extends dom_any
 }
 
 
-$tests_m_array[]='test_xml_viewer_test';
+$tests_m_array['complex']['test_xml_viewer_test']='test_xml_viewer_test';
 #--------------------------------------------------------------------------------------------------------------
 
 
@@ -327,7 +327,7 @@ class test_xml_loader_test extends dom_any
 
 
 
-$tests_m_array[]='test_xml_loader_test';
+$tests_m_array['complex']['test_xml_loader_test']='test_xml_loader_test';
 
 
 
@@ -371,7 +371,7 @@ aaa;
 	}
 }
 
-$tests_m_array[]='test_selection';
+$tests_m_array['complex']['test_selection']='test_selection';
 
 class test_urlencode extends dom_div
 {
@@ -473,7 +473,7 @@ class test_urlencode extends dom_div
 	}
 }
 
-$tests_m_array[]='test_urlencode';
+$tests_m_array['util']['test_urlencode']='test_urlencode';
 
 
 
@@ -557,7 +557,7 @@ class test_query_exec extends dom_div
 	}
 }
 
-$tests_m_array[]='test_query_exec';
+$tests_m_array['util']['test_query_exec']='test_query_exec';
 
 
 class test_multi_exec extends dom_div
@@ -703,7 +703,7 @@ class test_multi_exec extends dom_div
 	}
 }
 
-$tests_m_array[]='test_multi_exec';
+$tests_m_array['util']['test_multi_exec']='test_multi_exec';
 
 
 class test_color_get extends dom_div
@@ -738,7 +738,7 @@ class test_color_get extends dom_div
 	{
 	}
 }
-$tests_m_array[]='test_color_get';
+$tests_m_array['sandbox']['test_color_get']='test_color_get';
 
 class test_drop_button_0 extends dom_any
 {
@@ -778,7 +778,7 @@ class test_drop_button_0 extends dom_any
 	{
 	}
 }
-$tests_m_array[]='test_drop_button_0';
+$tests_m_array['sandbox']['test_drop_button_0']='test_drop_button_0';
 
 /*--------------------------------------------------------------------------------------------
 
@@ -871,7 +871,7 @@ class csv2vcard_1 extends dom_div
 	}
 	
 }
-$tests_m_array[]='csv2vcard_1';
+$tests_m_array['util']['csv2vcard_1']='csv2vcard_1';
 
 /*--------------------------------------------------------------------------------------------
 
