@@ -101,7 +101,7 @@ class auth_handler
 		global $sql;
 		$euser=$sql->esc($user);
 		$epass=md5($pass);
-		$res=$sql->query("SELECT uid FROM `".TABLE_META_USERS."` WHERE name='".$euser."' AND pass='".$epass."' AND isactive=1");
+		$res=$sql->query("SELECT uid, `interface` FROM `".TABLE_META_USERS."` WHERE name='".$euser."' AND pass='".$epass."' AND isactive=1");
 		if($row=$sql->fetcha($res))
 		{
 			$_SESSION['uid']=$row['uid'];

@@ -571,6 +571,8 @@ var global_char_hooks=new Array();for(var k=0;k<16;k++)global_char_hooks[k]=new 
 function global_key_press(ev)
 {
 	var mkc=event_to_mkc(ev);
+	if(typeof(ev) == 'undefined')ev=window.event;
+	if(typeof(ev.target) == 'undefined')return true;
 	if(
 		ev.target==document.documentElement	||	//mozilla,opera 9.64
 		ev.target==document					||	//konqueror

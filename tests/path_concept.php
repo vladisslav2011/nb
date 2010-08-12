@@ -109,129 +109,6 @@ class path_backend_tree
 }
 
 
-class path_backend_static_
-{
-	function __construct()
-	{
-		global $tests_m_array;
-		$this->path='home';//default path
-		$obj->id='home';
-		$obj->val='home';
-		$this->add_child('',$obj);unset($obj);
-		
-		$obj->id='com_tests';
-		$obj->val='component tests';
-		$this->add_child('home',$obj);unset($obj);
-		
-		$obj->id='wip_group';
-		$obj->val='Work progress';
-		$this->add_child('home',$obj);unset($obj);
-		
-		$obj->id='Progress_viewer';
-		$obj->class_n='progress_viewer';
-		$obj->val='Progress viewer';
-		$this->add_child('wip_group',$obj);unset($obj);
-		
-		/*
-		$obj->id='Progress_viewer';
-		$obj->class_n='progress_viewer';
-		$obj->val='Progress viewer';
-		$this->add_child('wip_group',$obj);unset($obj);*/
-		
-		$obj->id='test3';
-		$obj->val='some moar test';
-		$this->add_child('home',$obj);unset($obj);
-		$obj->id='test3.0';
-		$obj->val='some moar test0';
-		$this->add_child('test3',$obj);unset($obj);
-		//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		if(isset($tests_m_array) && is_array($tests_m_array))
-			foreach($tests_m_array as $e)$this->add_test_m($e);
-		//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			
-		$this->add_test('editor_text_test');
-		$this->add_test('editor_button_test');
-		$this->add_test('editor_checkbox_test');
-		$this->add_test('editor_text_submit_test');
-		$this->add_test('editor_textarea_test');
-		$this->add_test('editor_text_autosuggest_test');
-		$this->add_test('editor_text_autosuggest_session_test');
-		$this->add_test('editor_container_hidden_test');
-		$this->add_test('editor_debugger_test');
-		$this->add_test('workers_container_test');
-		$this->add_test('workers_container_test1');
-		$this->add_test('query_merge_test');
-	}
-	
-	function add_test($n)
-	{
-		$obj->id=$n;
-		$obj->val=$n;
-		$obj->class_n=$n;
-		$this->add_child('com_tests',$obj);unset($obj);
-	}
-	
-	function add_test_m($n)
-	{
-		$obj->id=$n;
-		$obj->val=$n;
-		$obj->class_n=$n;
-		$this->add_child('test3',$obj);unset($obj);
-	}
-	
-	/* core functions */
-	function getpath($id)
-	{
-		$ni=$id;
-		$out=Array();
-		while($ni != '')
-		{
-			$out[]=$ni;
-			$ni=$this->nodes[$ni]->parent;
-		}
-		return $out;
-	}
-	function getchildren($id)
-	{
-		if( ! is_array($this->nodes))return null;
-		foreach($this->nodes as $n)if($n->parent==$id)$res[]=$n->id;
-		return $res;
-	}
-	function getnear($id)
-	{
-		if( ! is_array($this->nodes))return Array();
-		if( ! isset($this->nodes[$id]))return Array();
-		$nid=$this->nodes[$id]->parent;
-		foreach($this->nodes as $n)if(($n->parent==$nid)&&($n->id!=$id))$res[]=$n->id;
-		return $res;
-	}
-	function getclass($id)
-	{
-		if( ! is_array($this->nodes))return null;
-		return $this->nodes[$id]->class_n;
-	}
-	
-	function getval($id)
-	{
-		return $this->nodes[$id]->val;
-	}
-	
-	/*manipulation functions*/
-	function add_child($id,$node)
-	{
-		if($id=='')
-		{
-			unset($node->parent);
-			$this->nodes[$node->id]=$node;
-		}else{
-			if(! isset($this->nodes[$id]))die('path_backend_static: trying to add child to nonexisting node:'.$id.'. Operation order needs review');
-			$node->parent=$id;
-			unset($this->nodes[$node->id]);
-			$this->nodes[$node->id]=$node;
-		}
-	}
-}
-
 
 class path_backend_static
 {
@@ -346,7 +223,6 @@ class path_view extends dom_table
 	{
 		global $path_keys;
 		dom_table::__construct();
-		if(!isset($path_keys))$path_keys=new get_parser;
 		
 		$this->tr=new dom_tr;
 		$this->append_child($this->tr);
@@ -428,7 +304,6 @@ class path_view_control extends dom_table
 		
 		global $path_keys;
 		dom_table::__construct();
-		if(!isset($path_keys))$path_keys=new get_parser;
 		
 		$this->etype='path_view_control';
 		$this->tr=new dom_tr;
@@ -522,7 +397,7 @@ class path_view_control_dd extends dom_table
 		
 		global $path_keys;
 		dom_table::__construct();
-		if(!isset($path_keys))$path_keys=new get_parser;
+		
 		
 		$this->etype='editor_pick_button';
 		$div=new dom_tr;
@@ -752,6 +627,7 @@ class locationbar extends dom_any
 
 
 
+$path_keys=new get_parser;
 
 if(count($_POST)>0)
 {
@@ -934,6 +810,102 @@ class page_developer extends dom_root_print
 }
 
 
+class page_samples_db extends dom_root_print
+{
+	function __construct()
+	{
+		global $path_keys,$sql;
+		parent::__construct();
+		$this->context=Array();
+		$this->title='Образцы';
+		$this->endscripts=Array();
+		
+		
+		$locker=new dom_table_x(1,1);
+		$txt_div=new dom_div;
+		$txt_div->css_style['margin']='auto';
+		#$txt_div->css_style['text-align']='center';
+		$txt_div->css_style['position']='relative';
+		$txt_div->css_style['background-color']='red';
+		$txt_div->css_style['opacity']='1';
+		$locker->cells[0][0]->append_child($txt_div);
+		$txt_div->append_child(new dom_statictext('Загрузка'));
+		$unlock=new dom_div;
+		$locker->cells[0][0]->append_child($unlock);
+		$unlock->append_child(new dom_statictext('разблокировать'));
+		$unlock->attributes['onclick']="\$i('".js_escape($locker->id_gen())."').style.display='none';";
+		
+		$locker->css_style['position']='fixed';
+		$locker->css_style['width']='100%';
+		$locker->css_style['height']='100%';
+		$locker->cells[0][0]->css_style['width']='100%';
+		$locker->cells[0][0]->css_style['height']='100%';
+		$locker->css_style['opacity']='0.5';
+		$locker->css_style['background-color']='white';
+		$locker->css_style['z-index']='100000';
+		
+		$locker->css_style['text-align']='center';
+		$this->append_child($locker);
+		$lockerid=$locker->id_gen();
+		
+		$this->endscripts[]="\$i('$lockerid').style.display='none';";
+		
+		
+		
+		
+		//$pk=new path_view_control;
+		$pk=new dom_table_x(3,1);
+		
+		$a=new dom_any('a');$a->attributes['href']='?p=samples_db_list';
+		$a->append_child(new dom_statictext('Образцы'));
+		$pk->cells[0][0]->append_child($a);
+		if($_SESSION['interface']=='samples_admin')
+		{
+			$a=new dom_any('a');$a->attributes['href']='?p=samples_db_users';
+			$a->append_child(new dom_statictext('Пользователи'));
+			$pk->cells[0][1]->append_child($a);
+		}
+		
+		$logout=new dom_textbutton;
+		$logout->attributes['value']='Выход';
+		$logout->attributes['onclick']='chse.send_or_push({static:\'auth=logout&val=\',val:\'\'});';
+		$pk->cells[0][2]->append_child($logout);
+		
+		$this->append_child($pk);
+		
+		if($_SESSION['settings_preset']=='')$_SESSION['settings_preset']=0;
+		$settings_tool=new settings_tool;
+		
+		
+		$this->for_each_set('oid',-1);
+		
+		if($path_keys->path=='')$path_keys->path='samples_db_list';
+		
+		$class=$path_keys->path_backend->getclass($path_keys->path);
+		if(isset($class))
+		{
+			$c=new $class;
+			$c->name='samples_db';
+			$c->oid=$path_keys->oid;
+			$this->append_child($c);
+			$c->context=&$this->context;
+			$c->bootstrap();
+		}
+		
+		$fill=new dom_div;
+		unset($fill->id);
+		$fill->css_class='bottom_fill';
+		$this->append_child($fill);
+		$dbg=new dom_div;
+		$dbg->custom_id='debug';
+		$this->append_child($dbg);
+		
+		$this->collect_oids($settings_tool);
+		$this->settings_array=$settings_tool->read_oids($sql);
+	}
+	
+}
+
 
 
 
@@ -1045,8 +1017,13 @@ $page->collect_oids($settings_tool);
 $page->settings_array=$settings_tool->read_oids($sql);
 }
 
+$sr=$sql->qv("SELECT `interface` FROM `*users` where uid='".$_SESSION['uid']."'");
+$_SESSION['interface']=$sr[0];
 
-$page=new page_developer;
+if($_SESSION['interface']!='')
+	$page=new page_samples_db;
+else
+	$page=new page_developer;
 prepare_keyboard($page);
 $page->styles[]='/css/default.css';
 $page->after_build();

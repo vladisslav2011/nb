@@ -15,6 +15,7 @@ border: 1px solid blue;
 padding:1px;
 margin:1px;
 min-width:1em;
+width:auto;
 }
 
 button{
