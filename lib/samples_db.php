@@ -4,8 +4,8 @@ Array(
  'name' => 'samples_raw',
  'cols' => Array(
   #Array('name' =>'', 'sql_type' =>'', 'sql_null' =>, 'sql_default' =>'', 'sql_sequence' => 0, 'sql_comment' =>NULL),
-  Array('name' =>'id',		'sql_type' =>'int(10)',  'sql_null' =>0, 'sql_default' =>NULL,		'sql_sequence' => 1,	'sql_comment' =>NULL, 'hname'=>'Идентификатор'),
-  Array('name' =>'manufacturer',	'sql_type' =>'varchar(5)', 'sql_null' =>1, 'sql_default' =>'',	'sql_sequence' => 0,	'sql_comment' =>NULL, 'hname'=>'Предприятие'),
+  Array('name' =>'id',		'sql_type' =>'int(10)',  'sql_null' =>0, 'sql_default' =>NULL,		'sql_sequence' => 1,	'sql_comment' =>NULL, 'hname'=>'Идентификатор', 'editor' =>'editor_statictext'),
+  Array('name' =>'manufacturer',	'sql_type' =>'varchar(200)', 'sql_null' =>1, 'sql_default' =>'',	'sql_sequence' => 0,	'sql_comment' =>NULL, 'hname'=>'Предприятие'),
   Array('name' =>'code',	'sql_type' =>'varchar(200)', 'sql_null' =>1, 'sql_default' =>'',	'sql_sequence' => 0,	'sql_comment' =>NULL, 'hname'=>'Обозначение'),
   Array('name' =>'name',	'sql_type' =>'varchar(200)', 'sql_null' =>1, 'sql_default' =>'',	'sql_sequence' => 0,			'sql_comment' =>NULL, 'hname'=>'Наименование'),
   Array('name' =>'decoration',	'sql_type' =>'varchar(200)', 'sql_null' =>1, 'sql_default' =>'',	'sql_sequence' => 0,			'sql_comment' =>NULL, 'hname'=>'Отделка'),
@@ -13,7 +13,7 @@ Array(
   Array('name' =>'stored',	'sql_type' =>'varchar(200)', 'sql_null' =>1, 'sql_default' =>'',	'sql_sequence' => 0,			'sql_comment' =>NULL, 'hname'=>'Место хранения'),
   Array('name' =>'comment',	'sql_type' =>'text', 'sql_null' =>1, 'sql_default' =>'',	'sql_sequence' => 0,			'sql_comment' =>NULL, 'hname'=>'Примечания'),
   Array('name' =>'man_date',	'sql_type' =>'date', 'sql_null' =>0, 'sql_default' =>'2010-01-01',	'sql_sequence' => 0,			'sql_comment' =>NULL, 'hname'=>'Дата изготовления'),
-  Array('name' =>'mtime',	'sql_type' =>'timestamp', 'sql_null' =>0, 'sql_default' =>NULL,	'sql_sequence' => 0,			'sql_comment' =>NULL, 'hname'=>'Дата изменения')
+  Array('name' =>'mtime',	'sql_type' =>'timestamp', 'sql_null' =>0, 'sql_default' =>NULL,	'sql_sequence' => 0,			'sql_comment' =>NULL, 'hname'=>'Дата изменения', 'editor' =>'editor_statictext')
  ),
  'keys' => Array(
 #  Array('key' =>'PRIMARY', 'name' =>'', 'sub' => NULL)
@@ -71,9 +71,12 @@ class samples_db_list extends dom_div
 		editor_generic::addeditor('ed_pager',new util_small_pager);
 		$this->sdiv->append_child($this->editors['ed_pager']);
 		
-		editor_generic::addeditor('ed_new',new editor_button);
-		$this->sdiv->append_child($this->editors['ed_new']);
-		$this->editors['ed_new']->attributes['value']='Добавить';
+		if($_SESSION['interface']!='samples_view')
+		{
+			editor_generic::addeditor('ed_new',new editor_button);
+			$this->sdiv->append_child($this->editors['ed_new']);
+			$this->editors['ed_new']->attributes['value']='Добавить';
+		}
 		
 		editor_generic::addeditor('ed_list',new sdb_QR);
 		$this->append_child($this->editors['ed_list']);
@@ -155,6 +158,11 @@ class samples_db_list extends dom_div
 		switch($ev->rem_name)
 		{
 			case 'ed_new':
+				if($_SESSION['interface']=='samples_view')
+				{
+					print "alert('Редактирование отключено');window.location.reload(true);";
+					exit;
+				}
 				if($sql->query("INSERT INTO `samples_raw` SET id=''")!==false)
 				{
 					$r=$sql->qv("SELECT LAST_INSERT_ID()");
@@ -166,6 +174,11 @@ class samples_db_list extends dom_div
 				};
 				break;
 			case 'ed_list.del':
+				if($_SESSION['interface']=='samples_view')
+				{
+					print "alert('Редактирование отключено');window.location.reload(true);";
+					exit;
+				}
 				$this->cascade_delete($ev->keys['id']);
 				$qg=new query_gen_ext('DELETE');
 				$qg->where->exprs[]=new sql_expression('=',Array(
@@ -177,6 +190,11 @@ class samples_db_list extends dom_div
 				$ev->do_reload=true;
 				break;
 			case 'ed_list.clone':
+				if($_SESSION['interface']=='samples_view')
+				{
+					print "alert('Редактирование отключено');window.location.reload(true);";
+					exit;
+				}
 				$qg=new query_gen_ext('INSERT SELECT');
 				$qg->into->exprs[]=new sql_column(NULL,'samples_raw');
 				$qg->from->exprs[]=new sql_column(NULL,'samples_raw');
@@ -330,7 +348,11 @@ class samples_db_item extends dom_div
 	function html_inner()
 	{
 		global $sql,$ddc_tables;
-		$can_edit=true;
+		if($_SESSION['interface']!='samples_view')
+			$can_edit=true;
+		else
+			$can_edit=false;
+		
 		$qg=new query_gen_ext('SELECT');
 		$qg->from->exprs[]=new sql_column(NULL,'samples_raw',NULL,'s');
 		
@@ -382,6 +404,11 @@ class samples_db_item extends dom_div
 		$this->long_name=$ev->parent_name;
 		$this->oid=$ev->context[$ev->parent_name]['oid'];
 		$st=new settings_tool;
+		if($_SESSION['interface']=='samples_view')
+		{
+			print "alert('Редактирование отключено');window.location.reload(true);";
+			exit;
+		}
 		foreach($ddc_tables['samples_raw']->cols as $col)
 			if($ev->rem_name=='e'.$col['name'])
 			{
@@ -562,6 +589,16 @@ class sdb_attachments extends dom_div
 		
 		$this->attachments=new dom_table;
 		$this->append_child($this->attachments);
+		if($_SESSION['interface']!='samples_view')
+		{
+			$adescr_editor='editor_text';
+			$adel_editor='editor_button_image';
+		}else{
+			$adescr_editor='editor_statictext';
+			$adel_editor='editor_statictext';
+		}
+		
+		
 		
 		$this->atr=new dom_tr;
 		$this->attachments->append_child($this->atr);
@@ -584,13 +621,13 @@ class sdb_attachments extends dom_div
 		$td=new dom_td;
 		$this->atr->append_child($td);
 		unset($td->id);
-		editor_generic::addeditor('adescr',new editor_text);
+		editor_generic::addeditor('adescr',new $adescr_editor);
 		$td->append_child($this->editors['adescr']);
 		
 		$td=new dom_td;
 		$this->atr->append_child($td);
 		unset($td->id);
-		editor_generic::addeditor('adel',new editor_button_image);
+		editor_generic::addeditor('adel',new $adel_editor);
 		$td->append_child($this->editors['adel']);
 		
 		$this->ahtr=new dom_tr;
@@ -601,10 +638,16 @@ class sdb_attachments extends dom_div
 		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Описание'));
 		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Операции'));
 		
-		editor_generic::addeditor('aadd',new editor_file_upload);
-		$this->append_child($this->editors['aadd']);
-		$this->editors['aadd']->type_hidden->attributes['value']='rawname';
-		$this->editors['aadd']->normal_postback=1;
+		if($_SESSION['interface']!='samples_view')
+		{
+			editor_generic::addeditor('aadd',new editor_file_upload);
+			$this->append_child($this->editors['aadd']);
+			$this->editors['aadd']->type_hidden->attributes['value']='rawname';
+			$this->editors['aadd']->normal_postback=1;
+		}else{
+			editor_generic::addeditor('aadd',new editor_statictext);
+			$this->append_child($this->editors['aadd']);
+		}
 		
 		
 		$this->notr=new dom_tr;
@@ -637,7 +680,10 @@ class sdb_attachments extends dom_div
 	function html_inner()
 	{
 		global $sql,$ddc_tables;
-		$can_edit=true;
+		if($_SESSION['interface']!='samples_view')
+			$can_edit=true;
+		else
+			$can_edit=false;
 		$qg=new query_gen_ext('SELECT');
 		
 		$qg->where->exprs[]=new sql_expression('=',
@@ -1123,15 +1169,21 @@ class sdb_QR extends dom_div
 		$this->tr->append_child($this->td_b);
 		unset($this->td_b->id);
 		
-		editor_generic::addeditor('del',new editor_button_image);
-		$this->td_b->append_child($this->editors['del']);
-		$this->editors['del']->attributes['title']='Удалить';
+		if($_SESSION['interface']!='samples_view')
+		{
+			editor_generic::addeditor('del',new editor_button_image);
+			$this->td_b->append_child($this->editors['del']);
+			$this->editors['del']->attributes['title']='Удалить';
+		}
 		editor_generic::addeditor('edit',new editor_button_image);
 		$this->td_b->append_child($this->editors['edit']);
 		$this->editors['edit']->attributes['title']='Редактировать/просмотреть';
-		editor_generic::addeditor('clone',new editor_button_image);
-		$this->td_b->append_child($this->editors['clone']);
-		$this->editors['clone']->attributes['title']='Копировать';
+		if($_SESSION['interface']!='samples_view')
+		{
+			editor_generic::addeditor('clone',new editor_button_image);
+			$this->td_b->append_child($this->editors['clone']);
+			$this->editors['clone']->attributes['title']='Копировать';
+		}
 	}
 	
 	function bootstrap()
