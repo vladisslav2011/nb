@@ -443,6 +443,7 @@ class editor_checkbox extends dom_any_noterm
 	{
 		editor_generic::bootstrap();
 		$this->attributes['onchange']="chse.timerch(true);";
+//		$this->attributes['onclick']="chse.timerch(true);";
 		
 		//$this->attributes['onfocus']='';
 		//$this->attributes['onblur']='';

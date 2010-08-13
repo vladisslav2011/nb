@@ -629,6 +629,7 @@ class sdb_attachments extends dom_div
 		unset($td->id);
 		editor_generic::addeditor('adel',new $adel_editor);
 		$td->append_child($this->editors['adel']);
+		$this->editors['adel']->attributes['src']='/i/del.png';
 		
 		$this->ahtr=new dom_tr;
 		$this->attachments->append_child($this->ahtr);
@@ -1174,15 +1175,18 @@ class sdb_QR extends dom_div
 			editor_generic::addeditor('del',new editor_button_image);
 			$this->td_b->append_child($this->editors['del']);
 			$this->editors['del']->attributes['title']='Удалить';
+			$this->editors['del']->attributes['src']='/i/del.png';
 		}
 		editor_generic::addeditor('edit',new editor_button_image);
 		$this->td_b->append_child($this->editors['edit']);
 		$this->editors['edit']->attributes['title']='Редактировать/просмотреть';
+		$this->editors['edit']->attributes['src']='/i/edit.png';
 		if($_SESSION['interface']!='samples_view')
 		{
 			editor_generic::addeditor('clone',new editor_button_image);
 			$this->td_b->append_child($this->editors['clone']);
 			$this->editors['clone']->attributes['title']='Копировать';
+			$this->editors['clone']->attributes['src']='/i/copy.png';
 		}
 	}
 	
