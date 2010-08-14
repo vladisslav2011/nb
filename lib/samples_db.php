@@ -85,6 +85,8 @@ class samples_db_list extends dom_div
 		$this->append_child($this->editors['ed_download']);
 		
 		
+		
+		
 	}
 	
 	function bootstrap()
@@ -110,6 +112,7 @@ class samples_db_list extends dom_div
 		$this->args['ed_offset']=$this->rootnode->setting_val($this->oid,$this->long_name.'._offset',0);
 		$this->args['ed_filters']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._filters',0));
 		$this->args['ed_order']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._order',0));
+		$this->editors['ed_list']->table_name='samples_raw';
 		parent::html_inner();
 	}
 	
@@ -249,6 +252,7 @@ class samples_db_list extends dom_div
 			$this->args['ed_filters']=$ev->settings->filters;
 			$this->args['ed_order']=$ev->settings->order;
 			$r=new sdb_QR;
+			$r->table_name='samples_raw';
 			
 			$r->context=&$ev->context;
 			$r->keys=&$ev->keys;
@@ -574,6 +578,224 @@ $tests_m_array['samples_db']['samples_db_item']='samples_db_item';
 
 class samples_db_users extends dom_div
 {
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		$this->sdiv=new dom_div;
+		$this->append_child($this->sdiv);
+		
+		
+		
+		
+		editor_generic::addeditor('ed_filters',new sdb_filters);
+		$this->sdiv->append_child($this->editors['ed_filters']);
+		
+		editor_generic::addeditor('ed_order',new sdb_order);
+		$this->sdiv->append_child($this->editors['ed_order']);
+		
+		editor_generic::addeditor('ed_pager',new util_small_pager);
+		$this->sdiv->append_child($this->editors['ed_pager']);
+		
+		if($_SESSION['interface']!='samples_view')
+		{
+			editor_generic::addeditor('ed_new',new editor_button);
+			$this->sdiv->append_child($this->editors['ed_new']);
+			$this->editors['ed_new']->attributes['value']='Добавить';
+		}
+		
+		editor_generic::addeditor('ed_list',new sdb_QR);
+		$this->append_child($this->editors['ed_list']);
+		
+		editor_generic::addeditor('ed_download',new sdb_DL);
+		$this->append_child($this->editors['ed_download']);
+		
+		
+		
+		
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		$this->context[$this->long_name]['oid']=$this->oid;
+		$this->context[$this->long_name]['ed_list_id']=$this->editors['ed_list']->id_gen();
+		foreach($this->editors as $i => $e)
+		{
+			$e->oid=$this->oid;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+		}
+		foreach($this->editors as $e)
+			$e->bootstrap();
+	}
+	
+	function html_inner()
+	{
+		$this->args['ed_count']=$this->rootnode->setting_val($this->oid,$this->long_name.'._count',20);
+		$this->args['ed_offset']=$this->rootnode->setting_val($this->oid,$this->long_name.'._offset',0);
+		$this->args['ed_filters']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._filters',0));
+		$this->args['ed_order']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._order',0));
+		$this->editors['ed_list']->table_name='*users';
+		parent::html_inner();
+	}
+	
+	function cascade_delete($id)
+	{
+		global $sql;
+		$doc_root=$_SERVER['DOCUMENT_ROOT'];
+		if(preg_match('#.*[^/]$#',$doc_root))$doc_root.='/';
+		$qg=new query_gen_ext("SELECT");
+		$qg->from->exprs[]=new sql_column(NULL,'samples_attachments');
+		$qg->where->exprs[]=new sql_expression('=',Array(
+			new sql_column(NULL,NULL,'id'),
+			new sql_immed($id)
+		));
+		$qg->what->exprs[]=new sql_column(NULL,NULL,'aid');
+		$qg->what->exprs[]=new sql_column(NULL,NULL,'filename');
+		$res=$sql->query($qg->result());
+		while($row=$sql->fetchn($res))
+		{
+			$full=$doc_root.'si/o/'.$id.'/'.$row[1];
+			$thumb=$doc_root.'si/t/'.$id.'/'.$row[1];
+			if(file_exists($full))unlink($full);
+			if(file_exists($thumb))unlink($thumb);
+		}
+		$qg=new query_gen_ext("DELETE");
+		$qg->from->exprs[]=new sql_column(NULL,'samples_attachments');
+		$qg->where->exprs[]=new sql_expression('=',Array(
+			new sql_column(NULL,NULL,'id'),
+			new sql_immed($id)
+		));
+		$sql->query($qg->result());
+		
+	}
+	
+	function handle_event($ev)
+	{
+		global $sql,$ddc_tables;
+		$ev->do_reload=false;
+		$this->long_name=$ev->parent_name;
+		$this->oid=$ev->context[$ev->parent_name]['oid'];
+		$st=new settings_tool;
+		$filters=$sql->qv($st->single_query($this->oid,$this->long_name."._filters",$_SESSION['uid'],0));
+		$ev->settings->filters=unserialize($filters[0]);
+		$order=$sql->qv($st->single_query($this->oid,$this->long_name."._order",$_SESSION['uid'],0));
+		$ev->settings->order=unserialize($order[0]);
+		switch($ev->rem_name)
+		{
+			case 'ed_new':
+				if($_SESSION['interface']=='samples_view')
+				{
+					print "alert('Редактирование отключено');window.location.reload(true);";
+					exit;
+				}
+				if($sql->query("INSERT INTO `samples_raw` SET id=''")!==false)
+				{
+					$r=$sql->qv("SELECT LAST_INSERT_ID()");
+					print "window.location.href='".js_escape('?p=samples_db_item&id='.urlencode($r[0]))."';";
+					exit;
+					$ev->do_reload=true;
+				}else{
+					print "alert('Не удалось добавить запись.');";
+				};
+				break;
+			case 'ed_list.del':
+				if($_SESSION['interface']=='samples_view')
+				{
+					print "alert('Редактирование отключено');window.location.reload(true);";
+					exit;
+				}
+				$this->cascade_delete($ev->keys['id']);
+				$qg=new query_gen_ext('DELETE');
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				$qg->from->exprs[]=new sql_column(NULL,'samples_raw');
+				$sql->query($qg->result());
+				$ev->do_reload=true;
+				break;
+			case 'ed_list.clone':
+				if($_SESSION['interface']=='samples_view')
+				{
+					print "alert('Редактирование отключено');window.location.reload(true);";
+					exit;
+				}
+				$qg=new query_gen_ext('INSERT SELECT');
+				$qg->into->exprs[]=new sql_column(NULL,'samples_raw');
+				$qg->from->exprs[]=new sql_column(NULL,'samples_raw');
+				foreach($ddc_tables['samples_raw']->cols as $col)
+				{
+					if($col['name']!='id')
+						$qg->what->exprs[]=new sql_column(NULL,NULL,$col['name'],$col['name']);
+				}
+				$qg->what->exprs[]=new sql_immed('','id');
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				
+				if($sql->query($qg->result())!==false)
+				{
+					$r=$sql->qv("SELECT LAST_INSERT_ID()");
+					print "window.location.href='".js_escape('?p=samples_db_item&id='.urlencode($r[0]))."';";
+					exit;
+					$ev->do_reload=true;
+				}else{
+					print "alert('Не удалось добавить запись.');";
+				};
+				break;
+			case 'ed_list.edit':
+				print "window.location.href='".js_escape('?p=samples_db_item&id='.urlencode($ev->keys['id']))."';";
+				exit;
+				break;
+			case 'ed_pager.ed_offset':
+				$sql->query($st->set_query($this->oid,$this->long_name.'._offset',$_SESSION['uid'],0,$_POST['val']));
+				$ev->do_reload=true;
+				break;
+			case 'ed_pager.ed_count':
+				$sql->query($st->set_query($this->oid,$this->long_name.'._count',$_SESSION['uid'],0,$_POST['val']));
+				$ev->do_reload=true;
+				break;
+		};
+		
+		
+		editor_generic::handle_event($ev);
+		if($ev->filters_changed)
+			$sql->query($st->set_query($this->oid,$this->long_name."._filters",$_SESSION['uid'],0,serialize($ev->settings->filters)));
+		if($ev->order_changed)
+			$sql->query($st->set_query($this->oid,$this->long_name."._order",$_SESSION['uid'],0,serialize($ev->settings->order)));
+		if($ev->changed)$ev->do_reload=true;
+		if($ev->do_reload)
+		{
+			$offset_a=$sql->qv($st->single_query($this->oid,$this->long_name."._offset",$_SESSION['uid'],0));
+			$count_a=$sql->qv($st->single_query($this->oid,$this->long_name."._count",$_SESSION['uid'],0));
+			$this->args['ed_offset']=$offset_a[0];
+			$this->args['ed_count']=$count_a[0];
+			$this->args['ed_filters']=$ev->settings->filters;
+			$this->args['ed_order']=$ev->settings->order;
+			$r=new sdb_QR;
+			$r->table_name='*users';
+			
+			$r->context=&$ev->context;
+			$r->keys=&$ev->keys;
+			$r->oid=$oid;
+			$r->args=$this->args;
+			$r->name=$ev->parent_name.".ed_list";
+			$r->etype=$ev->parent_type.".sdb_QR";
+
+			print "(function(){var nya=\$i('".js_escape($ev->context[$this->long_name]['ed_list_id'])."');";
+			print "try{nya.innerHTML=";
+			reload_object($r,true);
+			print "}catch(e){/* window.location.reload(true);*/};})();";
+		}
+		
+		
+	}
+	
 };
 $tests_m_array['samples_db']['samples_db_users']='samples_db_users';
 
@@ -1237,9 +1459,9 @@ class sdb_QR extends dom_div
 		$this->tbl->html_head();
 		
 		$qg=new query_gen_ext('SELECT');
-		$qg->from->exprs[]=new sql_column(NULL,'samples_raw',NULL,'s');
+		$qg->from->exprs[]=new sql_column(NULL,$this->table_name,NULL,'s');
 		$this->tr->html_head();
-		foreach($ddc_tables['samples_raw']->cols as $col)
+		foreach($ddc_tables[$this->table_name]->cols as $col)
 		{
 			$qg->what->exprs[]=new sql_column(NULL,'s',$col['name']);
 			$this->td_text->text=$col['name'];
@@ -1259,7 +1481,7 @@ class sdb_QR extends dom_div
 				if($e->col=='any')
 				{
 					$op=new sql_expression('OR');
-					foreach($ddc_tables['samples_raw']->cols as $col)
+					foreach($ddc_tables[$this->table_name]->cols as $col)
 					{
 						$op->exprs[]=new sql_expression($this->map_op($e->operator),Array(
 							new sql_column(NULL,NULL,$col['name']),
@@ -1277,12 +1499,15 @@ class sdb_QR extends dom_div
 		if(is_array($this->args['ed_order']))
 			foreach($this->args['ed_order'] as $e)
 			{
-				$col=($e->col=='')?$ddc_tables['samples_raw']->cols[0]['name']:$e->col;
+				$col=($e->col=='')?$ddc_tables[$this->table_name]->cols[0]['name']:$e->col;
 				$m=new sql_column(NULL,NULL,$col);
 				$m->invert=$e->invert;
 				$qg->order->exprs[]=$m;
 					
 			}
+		$pk_cols=Array();
+		foreach($ddc_tables[$this->table_name]->keys as $k)
+			if($k['key']=='PRIMARY')$pk_cols[]=$k['name'];
 		$qg->lim_count=$this->args['ed_count'];
 		$qg->lim_offset=$this->args['ed_offset'];
 		$qc=$qg->result();
@@ -1294,10 +1519,11 @@ class sdb_QR extends dom_div
 			foreach($row as $rn=>$rv)
 			{
 				$this->td_text->text=$rv;
-				$this->td->attributes['title']=$ddc_tables['samples_raw']->cols[$rn]['name'];
+				$this->td->attributes['title']=$ddc_tables[$this->table_name]->cols[$rn]['name'];
 				$this->td->html();
 			}
-			$this->keys['id']=$row['id'];
+			foreach($pk_cols as $k)
+				$this->keys[$k]=$row[$k];
 			foreach($this->editors as $e)
 				$e->bootstrap();
 			$this->td_b->html();
