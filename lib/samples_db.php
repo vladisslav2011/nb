@@ -584,7 +584,7 @@ class samples_db_users extends dom_div
 		$this->etype=get_class($this);
 		$this->sdiv=new dom_div;
 		$this->append_child($this->sdiv);
-		
+		$this->table_name='*users';
 		
 		
 		
@@ -638,40 +638,10 @@ class samples_db_users extends dom_div
 		$this->args['ed_offset']=$this->rootnode->setting_val($this->oid,$this->long_name.'._offset',0);
 		$this->args['ed_filters']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._filters',0));
 		$this->args['ed_order']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._order',0));
-		$this->editors['ed_list']->table_name='*users';
+		$this->editors['ed_list']->table_name=$this->table_name;
 		parent::html_inner();
 	}
 	
-	function cascade_delete($id)
-	{
-		global $sql;
-		$doc_root=$_SERVER['DOCUMENT_ROOT'];
-		if(preg_match('#.*[^/]$#',$doc_root))$doc_root.='/';
-		$qg=new query_gen_ext("SELECT");
-		$qg->from->exprs[]=new sql_column(NULL,'samples_attachments');
-		$qg->where->exprs[]=new sql_expression('=',Array(
-			new sql_column(NULL,NULL,'id'),
-			new sql_immed($id)
-		));
-		$qg->what->exprs[]=new sql_column(NULL,NULL,'aid');
-		$qg->what->exprs[]=new sql_column(NULL,NULL,'filename');
-		$res=$sql->query($qg->result());
-		while($row=$sql->fetchn($res))
-		{
-			$full=$doc_root.'si/o/'.$id.'/'.$row[1];
-			$thumb=$doc_root.'si/t/'.$id.'/'.$row[1];
-			if(file_exists($full))unlink($full);
-			if(file_exists($thumb))unlink($thumb);
-		}
-		$qg=new query_gen_ext("DELETE");
-		$qg->from->exprs[]=new sql_column(NULL,'samples_attachments');
-		$qg->where->exprs[]=new sql_expression('=',Array(
-			new sql_column(NULL,NULL,'id'),
-			new sql_immed($id)
-		));
-		$sql->query($qg->result());
-		
-	}
 	
 	function handle_event($ev)
 	{
@@ -692,10 +662,10 @@ class samples_db_users extends dom_div
 					print "alert('Редактирование отключено');window.location.reload(true);";
 					exit;
 				}
-				if($sql->query("INSERT INTO `samples_raw` SET id=''")!==false)
+				if($sql->query("INSERT INTO `".$this->table_name."` SET uid=''")!==false)
 				{
 					$r=$sql->qv("SELECT LAST_INSERT_ID()");
-					print "window.location.href='".js_escape('?p=samples_db_item&id='.urlencode($r[0]))."';";
+					print "window.location.href='".js_escape('?p=samples_db_usersitem&uid='.urlencode($r[0]))."';";
 					exit;
 					$ev->do_reload=true;
 				}else{
@@ -708,13 +678,13 @@ class samples_db_users extends dom_div
 					print "alert('Редактирование отключено');window.location.reload(true);";
 					exit;
 				}
-				$this->cascade_delete($ev->keys['id']);
+				$this->cascade_delete($ev->keys['uid']);
 				$qg=new query_gen_ext('DELETE');
 				$qg->where->exprs[]=new sql_expression('=',Array(
-					new sql_column(NULL,NULL,'id'),
-					new sql_immed($ev->keys['id'])
+					new sql_column(NULL,NULL,'uid'),
+					new sql_immed($ev->keys['uid'])
 					));
-				$qg->from->exprs[]=new sql_column(NULL,'samples_raw');
+				$qg->from->exprs[]=new sql_column(NULL,$this->table_name);
 				$sql->query($qg->result());
 				$ev->do_reload=true;
 				break;
@@ -725,23 +695,23 @@ class samples_db_users extends dom_div
 					exit;
 				}
 				$qg=new query_gen_ext('INSERT SELECT');
-				$qg->into->exprs[]=new sql_column(NULL,'samples_raw');
-				$qg->from->exprs[]=new sql_column(NULL,'samples_raw');
-				foreach($ddc_tables['samples_raw']->cols as $col)
+				$qg->into->exprs[]=new sql_column(NULL,$this->table_name);
+				$qg->from->exprs[]=new sql_column(NULL,$this->table_name);
+				foreach($ddc_tables[$this->table_name]->cols as $col)
 				{
-					if($col['name']!='id')
+					if($col['name']!='uid')
 						$qg->what->exprs[]=new sql_column(NULL,NULL,$col['name'],$col['name']);
 				}
-				$qg->what->exprs[]=new sql_immed('','id');
+				$qg->what->exprs[]=new sql_immed('','uid');
 				$qg->where->exprs[]=new sql_expression('=',Array(
-					new sql_column(NULL,NULL,'id'),
-					new sql_immed($ev->keys['id'])
+					new sql_column(NULL,NULL,'uid'),
+					new sql_immed($ev->keys['uid'])
 					));
 				
 				if($sql->query($qg->result())!==false)
 				{
 					$r=$sql->qv("SELECT LAST_INSERT_ID()");
-					print "window.location.href='".js_escape('?p=samples_db_item&id='.urlencode($r[0]))."';";
+					print "window.location.href='".js_escape('?p=samples_db_usersitem&uid='.urlencode($r[0]))."';";
 					exit;
 					$ev->do_reload=true;
 				}else{
@@ -749,7 +719,7 @@ class samples_db_users extends dom_div
 				};
 				break;
 			case 'ed_list.edit':
-				print "window.location.href='".js_escape('?p=samples_db_item&id='.urlencode($ev->keys['id']))."';";
+				print "window.location.href='".js_escape('?p=samples_db_usersitem&uid='.urlencode($ev->keys['uid']))."';";
 				exit;
 				break;
 			case 'ed_pager.ed_offset':
@@ -788,6 +758,7 @@ class samples_db_users extends dom_div
 			$r->etype=$ev->parent_type.".sdb_QR";
 
 			print "(function(){var nya=\$i('".js_escape($ev->context[$this->long_name]['ed_list_id'])."');";
+			
 			print "try{nya.innerHTML=";
 			reload_object($r,true);
 			print "}catch(e){/* window.location.reload(true);*/};})();";
@@ -798,6 +769,179 @@ class samples_db_users extends dom_div
 	
 };
 $tests_m_array['samples_db']['samples_db_users']='samples_db_users';
+
+class samples_db_usersitem extends dom_div
+{
+	function __construct()
+	{
+		global $sql,$ddc_tables;
+		parent::__construct();
+		$this->table_name='*users';
+		$this->etype=get_class($this);
+		$this->sdiv=new dom_div;
+		$this->append_child($this->sdiv);
+		
+		$this->editing=new dom_table;
+		$this->append_child($this->editing);
+		$this->viewonly=new dom_table;
+		$this->append_child($this->viewonly);
+		
+		foreach($ddc_tables[$this->table_name]->cols as $col)
+		{
+			$tr=new dom_tr;
+			$this->editing->append_child($tr);
+			
+			$ntd=new dom_td;
+			$tr->append_child($ntd);
+			$ntext=new dom_statictext;
+			$ntd->append_child($ntext);
+			$ntext->text=isset($col['hname'])?$col['hname']:$col['name'];
+			
+			$ntd=new dom_td;
+			$tr->append_child($ntd);
+			$ed='editor_text';
+			if(isset($col['editor']))$ed=$col['editor'];
+			editor_generic::addeditor('e'.$col['name'],new $ed);
+			$ntd->append_child($this->editors['e'.$col['name']]);
+			
+			$tr=new dom_tr;
+			$this->viewonly->append_child($tr);
+			
+			$ntd=new dom_td;
+			$tr->append_child($ntd);
+			$ntext=new dom_statictext;
+			$ntd->append_child($ntext);
+			$ntext->text=isset($col['hname'])?$col['hname']:$col['name'];
+			
+			$ntd=new dom_td;
+			$tr->append_child($ntd);
+			$ed='editor_statictext';
+			if(isset($col['viewer']))$ed=$col['viewer'];
+			editor_generic::addeditor('v'.$col['name'],new $ed);
+			$ntd->append_child($this->editors['v'.$col['name']]);
+			
+		}
+		
+		
+		
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		$this->context[$this->long_name]['oid']=$this->oid;
+		if(!is_array($this->args))$this->args=Array();
+		if(!is_array($this->keys))$this->keys=Array();
+		foreach($this->editors as $i=>$e)
+		{
+			$e->oid=$this->oid;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+		}
+		foreach($this->editors as $e)
+			$e->bootstrap();
+	}
+	
+	function html_inner()
+	{
+		global $sql,$ddc_tables;
+		if($_SESSION['interface']!='samples_view')
+			$can_edit=true;
+		else
+			$can_edit=false;
+		
+		$qg=new query_gen_ext('SELECT');
+		$qg->from->exprs[]=new sql_column(NULL,$this->table_name,NULL,'s');
+		
+		foreach($ddc_tables[$this->table_name]->cols as $col)
+		{
+			$qg->what->exprs[]=new sql_column(NULL,'s',$col['name']);
+		}
+		
+		$qg->where->exprs[]=new sql_expression('=',
+			Array(
+				new sql_column(NULL,'s','uid'),
+				new sql_immed($_GET['uid'])
+				));
+		$qc=$qg->result();
+		$res=$sql->query($qc);
+		while($row=$sql->fetcha($res))
+		{
+			foreach($row as $ri => $rv)
+			{
+				$this->args[($can_edit?'e':'v').$ri]=$rv;
+			}
+		}
+		$this->keys['uid']=$_GET['uid'];
+		if($can_edit)
+		{
+			foreach($this->editors as $e)
+				$e->bootstrap();
+			$this->editing->html();
+		}
+		else
+		{
+			foreach($this->editors as $e)
+				$e->bootstrap();
+			$this->viewonly->html();
+		}
+			
+	}
+	
+	function gen_preview($name)
+	{
+		return $name;
+	}
+	
+	function handle_event($ev)
+	{
+		global $sql,$ddc_tables;
+		$ev->do_reload=false;
+		$this->long_name=$ev->parent_name;
+		$this->oid=$ev->context[$ev->parent_name]['oid'];
+		$st=new settings_tool;
+		if($_SESSION['interface']=='samples_view')
+		{
+			print "alert('Редактирование отключено');window.location.reload(true);";
+			exit;
+		}
+		foreach($ddc_tables[$this->table_name]->cols as $col)
+			if($ev->rem_name=='e'.$col['name'])
+			{
+				$qg=new query_gen_ext('update');
+				$qg->into->exprs[]=new sql_column(NULL,$this->table_name,NULL,'s');
+				foreach($ddc_tables[$this->table_name]->keys as $key)
+					if($key['key']=='PRIMARY')
+						$qg->where->exprs[]=new sql_expression('=',
+							Array(
+								new sql_column(NULL,'s',$key['name']),
+								new sql_immed($ev->keys[$key['name']])
+								));
+				$qg->set->exprs[]=new sql_expression('=',
+					Array(
+						new sql_column(NULL,'s',$col['name']),
+						new sql_immed($_POST['val'])
+						));
+				$r=$sql->query($qg->result());
+/*				if($r===false)
+					print "alert('".js_escape($qg->result())."');";*/
+			}
+
+		$doc_root=$_SERVER['DOCUMENT_ROOT'];
+		if(preg_match('#.*[^/]$#',$doc_root))$doc_root.='/';
+		
+		
+		editor_generic::handle_event($ev);
+		
+		
+		
+	}
+	
+
+};
+$tests_m_array['samples_db']['samples_db_usersitem']='samples_db_usersitem';
 
 
 
@@ -1537,7 +1681,6 @@ class sdb_QR extends dom_div
 		editor_generic::handle_event($ev);
 	}
 }
-
 
 
 
