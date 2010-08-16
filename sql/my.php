@@ -96,6 +96,13 @@ class sql
 		else
 			return mysql_escape_string($s);
 	}
+	function escl($s)
+	{
+		if(isset($this))if($this->conn)
+			return mysql_real_escape_string(str_replace('_','\\_',str_replace('%','\\%',$s)),$this->conn);
+		else
+			return mysql_escape_string(str_replace('_','\\_',str_replace('%','\\%',$s)));
+	}
 	function err()
 	{
 		return mysql_error();

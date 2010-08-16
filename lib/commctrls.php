@@ -2380,24 +2380,6 @@ class editor_txtasg extends dom_div
 	}
 	
 
-	function fetch_list($ev,$part=NULL)
-	{
-		return Array(
-			Array(
-				'val'=>'line1',
-				'title'=>'title for line 1'//works
-				),
-			Array(
-				'val'=>'line2',
-				'hint'=>'hint for line 2' //TODO: implement hint
-				),
-			Array(
-				'val'=>'line3',//TODO: implement dynamic hint request
-				'qh'=>1
-				),
-			);
-	}
-
 	function bootstrap()
 	{
 		$this->long_name=editor_generic::long_name();
@@ -2574,7 +2556,35 @@ class editor_txtasg_list extends dom_table
 
 }
 
-$tests_m_array['simple']['editor_txtasg']='editor_txtasg';
+class editor_txtasg_test_list extends editor_txtasg
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+	}
+	
+	function fetch_list($ev,$part=NULL)
+	{
+		return Array(
+			Array(
+				'val'=>'line1',
+				'title'=>'title for line 1'//works
+				),
+			Array(
+				'val'=>'line2',
+				'hint'=>'hint for line 2' //TODO: implement hint
+				),
+			Array(
+				'val'=>'line3',//TODO: implement dynamic hint request
+				'qh'=>1
+				),
+			);
+	}
+}
+
+
+$tests_m_array['simple']['editor_txtasg_test_list']='editor_txtasg_test_list';
 
 
 

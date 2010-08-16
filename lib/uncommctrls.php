@@ -1918,6 +1918,9 @@ class util_small_pager extends dom_div
 		
 		$tbl=new container_autotable;
 		$this->append_child($tbl);
+		$this->tbl=$tbl;// !!!!!!!!!! $tbl exported
+		
+		
 		$this->ed_zero=new dom_any_noterm('input');
 		$this->ed_zero->attributes['type']='button';
 		$this->ed_zero->attributes['value']='«';

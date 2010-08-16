@@ -1693,6 +1693,990 @@ class sdb_QR extends dom_div
 //###################################################################################################################
 //###################################################################################################################
 
+class editor_txtasg_QRVA extends editor_txtasg
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+	}
+	
+	function fetch_list($ev,$part=NULL)
+	{
+		global $sql,$ddc_tables;
+		$r= Array(
+/*			Array(
+				'val'=>$ev->long_name,
+				'title'=>'long_name'//works
+				),
+			Array(
+				'val'=>$ev->rem_name,
+				'title'=>'rem_name'//works
+				),
+			Array(
+				'val'=>$ev->parent_name,
+				'title'=>'parent_name'//works
+				),
+			Array(
+				'val'=>"ed_db=".$ev->ed_db,
+				'title'=>'ed_db'//works
+				),
+			Array(
+				'val'=>"ed_table=".$ev->ed_table,
+				'title'=>'ed_table'//works
+				),
+			Array(
+				'val'=>"ed_column=".$ev->ed_column,
+				'title'=>'ed_column'//works
+				),
+			Array(
+				'val'=>"db=".$ev->settings->db,
+				'title'=>'db'//works
+				),
+			Array(
+				'val'=>'line2',
+				'hint'=>'hint for line 2' //TODO: implement hint
+				),
+			Array(
+				'val'=>'line3',//TODO: implement dynamic hint request
+				'qh'=>1
+				)*/
+			);
+		if($ev->ed_db===1)
+		{
+			$r[]=Array('val'=>'','title'=>'current');
+			$res=$sql->query("SHOW DATABASES".(($part !== NULL)?" LIKE '%".$sql->escl($part)."%'":""));
+			while($row=$sql->fetchn($res))
+			{
+				$r[]=Array('val'=>$row[0],'title'=>$row[0]);
+			};
+			$sql->free($res);
+		};
+		if($ev->ed_table===1)
+		{
+			$res=$sql->query("SHOW TABLES".(($ev->settings->db !='')?" FROM `".$sql->esc($ev->settings->db)."`":"").(($part !== NULL)?" LIKE '%".$sql->escl($part)."%'":""));
+			while($row=$sql->fetchn($res))
+			{
+				$r[]=Array('val'=>$row[0],'title'=>$row[0]);
+			};
+			$sql->free($res);
+		};
+		if($ev->ed_column===1)
+		{
+			if(($ev->settings->db =='')&& isset($ddc_tables[$ev->settings->table]))
+			{
+				foreach($ddc_tables[$ev->settings->table]->cols as $col)
+					$r[]=Array('val'=>$col['name'],'title'=>$col['hname']);
+			}else{
+				$fr=(($ev->settings->db !='')?"`".$sql->esc($ev->settings->db)."`.":"")."`".$sql->esc($ev->settings->table)."`";
+				$res=$sql->query("SHOW COLUMNS FROM ".$fr.(($part !== NULL)?" LIKE '%".$sql->escl($part)."%'":""));
+				while($row=$sql->fetcha($res))
+				{
+					$r[]=Array('val'=>$row['Field'],'title'=>$row['Field']);
+				};
+				$sql->free($res);
+			}
+		};
+		return $r;
+	}
+	
+}
+
+
+class query_result_viewer_any extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		$this->sdiv=new dom_div;
+		$this->append_child($this->sdiv);
+		
+		
+		$autotbl=new container_autotable;
+		$this->sdiv->append_child($autotbl);
+		editor_generic::addeditor('ed_db',new editor_txtasg_QRVA);
+		$autotbl->append_child($this->editors['ed_db']);
+		#$this->sdiv->append_child(new dom_any_noterm('br'));
+		editor_generic::addeditor('ed_table',new editor_txtasg_QRVA);
+		$autotbl->append_child($this->editors['ed_table']);
+		
+		$this->link_save_xml=new dom_any('a');
+		$autotbl->append_child($this->link_save_xml);
+		$txt=new dom_statictext('xml');
+		$this->link_save_xml->append_child($txt);
+		
+		$this->link_save_csv=new dom_any('a');
+		$autotbl->append_child($this->link_save_csv);
+		$txt=new dom_statictext('csv');
+		$this->link_save_csv->append_child($txt);
+		
+		
+		editor_generic::addeditor('ed_filters',new QRVA_filters);
+		$this->sdiv->append_child($this->editors['ed_filters']);
+		
+		editor_generic::addeditor('ed_order',new QRVA_order);
+		$this->sdiv->append_child($this->editors['ed_order']);
+		
+		editor_generic::addeditor('ed_pager',new util_small_pager);
+		$this->sdiv->append_child($this->editors['ed_pager']);
+		
+		editor_generic::addeditor('ed_new',new editor_button);
+		$this->sdiv->append_child($this->editors['ed_new']);
+		$this->editors['ed_new']->attributes['value']='Добавить';
+		
+		editor_generic::addeditor('ed_list',new QRVA_QR);
+		$this->append_child($this->editors['ed_list']);
+		
+		editor_generic::addeditor('ed_download',new sdb_DL);
+		$this->append_child($this->editors['ed_download']);
+		
+		
+		
+		
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		$this->context[$this->long_name]['oid']=$this->oid;
+		$this->context[$this->long_name]['ed_list_id']=$this->editors['ed_list']->id_gen();
+		$this->args['ed_table']=$this->rootnode->setting_val($this->oid,$this->long_name.'._table','');
+		$this->args['ed_db']=$this->rootnode->setting_val($this->oid,$this->long_name.'._db','');
+		foreach($this->editors as $i => $e)
+		{
+			$e->oid=$this->oid;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+		}
+		foreach($this->editors as $e)
+			$e->bootstrap();
+	}
+	
+	function html_inner()
+	{
+		$this->args['ed_count']=$this->rootnode->setting_val($this->oid,$this->long_name.'._count',20);
+		$this->args['ed_offset']=$this->rootnode->setting_val($this->oid,$this->long_name.'._offset',0);
+		$this->args['ed_filters']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._filters',0));
+		$this->args['ed_order']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._order',0));
+		$this->editors['ed_list']->table_name='samples_raw';
+		parent::html_inner();
+	}
+	
+	
+	function u_sq($ev,$v,$s)
+	{
+		global $sql,$ddc_tables;
+		$st=new settings_tool;
+		$rv=$sql->qv($st->single_query($this->oid,$this->long_name.".".$s,$_SESSION['uid'],0));
+		$ev->settings->$v=unserialize($rv[0]);
+	}
+	
+	function i_sq($ev,$v,$s)
+	{
+		global $sql,$ddc_tables;
+		$st=new settings_tool;
+		$rv=$sql->qv($st->single_query($this->oid,$this->long_name.".".$s,$_SESSION['uid'],0));
+		$ev->settings->$v=$rv[0];
+	}
+	
+	function handle_event($ev)
+	{
+		global $sql,$ddc_tables;
+		$ev->do_reload=false;
+		$this->long_name=$ev->parent_name;
+		$this->oid=$ev->context[$ev->parent_name]['oid'];
+		$st=new settings_tool;
+		$this->u_sq($ev,'filters','_filters');
+		$this->u_sq($ev,'order','_order');
+		$this->i_sq($ev,'offset','_offset');
+		$this->i_sq($ev,'count','_count');
+		$this->i_sq($ev,'table','_table');
+		$this->i_sq($ev,'db','_db');
+/*		$filters=$sql->qv($st->single_query($this->oid,$this->long_name."._filters",$_SESSION['uid'],0));
+		$ev->settings->filters=unserialize($filters[0]);
+		$order=$sql->qv($st->single_query($this->oid,$this->long_name."._order",$_SESSION['uid'],0));
+		$ev->settings->order=unserialize($order[0]);*/
+		
+		switch($ev->rem_name)
+		{
+			case 'ed_new':
+				
+				print "alert('Не удалось добавить запись.');";
+				break;
+				if($sql->query("INSERT INTO `samples_raw` SET id=''")!==false)
+				{
+					$r=$sql->qv("SELECT LAST_INSERT_ID()");
+					print "window.location.href='".js_escape('?p=samples_db_item&id='.urlencode($r[0]))."';";
+					exit;
+					$ev->do_reload=true;
+				}else{
+					print "alert('Не удалось добавить запись.');";
+				};
+				break;
+			case 'ed_list.del':
+//				$this->cascade_delete($ev->keys['id']);
+				$qg=new query_gen_ext('DELETE');
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				$qg->from->exprs[]=new sql_column(NULL,'samples_raw');
+				$sql->query($qg->result());
+				$ev->do_reload=true;
+				break;
+			case 'ed_list.clone':
+				$qg=new query_gen_ext('INSERT SELECT');
+				$qg->into->exprs[]=new sql_column(NULL,'samples_raw');
+				$qg->from->exprs[]=new sql_column(NULL,'samples_raw');
+				foreach($ddc_tables['samples_raw']->cols as $col)
+				{
+					if($col['name']!='id')
+						$qg->what->exprs[]=new sql_column(NULL,NULL,$col['name'],$col['name']);
+				}
+				$qg->what->exprs[]=new sql_immed('','id');
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				
+				if($sql->query($qg->result())!==false)
+				{
+					$r=$sql->qv("SELECT LAST_INSERT_ID()");
+					print "window.location.href='".js_escape('?p=samples_db_item&id='.urlencode($r[0]))."';";
+					exit;
+					$ev->do_reload=true;
+				}else{
+					print "alert('Не удалось добавить запись.');";
+				};
+				break;
+			case 'ed_list.edit':
+				print "window.location.href='".js_escape('?p=samples_db_item&id='.urlencode($ev->keys['id']))."';";
+				exit;
+				break;
+			case 'ed_pager.ed_offset':
+				$d=intval($_POST['val']);
+				$sql->query($st->set_query($this->oid,$this->long_name.'._offset',$_SESSION['uid'],0,$d));
+				$ev->settings->offset=$d;
+				$ev->do_reload=true;
+				break;
+			case 'ed_pager.ed_count':
+				$d=intval($_POST['val']);
+				$sql->query($st->set_query($this->oid,$this->long_name.'._count',$_SESSION['uid'],0,$d));
+				$ev->settings->count=$d;
+				$ev->do_reload=true;
+				break;
+			case 'ed_table':
+				$sql->query($st->set_query($this->oid,$this->long_name.'._table',$_SESSION['uid'],0,$_POST['val']));
+				$ev->settings->table=$_POST['val'];
+				$ev->do_reload=true;
+			case 'ed_table.fo':
+				$ev->ed_table=1;
+				break;
+			case 'ed_db':
+				$sql->query($st->set_query($this->oid,$this->long_name.'._db',$_SESSION['uid'],0,$_POST['val']));
+				$ev->settings->db=$_POST['val'];
+				$ev->do_reload=true;
+			case 'ed_db.fo':
+				$ev->ed_db=1;
+				break;
+		};
+		
+		if(($ev->settings->db=='')&&(isset($ddc_tables[$ev->settings->table])))
+		{
+			foreach($ddc_tables[$ev->settings->table]->cols as $col)
+			{
+				if($ev->rem_name==='ed_list.-'.$col['name'])
+					{
+						$qg=new query_gen_ext('UPDATE');
+						foreach($ddc_tables[$ev->settings->table]->keys as $key)
+							if($key['key']=='PRIMARY')
+								$qg->where->exprs[]=new sql_expression('=',Array(
+									new sql_column(NULL,NULL,$key['name']),
+									new sql_immed($ev->keys['-'.$key['name']])
+									));
+						$qg->into->exprs=Array(new sql_column(NULL,$ev->settings->table));
+						$qg->set->exprs=Array(new sql_expression('=',Array(
+							new sql_column(NULL,NULL,$col['name']),
+							new sql_immed($_POST['val'])
+							))
+							);
+						$res=$sql->query($qg->result());
+					}
+			}
+		}else{
+			unset($db);
+			if($ev->setting->db != '')$db="`".$sql->esc($ev->settings->db)."`.";
+			$res=$sql->query("SHOW COLUMNS FROM ".$db."`".$sql->esc($ev->settings->table)."`");
+			$got_it=false;
+			$qg=new query_gen_ext('UPDATE');
+			while($row=$sql->fetcha($res))
+			{
+				if($row['Key']=='PRI')
+					$qg->where->exprs[]=new sql_expression('=',Array(
+						new sql_column(NULL,NULL,$row['Field']),
+						new sql_immed($ev->keys['-'.$row['Field']])
+						));
+				if($ev->rem_name==='ed_list.-'.$row['Field'])
+				{
+					$got_it=true;
+					$qg->into->exprs=Array(new sql_column(($ev->settings->db != '')?$ev->settings->db:NULL,$ev->settings->table));
+					$qg->set->exprs=Array(new sql_expression('=',Array(
+						new sql_column(NULL,NULL,$row['Field']),
+						new sql_immed($_POST['val'])
+						))
+						);
+				}
+			}
+			if($got_it)
+				$res=$sql->query($qg->result());
+			
+		}
+		
+		
+		editor_generic::handle_event($ev);
+		if($ev->filters_changed)
+			$sql->query($st->set_query($this->oid,$this->long_name."._filters",$_SESSION['uid'],0,serialize($ev->settings->filters)));
+		if($ev->order_changed)
+			$sql->query($st->set_query($this->oid,$this->long_name."._order",$_SESSION['uid'],0,serialize($ev->settings->order)));
+		if($ev->changed)$ev->do_reload=true;
+		if($ev->do_reload)
+		{
+			$this->args['ed_offset']=$ev->settings->offset;
+			$this->args['ed_count']=$ev->settings->count;
+			$this->args['ed_filters']=$ev->settings->filters;
+			$this->args['ed_order']=$ev->settings->order;
+			$this->args['ed_table']=$ev->settings->table;
+			$this->args['ed_db']=$ev->settings->db;
+			$r=new QRVA_QR;
+			
+			$r->context=&$ev->context;
+			$r->keys=&$ev->keys;
+			$r->oid=$oid;
+			$r->args=$this->args;
+			$r->name=$ev->parent_name.".ed_list";
+			$r->etype=$ev->parent_type.".sdb_QR";
+
+			print "(function(){var nya=\$i('".js_escape($ev->context[$this->long_name]['ed_list_id'])."');";
+			print "try{nya.innerHTML=";
+			reload_object($r,true);
+			print "}catch(e){/* window.location.reload(true);*/};})();";
+		}
+		
+		
+	}
+	
+};
+
+class QRVA_QR extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		$this->tbl=new dom_table;
+		$this->append_child($this->tbl);
+		$this->tr=new dom_tr;
+		$this->tbl->append_child($this->tr);
+		$this->tdh=new dom_td;
+		$this->tr->append_child($this->tdh);
+		$this->td_text=new dom_statictext;
+		$this->tdh->append_child($this->td_text);
+		unset($this->tdh->id);
+		
+		$this->td=new dom_td;
+		$this->tr->append_child($this->td);
+		
+		unset($this->table->id);
+		unset($this->tr->id);
+		unset($this->td->id);
+		$this->td_b=new dom_td;
+		$this->tr->append_child($this->td_b);
+		unset($this->td_b->id);
+		
+		editor_generic::addeditor('del',new editor_button_image);
+		$this->td_b->append_child($this->editors['del']);
+		$this->editors['del']->attributes['title']='Удалить';
+		$this->editors['del']->attributes['src']='/i/del.png';
+		$this->ceditors[]=$this->editors['del'];
+		
+		editor_generic::addeditor('edit',new editor_button_image);
+		$this->td_b->append_child($this->editors['edit']);
+		$this->editors['edit']->attributes['title']='Редактировать/просмотреть';
+		$this->editors['edit']->attributes['src']='/i/edit.png';
+		$this->ceditors[]=$this->editors['edit'];
+		
+		editor_generic::addeditor('clone',new editor_button_image);
+		$this->td_b->append_child($this->editors['clone']);
+		$this->editors['clone']->attributes['title']='Копировать';
+		$this->editors['clone']->attributes['src']='/i/copy.png';
+		$this->ceditors[]=$this->editors['clone'];
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		if(!is_array($this->keys))$this->keys=Array();
+		if(!is_array($this->args))$this->args=Array();
+		foreach($this->editors as $i => $e)
+		{
+			$e->oid=$this->oid;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+		}
+		foreach($this->editors as $e)
+			$e->bootstrap();
+	}
+	
+	function map_op($op)
+	{
+		switch($op)
+		{
+			case "~=":
+				return 'LIKE';
+			case "!~=":
+				return 'NOT LIKE';
+			default:
+				return $op;
+		}
+	}
+	
+	function transform_val($op,$val)
+	{
+		switch($op)
+		{
+			case "~=":
+			case "!~=":
+				return preg_replace('/ +/','%'," ".str_replace('_','\\_',str_replace('%','\\%',$val))." ");
+			default:
+				return $val;
+		}
+	}
+	
+	function fetch_col_info()
+	{
+		global $sql,$ddc_tables;
+		if($this->args['ed_db']=='')
+		{
+			if(isset($ddc_tables[$this->args['ed_table']]))
+			{
+				foreach($ddc_tables[$this->args['ed_table']]->cols as $col)
+				{
+					$this->t_cols[$col['name']]=$col;
+					if(!isset($this->t_cols[$col['name']]['hname']))$this->t_cols[$col['name']]['hname']=$col['name'];
+					if(!isset($this->t_cols[$col['name']]['editor']))$this->t_cols[$col['name']]['editor']='editor_text';
+				}
+				foreach($ddc_tables[$this->args['ed_table']]->keys as $key)
+				if($key['key']=='PRIMARY')
+				{
+					$this->t_keys[$key['name']]=true;
+					$this->t_cols[$key['name']]['editor']='editor_statictext';
+				}
+				
+				return;
+			}
+			$f="`".$sql->esc($this->args['ed_table'])."`";
+		}else{
+			$f="`".$sql->esc($this->args['ed_db'])."`.`".$sql->esc($this->args['ed_table'])."`";
+		}
+		$res=$sql->query("SHOW FULL COLUMNS FROM ".$f);
+		while($row=$sql->fetcha($res))
+		{
+			$this->t_cols[$row['Field']]['name']=$row['Field'];
+			$this->t_cols[$row['Field']]['hname']=$row['Field'];
+			$this->t_cols[$row['Field']]['sql_type']=$row['Type'];
+			if($row['Key']=='PRI')$this->t_keys[$row['Field']]=true;
+			$this->t_cols[$row['Field']]['editor']=(($row['Key']=='PRI')?'editor_statictext':'editor_text');
+		}
+	}
+	
+	function html_inner()
+	{
+		global $sql,$ddc_tables;
+		$this->fetch_col_info();
+		if(!is_array($this->t_cols))return;
+		foreach($this->t_cols as $col)
+		{
+			$ed=$col['editor'];
+			editor_generic::addeditor('-'.$col['name'],new $ed ($col));
+			$this->td->append_child($this->editors['-'.$col['name']]);
+			$this->editors['-'.$col['name']]->oid=$this->oid;
+			$this->editors['-'.$col['name']]->keys=&$this->keys;
+			$this->editors['-'.$col['name']]->args=&$this->args;
+			$this->editors['-'.$col['name']]->context=&$this->context;
+			$this->context[$this->long_name.'.-'.$col['name']]['var']='-'.$col['name'];
+			
+		}
+		
+		$this->tbl->html_head();
+		
+		unset($db);
+		if($this->args['ed_db']!='')$db=$this->args['ed_db'];
+		$qg=new query_gen_ext('SELECT');
+		$qg->from->exprs[]=new sql_column($db,$this->args['ed_table'],NULL,'s');
+		$this->tr->html_head();
+		foreach($this->t_cols as $col)
+		{
+			$qg->what->exprs[]=new sql_column(NULL,'s',$col['name']);
+			$this->td_text->text=$col['name'];
+			$this->tdh->attributes['title']=$col['hname'];
+			$this->tdh->html();
+		}
+		$this->tdh->attributes['title']='Операции';
+		$this->td_text->text='Операции';
+		$this->td_b->attributes['title']='Операции';
+		$this->tdh->html();
+		$this->tr->html_tail();
+		
+		if(is_array($this->args['ed_filters']))
+			foreach($this->args['ed_filters'] as $e)
+				if($e->col=='any')
+				{
+					$op=new sql_expression('OR');
+					foreach($this->t_cols as $col)
+					{
+						$op->exprs[]=new sql_expression($this->map_op($e->operator),Array(
+							new sql_column(NULL,'s',$col['name']),
+							new sql_immed($this->transform_val($e->operator,$e->val))
+							));
+					}
+					$qg->where->exprs[]=$op;
+				}else{
+					$qg->where->exprs[]=new sql_expression($this->map_op($e->operator),Array(
+						new sql_column(NULL,'s',$e->col),
+						new sql_immed($this->transform_val($e->operator,$e->val))
+						));
+				};
+		
+		if(is_array($this->args['ed_order']))
+			foreach($this->args['ed_order'] as $e)
+			{
+				$col=($e->col=='')?$this->t_cols[0]['name']:$e->col;
+				$m=new sql_column(NULL,'s',$col);
+				$m->invert=$e->invert;
+				$qg->order->exprs[]=$m;
+					
+			}
+		$qg->lim_count=$this->args['ed_count'];
+		$qg->lim_offset=$this->args['ed_offset'];
+		$qc=$qg->result();
+		if($this->args['ed_table']!='')
+		{
+			$res=$sql->query($qc);
+			while($row=$sql->fetcha($res))
+			{
+				$this->tr->html_head();
+				foreach($this->t_keys as $k =>$kv)
+					$this->keys['-'.$k]=$row[$k];
+				foreach($row as $rn=>$rv)
+				{
+					$this->args['-'.$rn]=$rv;
+					$this->editors['-'.$rn]->bootstrap();
+					$this->td->attributes['title']=$this->t_cols[$rn]['hname'];
+					$this->td->html_head();
+					$this->editors['-'.$rn]->html();
+					$this->td->html_tail();
+					$this->td->id_alloc();
+					
+				}
+				foreach($this->ceditors as $e)
+					$e->bootstrap();
+				$this->td_b->html();
+				$this->tr->html_tail();
+			}
+		}
+		$this->tbl->html_tail();
+	}
+	
+	function handle_event($ev)
+	{
+		editor_generic::handle_event($ev);
+	}
+}
+class QRVA_order extends dom_div
+{
+	function __construct()
+	{
+		global $ddc_tables;
+		parent::__construct();
+		$this->etype=get_class($this);
+		$this->tbl=new dom_table;
+		$this->append_child($this->tbl);
+		$this->row=new dom_tr;
+		$this->tbl->append_child($this->row);
+		
+		$this->row_caps=new dom_tr;
+		$this->tbl->append_child($this->row_caps);
+		$this->add_cap('Столбец');
+		$this->add_cap('В обратном порядке');
+		$this->add_cap('-');
+		
+		$this->cells=Array();
+		
+		$this->keys=Array();
+		$this->args=Array();
+		
+		$this->colcn=0;
+		
+		$this->add_col(new editor_txtasg_QRVA,'col');
+		$ed=new editor_checkbox;
+		$this->add_col($ed,'rev');
+		
+		$ed=new editor_button;
+		$ed->attributes['value']='-';
+		$this->add_col($ed,'del');
+		$ed->name='del';
+		
+		
+	}
+	function add_cap($t)
+	{
+		$cell_caps=new dom_td;
+		$this->row_caps->append_child($cell_caps);
+		$text_caps=new dom_statictext;
+		$cell_caps->append_child($text_caps);
+		$text_caps->text=$t;
+	}
+	
+	function add_col($editor,$arg)
+	{
+		editor_generic::addeditor($arg,$editor);
+		$this->cells[$this->colcn]=new dom_td;
+		//inherit properties from template???
+		$this->row->append_child($this->cells[$this->colcn]);
+		$this->cells[$this->colcn]->append_child($editor);
+		$this->colcn++;
+	}
+	
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		//if(!isset($this->settings))$this->settings_io->load($this);
+		//if($this->settings->ed_db!='')$this->context[$this->long_name]['dbname']=$this->settings->ed_db;
+		//$this->context[$this->long_name]['tblname']=$this->edittbl;
+		
+		
+		$this->context[$this->long_name]['retid']=$this->id_gen();
+		$this->context[$this->long_name]['io_class']=get_class($this->settings_io);
+		
+		if(is_array($this->editors))
+			foreach($this->editors as $k => $e)
+			{
+				$this->context[$this->long_name.'.'.$k]['var']=$k;
+				$e->keys=&$this->keys;
+				$e->args=&$this->args;
+				$e->context=&$this->context;
+				if(isset($e->validator_class))$this->context[$this->long_name.'.'.$k]['validator_class']=$e->validator_class;
+				$e->bootstrap();
+			}
+		
+	}
+	
+	
+	function html_inner()
+	{
+			
+		$order=$this->args[$this->context[$this->long_name]['var']];
+		$this->tbl->html_head();
+		$this->row_caps->html();
+		$nn=0;
+		if(is_array($order))foreach($order as $f)
+		{
+			$this->args['col']=$f->col;
+			$this->args['rev']=$f->invert;
+			$this->keys['n']=$nn;
+			$nn++;
+			foreach($this->editors as $e)$e->bootstrap();
+			$this->row->html();
+			$this->row->id_alloc();
+		}
+		$this->editors['col']->main->css_style['display']='none';
+		$this->editors['rev']->css_style['display']='none';
+		$this->editors['del']->attributes['value']='+';
+		$this->keys['n']=$nn;
+		$nn++;
+		foreach($this->editors as $e)$e->bootstrap();
+		$this->row->html();
+		$this->row->id_alloc();
+		$this->tbl->html_tail();
+	}
+	
+	
+	function handle_event($ev)
+	{
+		$changed=false;
+		$reload_self=false;
+		$this->long_name=$ev->parent_name;
+		$this->context=&$ev->context;
+		$order=$ev->settings->order;
+		
+		$v=$_POST['val'];
+		if($ev->rem_name=='col.fo')
+		{
+			$ev->ed_column=1;
+		}
+		if($ev->rem_name=='col')
+		{
+			$ev->ed_column=1;
+			$order[$ev->keys['n']]->col=$v;
+			$changed=true;
+		}
+		if($ev->rem_name=='rev')
+		{
+			$order[$ev->keys['n']]->invert=$v;
+			//print 'alert(\''.$v.'\');';
+			$changed=true;
+		}
+		if($ev->rem_name=='del')
+		{
+			if(isset($order[$ev->keys['n']]))
+			{
+				for($k=0;$k<count($order);$k++)
+					if($k!=$ev->keys['n'])$nfl[]=$order[$k];
+					$order=$nfl;
+			}else{
+				$order[$ev->keys['n']]->col='';
+				$order[$ev->keys['n']]->invert=0;
+				
+			}
+			$changed=true;
+			$reload_self=true;
+		}
+		
+		$ev->settings->order=$order;
+		if($changed) $ev->order_changed=true;
+		if($reload_self)
+		{
+			
+			$customid=$ev->context[$ev->parent_name]['retid'];
+			$oid=$ev->context[$ev->parent_name]['oid'];
+			//$htmlid=$ev->context[$ev->long_name]['htmlid'];
+			
+			$class=get_class($this);
+			$r=new $class;
+			$r->context=&$ev->context;
+			$r->keys=&$ev->keys;
+			$r->oid=$oid;
+			$r->name=$ev->parent_name;
+			$r->etype=$ev->parent_type;
+			$r->custom_id=$customid;
+			$r->args[$r->context[$ev->parent_name]['var']]=&$order;
+
+			print "(function(){var nya=\$i('".js_escape($customid)."');";
+			print "try{nya.innerHTML=";
+			reload_object($r,true);
+			print "nya.scrollTop=0;}catch(e){ window.location.reload(true);};})();";
+			//common part
+		}
+		editor_generic::handle_event($ev);
+		if($changed)$ev->changed=true;
+	}
+	
+}
+
+class QRVA_filters extends dom_div
+{
+	function __construct()
+	{
+		global $ddc_tables;
+		parent::__construct();
+		$this->etype=get_class($this);
+		$this->tbl=new dom_table;
+		$this->append_child($this->tbl);
+		$this->row=new dom_tr;
+		$this->tbl->append_child($this->row);
+		
+		$this->row_caps=new dom_tr;
+		$this->tbl->append_child($this->row_caps);
+		$this->add_cap('Столбец');
+		$this->add_cap('Операция');
+		$this->add_cap('Значение');
+		$this->add_cap('-');
+		
+		$this->cells=Array();
+		
+		$this->keys=Array();
+		$this->args=Array();
+		
+		$this->colcn=0;
+		
+		$this->add_col(new editor_txtasg_QRVA,'col');
+		$this->editors['col']->options['any']='Везде';
+		
+		$this->add_col(new editor_select,'oper');
+		$this->editors['oper']->options=Array(
+			'~=' => '~=',
+			'=' => '=',
+			'>' => '>',
+			'<' => '<',
+			'>=' => '>=',
+			'<=' => '<=',
+			'!=' => '!=',
+			'!~=' => '!~='
+			);
+		
+		$ed=new editor_text;
+		$this->add_col($ed,'val');
+		$ed->name='val';
+		
+		$ed=new editor_button;
+		$ed->attributes['value']='-';
+		$this->add_col($ed,'del');
+		$ed->name='del';
+		
+	}
+	function add_cap($t)
+	{
+		$cell_caps=new dom_td;
+		$this->row_caps->append_child($cell_caps);
+		$text_caps=new dom_statictext;
+		$cell_caps->append_child($text_caps);
+		$text_caps->text=$t;
+	}
+	
+	function add_col($editor,$arg)
+	{
+		editor_generic::addeditor($arg,$editor);
+		$this->cells[$this->colcn]=new dom_td;
+		//inherit properties from template???
+		$this->row->append_child($this->cells[$this->colcn]);
+		$this->cells[$this->colcn]->append_child($editor);
+		$this->colcn++;
+	}
+	
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		$this->context[$this->long_name]['retid']=$this->id_gen();
+		$this->context[$this->long_name]['oid']=$this->oid;
+		
+		if(is_array($this->editors))
+			foreach($this->editors as $k => $e)
+			{
+				$this->context[$this->long_name.'.'.$k]['var']=$k;
+				$e->keys=&$this->keys;
+				$e->args=&$this->args;
+				$e->context=&$this->context;
+				if(isset($e->validator_class))$this->context[$this->long_name.'.'.$k]['validator_class']=$e->validator_class;
+				$e->bootstrap();
+			}
+		
+	}
+	
+	
+	function html_inner()
+	{
+		$this->filters_where=$this->args[$this->context[$this->long_name]['var']];
+		$this->tbl->html_head();
+		$this->row_caps->html();
+		$nn=0;
+		if(is_array($this->filters_where))foreach($this->filters_where as $f)
+		{
+			$this->args['col']=$f->col;
+			$this->args['oper']=$f->operator;
+			$this->args['val']=$f->val;
+			$this->keys['n']=$nn;
+			$nn++;
+			foreach($this->editors as $e)$e->bootstrap();
+			$this->row->html();
+			$this->row->id_alloc();
+		}
+		$this->editors['col']->main->css_style['display']='none';
+		$this->editors['oper']->main->css_style['display']='none';
+		$this->editors['val']->main->css_style['display']='none';
+		$this->editors['del']->attributes['value']='+';
+		$this->keys['n']=$nn;
+		$nn++;
+		foreach($this->editors as $e)$e->bootstrap();
+		$this->row->html();
+		$this->row->id_alloc();
+		$this->tbl->html_tail();
+	}
+	
+	
+	function handle_event($ev)
+	{
+		$changed=false;
+		$reload_self=false;
+		$this->long_name=$ev->parent_name;
+		$this->context=&$ev->context;
+		$this->filters_where=$ev->settings->filters;
+		
+		
+		$v=$_POST['val'];
+		if($ev->rem_name=='col.fo')
+		{
+			$ev->ed_column=1;
+		}
+		if($ev->rem_name=='col')
+		{
+			$ev->ed_column=1;
+			$this->filters_where[$ev->keys['n']]->col=$v;
+			$changed=true;
+		}
+		if($ev->rem_name=='oper')
+		{
+			$this->filters_where[$ev->keys['n']]->operator=$v;
+			$changed=true;
+		}
+		if($ev->rem_name=='val')
+		{
+			$this->filters_where[$ev->keys['n']]->val=$v;
+			$changed=true;
+		}
+		if($ev->rem_name=='del')
+		{
+			if(isset($this->filters_where[$ev->keys['n']]))
+			{
+				for($k=0;$k<count($this->filters_where);$k++)
+					if($k!=$ev->keys['n'])$nfl[]=$this->filters_where[$k];
+					$this->filters_where=$nfl;
+			}else{
+				$n->col='any';
+				$n->operator='~=';
+				$n->val='';
+				$this->filters_where[$ev->keys['n']]=$n;
+			}
+			$changed=true;
+			$reload_self=true;
+		}
+		
+		$ev->settings->filters=$this->filters_where;
+		if($changed) $ev->filters_changed=true;
+		if($reload_self)
+		{
+			
+			$customid=$ev->context[$ev->parent_name]['retid'];
+			$oid=$ev->context[$ev->parent_name]['oid'];
+			//$htmlid=$ev->context[$ev->long_name]['htmlid'];
+			
+			$class=get_class($this);
+			$r=new $class;
+			$r->context=&$ev->context;
+			$r->keys=&$ev->keys;
+			$r->oid=$oid;
+			$r->custom_id=$customid;
+			$r->name=$ev->parent_name;
+			$r->etype=$ev->parent_type;
+			$r->args[$r->context[$ev->parent_name]['var']]=&$ev->settings->filters;
+
+			$r->bootstrap();
+			print "(function(){var nya=\$i('".js_escape($customid)."');";
+			print "try{nya.innerHTML=";
+			reload_object($r,true);
+			print "nya.scrollTop=0;}catch(e){ window.location.reload(true);};})();";
+			//common part
+		}
+		editor_generic::handle_event($ev);
+		if($changed)$ev->changed=true;
+	}
+}
 
 
 
