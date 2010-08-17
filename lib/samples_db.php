@@ -1842,8 +1842,14 @@ class query_result_viewer_any extends dom_div
 		$this->context[$this->long_name]['oid']=$this->oid;
 		$this->context[$this->long_name]['ed_list_id']=$this->editors['ed_list']->id_gen();
 		$this->context[$this->long_name]['ed_insert_id']=$this->editors['ed_insert']->id_gen();
+		$this->context[$this->long_name]['link_save_xml_id']=$this->link_save_xml->id_gen();
+		$this->context[$this->long_name]['link_save_csv_id']=$this->link_save_csv->id_gen();
+		
 		$this->args['ed_table']=$this->rootnode->setting_val($this->oid,$this->long_name.'._table','');
 		$this->args['ed_db']=$this->rootnode->setting_val($this->oid,$this->long_name.'._db','');
+		
+		$this->link_save_xml->attributes['href']="/ext/table_xml_dump.php?table=".urlencode($this->args['ed_table']);
+		$this->link_save_csv->attributes['href']="/ext/table_csv_dump.php?table=".urlencode($this->args['ed_table']);
 		foreach($this->editors as $i => $e)
 		{
 			$e->oid=$this->oid;
@@ -1884,6 +1890,43 @@ class query_result_viewer_any extends dom_div
 		$ev->settings->$v=$rv[0];
 	}
 	
+	function fetch_struct($ev)
+	{
+		global $sql,$ddc_tables;
+		unset($this->t_cols);
+		unset($this->t_keys);
+		if(($ev->settings->db=='')&&(isset($ddc_tables[$ev->settings->table])))
+		{
+			foreach($ddc_tables[$ev->settings->table]->cols as $col)
+			{
+				$this->t_cols[$col['name']]=$col;
+				if(!isset($col['hname']))$this->t_cols[$col['name']]['hname']=$col['name'];
+				if(!isset($col['editor']))$this->t_cols[$col['name']]['editor']='editor_text';
+			}
+			foreach($ddc_tables[$ev->settings->table]->keys as $key)
+			{
+				if($key['key']=='PRIMARY')$this->t_keys[$key['name']]=true;
+			}
+		}else{
+			unset($db);
+			if($ev->setting->db != '')$db="`".$sql->esc($ev->settings->db)."`.";
+			$res=$sql->query("SHOW COLUMNS FROM ".$db."`".$sql->esc($ev->settings->table)."`");
+			while($row=$sql->fetcha($res))
+			{
+				$this->t_cols[$row['Field']]=Array(
+					'name' =>$row['Field'],
+					'hname' =>$row['Field'],
+					'sql_type' =>$row['Type'],
+					'sql_default' =>$row['Default'],
+					'editor' =>'editor_text',
+					'viewer' =>'editor_statictext'
+					);
+				if($row['Key']=='PRI')
+					$this->t_keys[$row['Field']]=true;
+			}
+		}
+	}
+	
 	function handle_event($ev)
 	{
 		global $sql,$ddc_tables;
@@ -1900,22 +1943,25 @@ class query_result_viewer_any extends dom_div
 		$this->i_sq($ev,'db','_db');
 		if(intval($ev->settings->count)<=0)$ev->settings->count=20;
 		if(intval($ev->settings->offset)<=0)$ev->settings->offset=0;
+		if($ev->settings->db=='')unset($ev->settings->db);
 /*		$filters=$sql->qv($st->single_query($this->oid,$this->long_name."._filters",$_SESSION['uid'],0));
 		$ev->settings->filters=unserialize($filters[0]);
 		$order=$sql->qv($st->single_query($this->oid,$this->long_name."._order",$_SESSION['uid'],0));
 		$ev->settings->order=unserialize($order[0]);*/
-		
+		$this->fetch_struct($ev);
 		switch($ev->rem_name)
 		{
-			case 'ed_new':
+			case 'ed_insert.insert':
 				
-				print "alert('Не удалось добавить запись.');";
-				break;
-				if($sql->query("INSERT INTO `samples_raw` SET id=''")!==false)
+				$qg=new query_gen_ext("INSERT");
+				$qg->into->exprs[]=new sql_column($ev->settings->db,$ev->settings->table);
+				foreach($this->t_keys as $kn =>$kv)
+					$qg->set->exprs[]=new sql_expression('=',Array(
+						new sql_column(NULL,NULL,$kn),
+						new sql_immed($ev->settings->insert['+'.$kn])
+						));
+				if($sql->query($qg->result())!==false)
 				{
-					$r=$sql->qv("SELECT LAST_INSERT_ID()");
-					print "window.location.href='".js_escape('?p=samples_db_item&id='.urlencode($r[0]))."';";
-					exit;
 					$ev->do_reload=true;
 				}else{
 					print "alert('Не удалось добавить запись.');";
@@ -1924,42 +1970,41 @@ class query_result_viewer_any extends dom_div
 			case 'ed_list.del':
 //				$this->cascade_delete($ev->keys['id']);
 				$qg=new query_gen_ext('DELETE');
-				$qg->where->exprs[]=new sql_expression('=',Array(
-					new sql_column(NULL,NULL,'id'),
-					new sql_immed($ev->keys['id'])
-					));
-				$qg->from->exprs[]=new sql_column(NULL,'samples_raw');
+				foreach($this->t_keys as $kn =>$kv)
+					$qg->where->exprs[]=new sql_expression('=',Array(
+						new sql_column(NULL,NULL,$kn),
+						new sql_immed($ev->keys['-'.$kn])
+						));
+				$qg->from->exprs[]=new sql_column($ev->settings->db,$ev->settings->table);
 				$sql->query($qg->result());
 				$ev->do_reload=true;
 				break;
 			case 'ed_list.clone':
 				$qg=new query_gen_ext('INSERT SELECT');
-				$qg->into->exprs[]=new sql_column(NULL,'samples_raw');
-				$qg->from->exprs[]=new sql_column(NULL,'samples_raw');
-				foreach($ddc_tables['samples_raw']->cols as $col)
+				$qg->into->exprs[]=new sql_column($ev->settings->db,$ev->settings->table);
+				$qg->from->exprs[]=new sql_column($ev->settings->db,$ev->settings->table);
+				foreach($this->t_cols as $col)
 				{
-					if($col['name']!='id')
+					if($this->t_keys[$col['name']]!=true)
 						$qg->what->exprs[]=new sql_column(NULL,NULL,$col['name'],$col['name']);
+					else{
+						$qg->what->exprs[]=new sql_immed($ev->settings->insert['+'.$col['name']],$col['name']);
+						$qg->where->exprs[]=new sql_expression('=',Array(
+							new sql_column(NULL,NULL,$col['name']),
+							new sql_immed($ev->keys['-'.$col['name']])
+							));
+					}
 				}
-				$qg->what->exprs[]=new sql_immed('','id');
-				$qg->where->exprs[]=new sql_expression('=',Array(
-					new sql_column(NULL,NULL,'id'),
-					new sql_immed($ev->keys['id'])
-					));
-				
 				if($sql->query($qg->result())!==false)
 				{
-					$r=$sql->qv("SELECT LAST_INSERT_ID()");
-					print "window.location.href='".js_escape('?p=samples_db_item&id='.urlencode($r[0]))."';";
-					exit;
 					$ev->do_reload=true;
 				}else{
 					print "alert('Не удалось добавить запись.');";
 				};
 				break;
 			case 'ed_list.edit':
-				print "window.location.href='".js_escape('?p=samples_db_item&id='.urlencode($ev->keys['id']))."';";
-				exit;
+				print "alert('Not supported yet');";
+				return;
 				break;
 			case 'ed_pager.ed_offset':
 				$d=intval($_POST['val']);
@@ -1991,56 +2036,25 @@ class query_result_viewer_any extends dom_div
 				break;
 		};
 		
-		if(($ev->settings->db=='')&&(isset($ddc_tables[$ev->settings->table])))
-		{
-			foreach($ddc_tables[$ev->settings->table]->cols as $col)
+			foreach($this->t_cols as $col)
 			{
 				if($ev->rem_name==='ed_list.-'.$col['name'])
-					{
-						$qg=new query_gen_ext('UPDATE');
-						foreach($ddc_tables[$ev->settings->table]->keys as $key)
-							if($key['key']=='PRIMARY')
-								$qg->where->exprs[]=new sql_expression('=',Array(
-									new sql_column(NULL,NULL,$key['name']),
-									new sql_immed($ev->keys['-'.$key['name']])
-									));
-						$qg->into->exprs=Array(new sql_column(NULL,$ev->settings->table));
-						$qg->set->exprs=Array(new sql_expression('=',Array(
-							new sql_column(NULL,NULL,$col['name']),
-							new sql_immed($_POST['val'])
-							))
-							);
-						$res=$sql->query($qg->result());
-					}
-			}
-		}else{
-			unset($db);
-			if($ev->setting->db != '')$db="`".$sql->esc($ev->settings->db)."`.";
-			$res=$sql->query("SHOW COLUMNS FROM ".$db."`".$sql->esc($ev->settings->table)."`");
-			$got_it=false;
-			$qg=new query_gen_ext('UPDATE');
-			while($row=$sql->fetcha($res))
-			{
-				if($row['Key']=='PRI')
-					$qg->where->exprs[]=new sql_expression('=',Array(
-						new sql_column(NULL,NULL,$row['Field']),
-						new sql_immed($ev->keys['-'.$row['Field']])
-						));
-				if($ev->rem_name==='ed_list.-'.$row['Field'])
 				{
-					$got_it=true;
-					$qg->into->exprs=Array(new sql_column(($ev->settings->db != '')?$ev->settings->db:NULL,$ev->settings->table));
+					$qg=new query_gen_ext('UPDATE');
+					foreach($this->t_keys as $key => $kv)
+						$qg->where->exprs[]=new sql_expression('=',Array(
+							new sql_column(NULL,NULL,$key),
+							new sql_immed($ev->keys['-'.$key])
+							));
+					$qg->into->exprs=Array(new sql_column($ev->settings->db,$ev->settings->table));
 					$qg->set->exprs=Array(new sql_expression('=',Array(
-						new sql_column(NULL,NULL,$row['Field']),
+						new sql_column(NULL,NULL,$col['name']),
 						new sql_immed($_POST['val'])
 						))
 						);
+					$res=$sql->query($qg->result());
 				}
 			}
-			if($got_it)
-				$res=$sql->query($qg->result());
-			
-		}
 		
 		
 		editor_generic::handle_event($ev);
@@ -2079,6 +2093,10 @@ class query_result_viewer_any extends dom_div
 			print "(function(){var nya=\$i('".js_escape($ev->context[$this->long_name]['ed_list_id'])."');";
 			print "try{nya.innerHTML=";
 			reload_object($r,true);
+			print "\$i('".js_escape($ev->context[$this->long_name]['link_save_xml_id'])."').setAttribute('href','".
+				js_escape("/ext/table_xml_dump.php?table=".urlencode($this->args['ed_table']))."');";
+			print "\$i('".js_escape($ev->context[$this->long_name]['link_save_csv_id'])."').setAttribute('href','".
+				js_escape("/ext/table_csv_dump.php?table=".urlencode($this->args['ed_table']))."');";
 			print "}catch(e){/* window.location.reload(true);*/};})();";
 			if($ev->reload_insert)
 			{
@@ -2796,7 +2814,7 @@ class QRVA_insert extends dom_div
 			$this->t_cols[$row['Field']]['hname']=$row['Field'];
 			$this->t_cols[$row['Field']]['sql_type']=$row['Type'];
 			if($row['Key']=='PRI')$this->t_keys[$row['Field']]=true;
-			$this->t_cols[$row['Field']]['editor']='editor_statictext';
+			$this->t_cols[$row['Field']]['editor']='editor_text';
 		}
 	}
 	
@@ -2867,6 +2885,15 @@ class QRVA_insert extends dom_div
 	}
 	
 
+}
+
+class editor_password_md5 extends editor_text
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+	}
 }
 
 
