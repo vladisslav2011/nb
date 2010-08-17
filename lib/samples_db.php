@@ -1783,6 +1783,7 @@ class editor_txtasg_QRVA extends editor_txtasg
 }
 
 
+$tests_m_array['util']['query_result_viewer_any']='query_result_viewer_any';
 class query_result_viewer_any extends dom_div
 {
 	function __construct()
@@ -1821,13 +1822,12 @@ class query_result_viewer_any extends dom_div
 		editor_generic::addeditor('ed_pager',new util_small_pager);
 		$this->sdiv->append_child($this->editors['ed_pager']);
 		
-		editor_generic::addeditor('ed_new',new editor_button);
-		$this->sdiv->append_child($this->editors['ed_new']);
-		$this->editors['ed_new']->attributes['value']='Добавить';
-		
 		editor_generic::addeditor('ed_list',new QRVA_QR);
 		$this->append_child($this->editors['ed_list']);
 		
+		editor_generic::addeditor('ed_insert',new QRVA_insert);
+		$this->append_child($this->editors['ed_insert']);
+
 		editor_generic::addeditor('ed_download',new sdb_DL);
 		$this->append_child($this->editors['ed_download']);
 		
@@ -1841,6 +1841,7 @@ class query_result_viewer_any extends dom_div
 		$this->long_name=editor_generic::long_name();
 		$this->context[$this->long_name]['oid']=$this->oid;
 		$this->context[$this->long_name]['ed_list_id']=$this->editors['ed_list']->id_gen();
+		$this->context[$this->long_name]['ed_insert_id']=$this->editors['ed_insert']->id_gen();
 		$this->args['ed_table']=$this->rootnode->setting_val($this->oid,$this->long_name.'._table','');
 		$this->args['ed_db']=$this->rootnode->setting_val($this->oid,$this->long_name.'._db','');
 		foreach($this->editors as $i => $e)
@@ -1861,6 +1862,7 @@ class query_result_viewer_any extends dom_div
 		$this->args['ed_offset']=$this->rootnode->setting_val($this->oid,$this->long_name.'._offset',0);
 		$this->args['ed_filters']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._filters',0));
 		$this->args['ed_order']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._order',0));
+		$this->args['ed_insert']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._insert',0));
 		$this->editors['ed_list']->table_name='samples_raw';
 		parent::html_inner();
 	}
@@ -1891,10 +1893,13 @@ class query_result_viewer_any extends dom_div
 		$st=new settings_tool;
 		$this->u_sq($ev,'filters','_filters');
 		$this->u_sq($ev,'order','_order');
+		$this->u_sq($ev,'insert','_insert');
 		$this->i_sq($ev,'offset','_offset');
 		$this->i_sq($ev,'count','_count');
 		$this->i_sq($ev,'table','_table');
 		$this->i_sq($ev,'db','_db');
+		if(intval($ev->settings->count)<=0)$ev->settings->count=20;
+		if(intval($ev->settings->offset)<=0)$ev->settings->offset=0;
 /*		$filters=$sql->qv($st->single_query($this->oid,$this->long_name."._filters",$_SESSION['uid'],0));
 		$ev->settings->filters=unserialize($filters[0]);
 		$order=$sql->qv($st->single_query($this->oid,$this->long_name."._order",$_SESSION['uid'],0));
@@ -1972,6 +1977,7 @@ class query_result_viewer_any extends dom_div
 				$sql->query($st->set_query($this->oid,$this->long_name.'._table',$_SESSION['uid'],0,$_POST['val']));
 				$ev->settings->table=$_POST['val'];
 				$ev->do_reload=true;
+				$ev->reload_insert=true;
 			case 'ed_table.fo':
 				$ev->ed_table=1;
 				break;
@@ -1979,6 +1985,7 @@ class query_result_viewer_any extends dom_div
 				$sql->query($st->set_query($this->oid,$this->long_name.'._db',$_SESSION['uid'],0,$_POST['val']));
 				$ev->settings->db=$_POST['val'];
 				$ev->do_reload=true;
+				$ev->reload_insert=true;
 			case 'ed_db.fo':
 				$ev->ed_db=1;
 				break;
@@ -2041,6 +2048,15 @@ class query_result_viewer_any extends dom_div
 			$sql->query($st->set_query($this->oid,$this->long_name."._filters",$_SESSION['uid'],0,serialize($ev->settings->filters)));
 		if($ev->order_changed)
 			$sql->query($st->set_query($this->oid,$this->long_name."._order",$_SESSION['uid'],0,serialize($ev->settings->order)));
+		if($ev->reload_insert)
+		{
+			$sql->query($st->set_query($this->oid,$this->long_name."._insert",$_SESSION['uid'],0,serialize(Array())));
+			$ev->settings->insert=Array();
+		}
+		if($ev->insert_changed)
+		{
+			$sql->query($st->set_query($this->oid,$this->long_name."._insert",$_SESSION['uid'],0,serialize($ev->settings->insert)));
+		}
 		if($ev->changed)$ev->do_reload=true;
 		if($ev->do_reload)
 		{
@@ -2050,19 +2066,36 @@ class query_result_viewer_any extends dom_div
 			$this->args['ed_order']=$ev->settings->order;
 			$this->args['ed_table']=$ev->settings->table;
 			$this->args['ed_db']=$ev->settings->db;
+			$this->args['ed_insert']=$ev->settings->insert;
 			$r=new QRVA_QR;
 			
 			$r->context=&$ev->context;
 			$r->keys=&$ev->keys;
 			$r->oid=$oid;
-			$r->args=$this->args;
+			$r->args=&$this->args;
 			$r->name=$ev->parent_name.".ed_list";
-			$r->etype=$ev->parent_type.".sdb_QR";
+			$r->etype=$ev->parent_type.".QRVA_QR";
 
 			print "(function(){var nya=\$i('".js_escape($ev->context[$this->long_name]['ed_list_id'])."');";
 			print "try{nya.innerHTML=";
 			reload_object($r,true);
 			print "}catch(e){/* window.location.reload(true);*/};})();";
+			if($ev->reload_insert)
+			{
+				$r=new QRVA_insert;
+				
+				$r->context=&$ev->context;
+				$r->keys=&$ev->keys;
+				$r->oid=$oid;
+				$r->args=&$this->args;
+				$r->name=$ev->parent_name.".ed_insert";
+				$r->etype=$ev->parent_type.".QRVA_insert";
+
+				print "(function(){var nya=\$i('".js_escape($ev->context[$this->long_name]['ed_insert_id'])."');";
+				print "try{nya.innerHTML=";
+				reload_object($r,true);
+				print "}catch(e){/* window.location.reload(true);*/};})();";
+			}
 		}
 		
 		
@@ -2678,6 +2711,163 @@ class QRVA_filters extends dom_div
 	}
 }
 
+class QRVA_insert extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->tbl=new dom_table;
+		$this->append_child($this->tbl);
+		$this->etype=get_class($this);
+		$this->row=new dom_tr;
+		$this->tbl->append_child($this->row);
+		
+		$this->row_caps=new dom_tr;
+		$this->tbl->append_child($this->row_caps);
+		$this->cell_caps=new dom_td;
+		$this->row_caps->append_child($this->cell_caps);
+		$this->text_caps=new dom_statictext;
+		$this->cell_caps->append_child($this->text_caps);
+		
+		$this->cells=Array();
+		
+		$this->keys=Array();
+		$this->args=Array();
+		
+		$this->colcn=0;
+		
+	}
+	
+	
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		//$this->temp_storage->load($this);
+		//if($this->editdb!='')$this->context[$this->long_name]['dbname']=$this->editdb;
+		//$this->context[$this->long_name]['tblname']=$this->edittbl;
+		
+		if(!is_array($this->keys))$this->keys=Array();
+		if(!is_array($this->args))$this->args=Array();
+		if(is_array($this->editors))
+			foreach($this->editors as $k => $e)
+			{
+				$e->oid=$this->oid;
+				$e->keys=&$this->keys;
+				$e->args=&$this->args;
+				$e->context=&$this->context;
+				if(isset($e->validator_class))$this->context[$this->long_name.'.'.$k]['validator_class']=$e->validator_class;
+			}
+		if(is_array($this->editors))
+			foreach($this->editors as $k => $e)
+				$e->bootstrap();
+		
+	}
+	
+	function fetch_col_info()
+	{
+		global $sql,$ddc_tables;
+		if($this->args['ed_db']=='')
+		{
+			if(isset($ddc_tables[$this->args['ed_table']]))
+			{
+				foreach($ddc_tables[$this->args['ed_table']]->cols as $col)
+				{
+					$this->t_cols[$col['name']]=$col;
+					if(!isset($this->t_cols[$col['name']]['hname']))$this->t_cols[$col['name']]['hname']=$col['name'];
+					if(!isset($this->t_cols[$col['name']]['editor']))$this->t_cols[$col['name']]['editor']='editor_text';
+				}
+				foreach($ddc_tables[$this->args['ed_table']]->keys as $key)
+				if($key['key']=='PRIMARY')
+				{
+					$this->t_keys[$key['name']]=true;
+				}
+				
+				return;
+			}
+			$f="`".$sql->esc($this->args['ed_table'])."`";
+		}else{
+			$f="`".$sql->esc($this->args['ed_db'])."`.`".$sql->esc($this->args['ed_table'])."`";
+		}
+		$res=$sql->query("SHOW FULL COLUMNS FROM ".$f);
+		while($row=$sql->fetcha($res))
+		{
+			$this->t_cols[$row['Field']]['name']=$row['Field'];
+			$this->t_cols[$row['Field']]['hname']=$row['Field'];
+			$this->t_cols[$row['Field']]['sql_type']=$row['Type'];
+			if($row['Key']=='PRI')$this->t_keys[$row['Field']]=true;
+			$this->t_cols[$row['Field']]['editor']='editor_statictext';
+		}
+	}
+	
+	function html_inner()
+	{
+			
+		$this->fetch_col_info();
+		if(is_array($this->t_keys))
+			foreach($this->t_keys as $kn => $kv)
+			{
+				$col=$this->t_cols[$kn];
+				$ed=$col['editor'];
+				editor_generic::addeditor('+'.$col['name'],new $ed ($col));
+				$td=new dom_td;
+				$this->row->append_child($td);
+				$td->append_child($this->editors['+'.$col['name']]);
+				$this->editors['+'.$col['name']]->oid=$this->oid;
+				$this->editors['+'.$col['name']]->keys=&$this->keys;
+				$this->editors['+'.$col['name']]->args=&$this->args;
+				$this->editors['+'.$col['name']]->context=&$this->context;
+				$this->context[$this->long_name.'.+'.$col['name']]['var']='+'.$col['name'];
+				$this->args['+'.$col['name']]=$this->args[$this->context[$this->long_name]['var']]['+'.$col['name']];
+				
+			}
+				editor_generic::addeditor('insert',new editor_button);
+				$td=new dom_td;
+				$this->row->append_child($td);
+				$td->append_child($this->editors['insert']);
+				$this->editors['insert']->oid=$this->oid;
+				$this->editors['insert']->keys=&$this->keys;
+				$this->editors['insert']->args=&$this->args;
+				$this->editors['insert']->context=&$this->context;
+				$this->context[$this->long_name.'.insert']['var']='insert';
+			
+		
+		$this->tbl->html_head();
+		$this->row_caps->html_head();
+		$cnt=0;
+		if(is_array($this->t_keys))
+			foreach($this->t_keys as $kn => $kv)
+			{
+				$this->text_caps->text=$this->t_cols[$kn]['hname'];
+				$this->cell_caps->attributes['title']=$this->t_cols[$kn]['hname'];
+				$cnt++;
+				$this->cell_caps->html();
+				$this->cell_caps->id_alloc();
+			}
+		$this->row_caps->html_tail();
+		
+		
+		if(is_array($this->editors))
+			foreach($this->editors as $k => $e)
+				$e->bootstrap();
+		$this->row->html();
+		$this->tbl->html_tail();
+	}
+	
+	
+	function handle_event($ev)
+	{
+		
+		if((!preg_match('/\./',$ev->rem_name))&&($ev->rem_name!='insert'))
+		{
+			$ev->settings->insert[$ev->rem_name]=$_POST['val'];
+			$ev->insert_changed=true;
+		}
+		editor_generic::handle_event($ev);
+	}
+	
+
+}
 
 
 

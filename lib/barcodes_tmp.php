@@ -2085,7 +2085,7 @@ $tests_m_array['util']['query_result_viewer_codessel']='query_result_viewer_code
 
 
 
-class query_result_viewer_any_ extends dom_any
+class query_result_viewer_any_old extends dom_any
 {
 	function __construct()
 	{
@@ -2531,7 +2531,7 @@ class QRVA_settings_io
 	}
 }
 
-$tests_m_array['util']['query_result_viewer_any']='query_result_viewer_any';
+$tests_m_array['util']['query_result_viewer_any_old']='query_result_viewer_any_old';
 
 class editor_insert_ch extends dom_div
 {
