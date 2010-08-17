@@ -443,6 +443,20 @@ class samples_db_item extends dom_div
 				if(!file_exists($odir))mkdir($odir,0777,true);
 				$file_name=preg_replace('#.*/#','',$name);
 				$new_name=$odir.'/'.$file_name;
+				if(file_exists($new_name))
+				{
+					$cnt=0;
+					if(preg_match('/\./',$file_name))
+					{
+						while(file_exists($odir.'/'.preg_replace('#\.([^./]+)$#','_'.$cnt.'.$1',$file_name)))$cnt++;
+						$file_name=preg_replace('#\.([^./]+)$#','_'.$cnt.'.$1',$file_name);
+						$new_name=$odir.'/'.$file_name;
+					}else{
+						while(file_exists($new_name.'_'.$snt))$cnt++;
+						$file_name=$file_name.'_'.$cnt;
+						$new_name=$odir.'/'.$file_name;
+					}
+				}
 				rename($name,$new_name);
 				$pv_name=$this->gen_preview($new_name);
 				$qg=new query_gen_ext("INSERT");
