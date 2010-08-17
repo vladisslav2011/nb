@@ -2894,6 +2894,11 @@ class editor_password_md5 extends editor_text
 		parent::__construct();
 		$this->etype=get_class($this);
 	}
+	function html()
+	{
+		$this->args[$this->context[$this->long_name]['var']]='';
+		parent::html();
+	}
 }
 
 

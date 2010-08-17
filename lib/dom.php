@@ -259,6 +259,17 @@ exstyle
 endscripts
 settings_array[oid][setting]
 */
+	function __construct()
+	{
+		global $global_scripts;
+		parent::__construct();
+		$this->rootnode=$this;
+		$this->out_buffer='';
+		if(is_array($global_scripts))
+			foreach($global_scripts as $s)
+				$this->scripts[$s]=$s;
+	}
+	
 	function html()
 	{
 		$this->out_buffer='';
@@ -299,13 +310,6 @@ settings_array[oid][setting]
 			foreach($this->endscripts as $e) $this->out("<script type='text/javascript'><!--\n".$e."\n--></script>\n");
 		$this->out("</body></html>");
 		return $this->endout();
-	}
-	
-	function __construct()
-	{
-		dom_node::__construct();
-		$this->rootnode=$this;
-		$this->out_buffer='';
 	}
 	
 	function setting_val($oid,$setting,$defval)

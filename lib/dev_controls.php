@@ -4020,13 +4020,6 @@ class ed_tree_tracker extends dom_any
 		if(!isset($this->no_restore_focus))editor_generic::add_focus_restore();
 	}
 	
-	function after_build_before_children()
-	{
-		$this->rootnode->scripts['settings.js']='../settings/settings.js';
-		$this->rootnode->scripts['core.js']='../js/core.js';
-		$this->rootnode->scripts['commoncontrols.js']='/js/commoncontrols.js';
-
-	}
 }
 
 

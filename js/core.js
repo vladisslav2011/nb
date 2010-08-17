@@ -925,6 +925,7 @@ this.send_or_push=function(tosend)//tosend={uri:uri,static:'var',val:'value'}
 this.send_async = function(d)//d={uri:uri,static:'var',val:'value'}
 {
 //	alert(typeof(this));
+	this.sending=true;
 	var xmlHttp=new_xmlHTTP();
 	
 	var curi='';
@@ -952,7 +953,6 @@ this.send_async = function(d)//d={uri:uri,static:'var',val:'value'}
 		catch( e ) {xmlHttp.chs.safe_alert('Произошло исключение: ' + e.description);};
 		
 	}
-	this.sending=true;
 	//debug
 	/*	if($i('errordump'))
 		{
@@ -998,7 +998,7 @@ this.send_async = function(d)//d={uri:uri,static:'var',val:'value'}
 	}
 	if(typeof(d.val=='string'))
 	{
-		send_buffer+=('&val=' + d.val);
+		send_buffer+=('&val=' + encodeURIComponent(d.val));
 	}
 	xmlHttp.send(send_buffer);
 	//async_post(this.callback_uri,d,this.callback);

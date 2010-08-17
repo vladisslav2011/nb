@@ -6,6 +6,12 @@ require_once("lib/utils.php");
 require_once("lib/dom.php");
 require_once("lib/settings.php");
 
+$global_scripts=Array(
+'/settings/settings.js',
+'/js/md5.js',
+'/js/core.js',
+'/js/commoncontrols.js'
+);
 
 
 
@@ -632,13 +638,6 @@ class editor_href extends dom_any
 		parent::html_head();
 	}
 	
-	function after_build_before_children()
-	{
-		$this->rootnode->scripts['settings.js']='../settings/settings.js';
-		$this->rootnode->scripts['core.js']='../js/core.js';
-		$this->rootnode->scripts['commoncontrols.js']='/js/commoncontrols.js';
-
-	}
 }
 
 
@@ -683,13 +682,6 @@ class editor_button extends dom_any_noterm
 		if(!isset($this->no_restore_focus))editor_generic::add_focus_restore();
 	}
 	
-	function after_build_before_children()
-	{
-		$this->rootnode->scripts['settings.js']='../settings/settings.js';
-		$this->rootnode->scripts['core.js']='../js/core.js';
-		$this->rootnode->scripts['commoncontrols.js']='/js/commoncontrols.js';
-
-	}
 }
 
 class editor_text_button extends editor_button
@@ -1945,13 +1937,6 @@ class dom_tab_control extends dom_div
 		dom_div::html();
 	}
 	
-	function after_build_before_children()
-	{
-		$this->rootnode->scripts['settings.js']='../settings/settings.js';
-		$this->rootnode->scripts['core.js']='../js/core.js';
-		$this->rootnode->scripts['commoncontrols.js']='/js/commoncontrols.js';
-
-	}
 }
 
 
@@ -2080,13 +2065,6 @@ class container_tab_control extends dom_div
 		foreach($this->tabs as $ind => $tab)$tab->selector->attributes['onclick']='';
 	}
 	
-	function after_build_before_children()
-	{
-		$this->rootnode->scripts['settings.js']='../settings/settings.js';
-		$this->rootnode->scripts['core.js']='../js/core.js';
-		$this->rootnode->scripts['commoncontrols.js']='/js/commoncontrols.js';
-
-	}
 }
 
 
