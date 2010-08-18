@@ -2357,6 +2357,10 @@ class editor_txtasg extends dom_div
 		$this->context=Array();
 	}
 	
+	function escl($s)
+	{
+		return str_replace('_','\\_',str_replace('%','\\%',$s));
+	}
 
 	function bootstrap()
 	{

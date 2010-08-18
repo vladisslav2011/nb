@@ -294,6 +294,7 @@ $tests_m_array['samples_db']['samples_db_list']='samples_db_list';
 
 //----------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------
+
 class sdb_as_i extends editor_txtasg
 {
 	function __construct()
@@ -305,12 +306,131 @@ class sdb_as_i extends editor_txtasg
 	function fetch_list($ev,$part=NULL)
 	{
 		global $sql,$ddc_tables;
-		$r= Array(
-			Array(
-			'val'=>$ev->asg_name,
-			'title'=>$ev->asg_name
-			)
-		);
+		$nn=preg_replace('/^e/','',$ev->asg_name);
+		$r= Array();
+		$qg=new query_gen_ext('select distinct');
+		$qg->from->exprs[]=new sql_column(NULL,'samples_raw');
+		$qg->what->exprs[]=new sql_column(NULL,NULL,$nn);
+		if(isset($part))
+			$qg->where->exprs[]=new sql_expression('LIKE',Array(
+				new sql_column(NULL,NULL,$nn),
+				new sql_immed('%'.editor_txtasg::escl($part).'%')
+				));
+				
+		$qg->lim_count=30;
+		$res=$sql->query($qg->result());
+		while($row=$sql->fetchn($res))
+		{
+			$r[]=Array(
+			'val'=>$row[0],
+			'title'=>$row[0]
+			);
+		}
+		$sql->free($res);
+		return $r;
+	}
+	
+}
+
+class sdb_as_tn extends editor_txtasg
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+	}
+	
+	function fetch_list($ev,$part=NULL)
+	{
+		global $sql,$ddc_tables;
+		$r= Array();
+		$sq=new query_gen_ext('SELECT');
+		$sq->from->exprs[]=new sql_column(NULL,'samples_tags',NULL,'b');
+		$sq->what->exprs[]=new sql_list('count',Array(new sql_column(NULL,'b','tagid')));
+		$sq->where->exprs[]=new sql_expression('=',Array(
+			new sql_column(NULL,'a','tagname'),
+			new sql_column(NULL,'b','tagname')
+			));
+		$sq->where->exprs[]=new sql_expression('=',Array(
+			new sql_column(NULL,'b','id'),
+			new sql_immed($ev->keys['id'])
+			));
+		
+		$qg=new query_gen_ext('select distinct');
+		$qg->from->exprs[]=new sql_column(NULL,'samples_tags',NULL,'a');
+		$qg->where->exprs[]=new sql_expression('=',Array(
+			new sql_subquery($sq),
+			new sql_immed(0)
+			));
+		if(isset($part))
+			$qg->where->exprs[]=new sql_expression('LIKE',Array(
+				new sql_column(NULL,'a','tagname'),
+				new sql_immed('%'.editor_txtasg::escl($part).'%')
+				));
+		$qg->what->exprs[]=new sql_column(NULL,'a','tagname');
+		$qg->lim_count=30;
+		
+		$res=$sql->query($qg->result());
+		while($row=$sql->fetchn($res))
+		{
+			$r[]=Array(
+			'val'=>$row[0],
+			'title'=>$row[0]
+			);
+		}
+		$sql->free($res);
+		return $r;
+	}
+	
+}
+
+class sdb_as_tv extends editor_txtasg
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+	}
+	
+	function fetch_list($ev,$part=NULL)
+	{
+		global $sql,$ddc_tables;
+		$r= Array();
+		$sq=new query_gen_ext('SELECT');
+		$sq->from->exprs[]=new sql_column(NULL,'samples_tags',NULL,'b');
+		$sq->what->exprs[]=new sql_column(NULL,'b','tagname');
+		$sq->where->exprs[]=new sql_expression('=',Array(
+			new sql_column(NULL,'b','tagid'),
+			new sql_immed($ev->keys['tagid'])
+			));
+		$sq->where->exprs[]=new sql_expression('=',Array(
+			new sql_column(NULL,'b','id'),
+			new sql_immed($ev->keys['id'])
+			));
+		
+		$qg=new query_gen_ext('select distinct');
+		$qg->from->exprs[]=new sql_column(NULL,'samples_tags',NULL,'a');
+		$qg->where->exprs[]=new sql_expression('=',Array(
+			new sql_subquery($sq),
+			new sql_column(NULL,'a','tagname')
+			));
+		if(isset($part))
+			$qg->where->exprs[]=new sql_expression('LIKE',Array(
+				new sql_column(NULL,'a','tagvalue'),
+				new sql_immed('%'.editor_txtasg::escl($part).'%')
+				));
+		
+		$qg->what->exprs[]=new sql_column(NULL,'a','tagvalue');
+		$qg->lim_count=30;
+		$res=$sql->query($qg->result());
+		while($row=$sql->fetchn($res))
+		{
+			$r[]=Array(
+			'val'=>$row[0],
+			'title'=>$row[0]
+			);
+		}
+		$sql->free($res);
 		return $r;
 	}
 	
@@ -1315,8 +1435,8 @@ class sdb_tags extends dom_div
 		$this->append_child($this->attachments);
 		if($_SESSION['interface']!='samples_view')
 		{
-			$atagname='editor_text';
-			$atagvalue='editor_text';
+			$atagname='sdb_as_tn';
+			$atagvalue='sdb_as_tv';
 			$adel_editor='editor_button_image';
 		}else{
 			$atagname='editor_statictext';
