@@ -73,7 +73,7 @@ class path_backend_tree
 		while($ni != '')
 		{
 			$out[]=$ni;
-			$ni='';//paremt
+			$ni='';//parent
 			$ni=$this->sql->fetch1($this->sql->query("SELECT `parentid` FROM `".TABLE_META_TREE."` WHERE `id`='".$ni."'"));
 			if($ni==0)break;
 		}
@@ -465,7 +465,24 @@ class path_view_control_cd extends path_view_control_dd
 
 
 
-
+class dom_async_mon extends dom_div
+{
+	function __construct($text)
+	{
+		parent::__construct();
+		$this->css_style['position']='fixed';
+		$this->css_style['left']='50%';
+		$this->css_style['top']='20px';
+		$this->css_style['background-color']='#FFFF7E';
+		$this->css_style['border']='3px solid #666633';
+		$this->css_style['visibility']='hidden';
+		$this->custom_id='async_monitor';
+		$this->append_child(new dom_statictext($text));
+		$acync_count=new dom_span;
+		$this->append_child($acync_count);
+		$acync_count->custom_id='async_monitor_count';
+	}
+}
 
 
 
@@ -488,10 +505,14 @@ class locationbar extends dom_any
 		$logout_div->css_style['float']='right';
 		//$logout_btn=new editor_button;
 		//editor_generic::addeditor('logout',$logout_btn);
+		
+		
+		
 		$this->logout_btn=new dom_textbutton;
 		$logout_div->append_child($this->logout_btn);
 		$this->append_child($logout_div);
 		$this->logout_btn->attributes['value']='logout';
+		
 		
 		if($_SESSION['uid']==0)
 		{
@@ -514,7 +535,9 @@ class locationbar extends dom_any
 		$pk=new path_view_control;
 		editor_generic::addeditor('pk',$pk);
 		$this->append_child($pk);
+		
 	}
+	
 	function bootstrap()
 	{
 		$long_name=editor_generic::long_name();
@@ -762,6 +785,7 @@ class page_developer extends dom_root_print
 		$this->append_child($locker);
 		$lockerid=$locker->id_gen();
 		
+		$this->append_child(new dom_async_mon('sending:'));
 		$this->endscripts[]="\$i('$lockerid').style.display='none';";
 		
 		
@@ -848,6 +872,7 @@ class page_samples_db extends dom_root_print
 		$this->append_child($locker);
 		$lockerid=$locker->id_gen();
 		
+		$this->append_child(new dom_async_mon('Выполняется запросов:'));
 		$this->endscripts[]="\$i('$lockerid').style.display='none';";
 		
 		

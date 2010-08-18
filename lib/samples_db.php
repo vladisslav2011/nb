@@ -43,10 +43,29 @@ Array(
  )
 );
 
+
+$ddc_tables['samples_tags']=(object)
+Array(
+ 'name' => 'samples_tags',
+ 'cols' => Array(
+  #Array('name' =>'', 'sql_type' =>'', 'sql_null' =>, 'sql_default' =>'', 'sql_sequence' => 0, 'sql_comment' =>NULL),
+  Array('name' =>'id',		'sql_type' =>'int(10)',  'sql_null' =>0, 'sql_default' =>0,		'sql_sequence' => 0,	'sql_comment' =>NULL, 'hname'=>'Объект'),
+  Array('name' =>'tagid',		'sql_type' =>'int(10)',  'sql_null' =>0, 'sql_sequence' => 1, 'hname'=>'id'),
+  Array('name' =>'tagname',		'sql_type' =>'varchar(200)',  'sql_null' =>0, 'sql_default' =>'',		'sql_sequence' => 0, 'hname'=>'Имя'),
+  Array('name' =>'tagvalue',	'sql_type' =>'varchar(255)', 'sql_null' =>0, 'sql_default' =>'',	'sql_sequence' => 0, 'hname'=>'Значение')
+ ),
+ 'keys' => Array(
+#  Array('key' =>'PRIMARY', 'name' =>'', 'sub' => NULL)
+  Array('key' =>'PRIMARY', 'name' =>'id', 'sub' => NULL),
+  Array('key' =>'PRIMARY', 'name' =>'tagid', 'sub' => NULL)
+ )
+);
+
 if($_GET['init']=='init')
 {
 	ddc_gentable_o($ddc_tables['samples_raw'],$sql);
 	ddc_gentable_o($ddc_tables['samples_attachments'],$sql);
+	ddc_gentable_o($ddc_tables['samples_tags'],$sql);
 };
 
 
@@ -273,6 +292,30 @@ class samples_db_list extends dom_div
 };
 $tests_m_array['samples_db']['samples_db_list']='samples_db_list';
 
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
+class sdb_as_i extends editor_txtasg
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+	}
+	
+	function fetch_list($ev,$part=NULL)
+	{
+		global $sql,$ddc_tables;
+		$r= Array(
+			Array(
+			'val'=>$ev->asg_name,
+			'title'=>$ev->asg_name
+			)
+		);
+		return $r;
+	}
+	
+}
+
 class samples_db_item extends dom_div
 {
 	function __construct()
@@ -301,7 +344,7 @@ class samples_db_item extends dom_div
 			
 			$ntd=new dom_td;
 			$tr->append_child($ntd);
-			$ed='editor_text';
+			$ed='sdb_as_i';
 			if(isset($col['editor']))$ed=$col['editor'];
 			editor_generic::addeditor('e'.$col['name'],new $ed);
 			$ntd->append_child($this->editors['e'.$col['name']]);
@@ -327,6 +370,9 @@ class samples_db_item extends dom_div
 		editor_generic::addeditor('attachments',new sdb_attachments);
 		$this->append_child($this->editors['attachments']);
 		
+		editor_generic::addeditor('tags',new sdb_tags);
+		$this->append_child($this->editors['tags']);
+		
 		
 	}
 	
@@ -335,6 +381,7 @@ class samples_db_item extends dom_div
 		$this->long_name=editor_generic::long_name();
 		$this->context[$this->long_name]['oid']=$this->oid;
 		$this->context[$this->long_name]['attachments_id']=$this->editors['attachments']->id_gen();
+		$this->context[$this->long_name]['tags_id']=$this->editors['tags']->id_gen();
 		if(!is_array($this->args))$this->args=Array();
 		if(!is_array($this->keys))$this->keys=Array();
 		foreach($this->editors as $i=>$e)
@@ -393,6 +440,7 @@ class samples_db_item extends dom_div
 			$this->viewonly->html();
 		}
 		$this->editors['attachments']->html();
+		$this->editors['tags']->html();
 			
 	}
 	
@@ -494,9 +542,11 @@ class samples_db_item extends dom_div
 				if($aid===NULL)
 				{
 					//handle error
+				}else{
+					$aid=$aid[0];
+					$attachments_focus=$aid;
 				}
-				$aid=$aid[0];
-				$ev->do_reload=true;
+				$ev->reload_attachments=true;
 				$ev->activate_aid=$aid;
 				
 				
@@ -539,7 +589,7 @@ class samples_db_item extends dom_div
 					new sql_immed($ev->keys['aid'])
 					));
 				$res=$sql->query($qg->result());
-				$ev->do_reload=true;
+				$ev->reload_attachments=true;
 				break;
 			case 'attachments.adescr':
 				$qg=new query_gen_ext("UPDATE");
@@ -561,15 +611,119 @@ class samples_db_item extends dom_div
 				$sql->query($qg->result());
 				
 				break;
+			case 'tags.aadd':
+			
+				$qg=new query_gen_ext("SELECT");
+				$qg->from->exprs[]=new sql_column(NULL,'samples_tags');
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'tagname'),
+					new sql_immed('')
+					));
+				$qg->what->exprs[]=new sql_list('count',Array(new sql_column(NULL,NULL,'tagid')),'c');
+				$r=$sql->qv($qg->result());
+				if(intval($r[0])<=0)
+				{
+				
+					$qg=new query_gen_ext("INSERT");
+					$qg->into->exprs[]=new sql_column(NULL,'samples_tags');
+					$qg->set->exprs[]=new sql_expression('=',Array(
+						new sql_column(NULL,NULL,'tagname'),
+						new sql_immed('')
+						));
+					$qg->set->exprs[]=new sql_expression('=',Array(
+						new sql_column(NULL,NULL,'id'),
+						new sql_immed($ev->keys['id'])
+						));
+					$res=$sql->query($qg->result());
+				}
+				$tags_focus=1;
+				$ev->reload_tags=true;
+				break;
+			case 'tags.adel':
+			
+				$qg=new query_gen_ext("DELETE");
+				$qg->from->exprs[]=new sql_column(NULL,'samples_tags');
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'tagid'),
+					new sql_immed($ev->keys['tagid'])
+					));
+				$r=$sql->qa($qg->result());
+				$ev->reload_tags=true;
+				break;
+			case 'tags.atagname':
+				$qg=new query_gen_ext("SELECT");
+				$qg->from->exprs[]=new sql_column(NULL,'samples_tags');
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'tagname'),
+					new sql_immed($_POST['val'])
+					));
+				$qg->what->exprs[]=new sql_column(NULL,NULL,'tagid');
+				$r=$sql->qv($qg->result());
+				if(intval($r[0])==0)
+				{
+					$qg=new query_gen_ext("UPDATE");
+					$qg->into->exprs[]=new sql_column(NULL,'samples_tags');
+					
+					$qg->where->exprs[]=new sql_expression('=',Array(
+						new sql_column(NULL,NULL,'id'),
+						new sql_immed($ev->keys['id'])
+						));
+					$qg->where->exprs[]=new sql_expression('=',Array(
+						new sql_column(NULL,NULL,'tagid'),
+						new sql_immed($ev->keys['tagid'])
+						));
+					$qg->set->exprs[]=new sql_expression('=',Array(
+						new sql_column(NULL,NULL,'tagname'),
+						new sql_immed($_POST['val'])
+						));
+					$sql->query($qg->result());
+				}else{
+					$ev->failure='Уже существует';
+				}
+				break;
+			case 'tags.atagvalue':
+				$qg=new query_gen_ext("UPDATE");
+				$qg->into->exprs[]=new sql_column(NULL,'samples_tags');
+				
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'tagid'),
+					new sql_immed($ev->keys['tagid'])
+					));
+				$qg->set->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'tagvalue'),
+					new sql_immed($_POST['val'])
+					));
+//				print "alert('".js_escape($qg->result())."');";
+				$sql->query($qg->result());
+				
+				break;
 		};
 		
+		$ev->asg_name=preg_replace('/\.fo$/','',$ev->rem_name);
 		
 		editor_generic::handle_event($ev);
 		
-		if($ev->do_reload)
+		if($ev->reload_attachments)
 		{
 			$r=new sdb_attachments;
 			
+			$r->focus_hint=$attachments_focus;
 			$r->context=&$ev->context;
 			$r->keys=&$ev->keys;
 			$r->oid=$oid;
@@ -582,6 +736,23 @@ class samples_db_item extends dom_div
 			reload_object($r,true);
 			print "}catch(e){/* window.location.reload(true);*/};";
 		}
+		if($ev->reload_tags)
+		{
+			$r=new sdb_tags;
+			
+			$r->focus_hint=$tags_focus;
+			$r->context=&$ev->context;
+			$r->keys=&$ev->keys;
+			$r->oid=$oid;
+			$r->args=$this->args;
+			$r->name=$ev->parent_name.".tags";
+			$r->etype=$ev->parent_type.".sdb_tags";
+
+			print "var nya=\$i('".js_escape($ev->context[$this->long_name]['tags_id'])."');";
+			print "try{nya.innerHTML=";
+			reload_object($r,true);
+			print "}catch(e){/* window.location.reload(true);*/};";
+		}
 		
 		
 	}
@@ -590,6 +761,8 @@ class samples_db_item extends dom_div
 };
 $tests_m_array['samples_db']['samples_db_item']='samples_db_item';
 
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
 class samples_db_users extends dom_div
 {
 	function __construct()
@@ -784,6 +957,8 @@ class samples_db_users extends dom_div
 };
 $tests_m_array['samples_db']['samples_db_users']='samples_db_users';
 
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
 class samples_db_usersitem extends dom_div
 {
 	function __construct()
@@ -959,6 +1134,8 @@ $tests_m_array['samples_db']['samples_db_usersitem']='samples_db_usersitem';
 
 
 
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
 class sdb_attachments extends dom_div
 {
 	function __construct()
@@ -1098,6 +1275,176 @@ class sdb_attachments extends dom_div
 			foreach($this->editors as $e)
 				$e->bootstrap();
 			$this->atr->html();
+			if(isset($this->focus_hint))
+				if($this->focus_hint==$row['aid'])
+				{
+					$this->rootnode->endscripts['attachments_focus']="\$i('".$this->editors['adescr']->main->id_gen()."').focus();";
+				}
+			$no_allachments=false;
+			
+		}
+		if($no_allachments)
+		{
+			$this->notr->html();
+		}
+		$this->attachments->html_tail();
+		$this->editors['aadd']->html();
+		
+		
+		
+	}
+	
+	function handle_event($ev)
+	{
+		editor_generic::handle_event($ev);
+	}
+	
+}
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
+
+class sdb_tags extends dom_div
+{
+	function __construct()
+	{
+		global $sql,$ddc_tables;
+		parent::__construct();
+		$this->etype=get_class($this);
+		
+		$this->attachments=new dom_table;
+		$this->append_child($this->attachments);
+		if($_SESSION['interface']!='samples_view')
+		{
+			$atagname='editor_text';
+			$atagvalue='editor_text';
+			$adel_editor='editor_button_image';
+		}else{
+			$atagname='editor_statictext';
+			$atagvalue='editor_statictext';
+			$adel_editor='editor_statictext';
+		}
+		
+		
+		
+		$this->atr=new dom_tr;
+		$this->attachments->append_child($this->atr);
+		
+		$td=new dom_td;
+		$this->atr->append_child($td);
+		unset($td->id);
+		editor_generic::addeditor('anum',new editor_statictext);
+		$td->append_child($this->editors['anum']);
+		
+		$td=new dom_td;
+		$this->atr->append_child($td);
+		unset($td->id);
+		editor_generic::addeditor('atagname',new $atagname);
+		$td->append_child($this->editors['atagname']);
+		
+		$td=new dom_td;
+		$this->atr->append_child($td);
+		unset($td->id);
+		editor_generic::addeditor('atagvalue',new $atagvalue);
+		$td->append_child($this->editors['atagvalue']);
+		
+		$td=new dom_td;
+		$this->atr->append_child($td);
+		unset($td->id);
+		editor_generic::addeditor('adel',new $adel_editor);
+		$td->append_child($this->editors['adel']);
+		$this->editors['adel']->attributes['src']='/i/del.png';
+		
+		$this->ahtr=new dom_tr;
+		$this->attachments->append_child($this->ahtr);
+		
+		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('№ п/п'));
+		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Имя'));
+		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Значение'));
+		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Операции'));
+		
+		if($_SESSION['interface']!='samples_view')
+		{
+			editor_generic::addeditor('aadd',new editor_button);
+			$this->append_child($this->editors['aadd']);
+			$this->editors['aadd']->attributes['value']='Добавить';
+		}else{
+			editor_generic::addeditor('aadd',new editor_statictext);
+			$this->append_child($this->editors['aadd']);
+		}
+		
+		
+		$this->notr=new dom_tr;
+		$this->attachments->append_child($this->notr);
+		$td=new dom_td;	$this->notr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Нет тегов'));
+		$td->attributes['colspan']='4';$td->css_style['text-align']='center';
+		
+		
+		
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		$this->context[$this->long_name]['oid']=$this->oid;
+		if(!is_array($this->args))$this->args=Array();
+		if(!is_array($this->keys))$this->keys=Array();
+		foreach($this->editors as $i=>$e)
+		{
+			$e->oid=$this->oid;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+		}
+		foreach($this->editors as $e)
+			$e->bootstrap();
+	}
+	
+	function html_inner()
+	{
+		global $sql,$ddc_tables;
+		if($_SESSION['interface']!='samples_view')
+			$can_edit=true;
+		else
+			$can_edit=false;
+		$qg=new query_gen_ext('SELECT');
+		
+		$qg->where->exprs[]=new sql_expression('=',
+			Array(
+				new sql_column(NULL,'s','id'),
+				new sql_immed($_GET['id'])
+				));
+		$qg->from->exprs=Array(new sql_column(NULL,'samples_tags',NULL,'s'));
+		$qg->what->exprs=Array();
+		foreach($ddc_tables['samples_tags']->cols as $col)
+		{
+			$qg->what->exprs[]=new sql_column(NULL,'s',$col['name']);
+		}
+		
+		$qc=$qg->result();
+		
+		$res=$sql->query($qc);
+		$this->attachments->html_head();
+		$this->ahtr->html();
+		$no_allachments=true;
+		$nn=1;
+		while($row=$sql->fetcha($res))
+		{
+			$this->args['anum']=$nn;
+			$nn++;
+			$this->keys['id']=$row['id'];
+			$this->keys['tagid']=$row['tagid'];
+			$this->args['atagname']=$row['tagname'];
+			$this->args['atagvalue']=$row['tagvalue'];
+			$this->id_alloc();
+			foreach($this->editors as $e)
+				$e->bootstrap();
+			$this->atr->html();
+			if(isset($this->focus_hint))
+				if($row['tagname']=='')
+				{
+					$this->rootnode->endscripts['tags_focus']="\$i('".$this->editors['atagname']->main->id_gen()."').focus();";
+				}
 			$no_allachments=false;
 			
 		}
@@ -1130,7 +1477,8 @@ class sdb_attachments extends dom_div
 
 
 
-
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
 
 class sdb_filters extends dom_div
 {
@@ -1328,6 +1676,8 @@ class sdb_filters extends dom_div
 	}
 }
 
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
 class sdb_order extends dom_div
 {
 	function __construct()
@@ -1511,6 +1861,8 @@ class sdb_order extends dom_div
 	
 }
 
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
 class sdb_DL extends dom_div
 {
 	function __construct()
@@ -1528,6 +1880,8 @@ class sdb_DL extends dom_div
 	}
 }
 
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
 class sdb_QR extends dom_div
 {
 	function __construct()

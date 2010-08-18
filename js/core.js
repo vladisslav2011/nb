@@ -917,6 +917,7 @@ this.send_or_push=function(tosend)//tosend={uri:uri,static:'var',val:'value'}
 			this.queue[0]=tosend;
 		else
 			this.queue.unshift(tosend);
+		this.show_sending(this.queue.length+1);
 		return;
 	}else
 		this.send_async(tosend);
@@ -926,6 +927,7 @@ this.send_async = function(d)//d={uri:uri,static:'var',val:'value'}
 {
 //	alert(typeof(this));
 	this.sending=true;
+	this.show_sending(this.queue.length+1);
 	var xmlHttp=new_xmlHTTP();
 	
 	var curi='';
@@ -941,6 +943,7 @@ this.send_async = function(d)//d={uri:uri,static:'var',val:'value'}
 		try {if (xmlHttp.readyState == 4){if (xmlHttp.status == 200)
 		{
 			xmlHttp.chs.sending=false;
+			xmlHttp.chs.show_sending(xmlHttp.chs.queue.length);
 			if(xmlHttp.responseText.match(/^<.*/) && (!xmlHttp.chs.debug))
 				window.location.reload(true);//got something like html. Maybe session ended or auth failed.
 			else //response has to be js code
@@ -1044,6 +1047,21 @@ this.bgifc=function(id,bg)//tosend={uri:uri,static:'var',val:'value'}
 	return r;
 }
 
+this.show_sending=function(n)
+{
+	var m=$i('async_monitor');
+	if(typeof(m)=='undefined')return;
+	if(m==null)return;
+	var c=$i('async_monitor_count');
+	if(typeof(c)=='undefined')return;
+	if(n===0)
+	{
+		m.style.visibility='hidden';
+	}else{
+		m.style.visibility='visible';
+		c[text_content]=n;
+	}
+}
 
 }
 
