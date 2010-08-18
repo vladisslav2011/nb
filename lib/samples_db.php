@@ -985,7 +985,6 @@ class samples_db_users extends dom_div
 					print "alert('Редактирование отключено');window.location.reload(true);";
 					exit;
 				}
-				$this->cascade_delete($ev->keys['uid']);
 				$qg=new query_gen_ext('DELETE');
 				$qg->where->exprs[]=new sql_expression('=',Array(
 					new sql_column(NULL,NULL,'uid'),
