@@ -163,6 +163,8 @@ class samples_db_list extends dom_div
 			new sql_immed($id)
 		));
 		$sql->query($qg->result());
+		$qg->from->exprs=Array(new sql_column(NULL,'samples_tags'));
+		$sql->query($qg->result());
 		
 	}
 	
@@ -564,9 +566,46 @@ class samples_db_item extends dom_div
 			
 	}
 	
-	function gen_preview($name)
+	function gen_preview($new_name,$dir)
 	{
-		return $name;
+		$img=false;
+		$got_th=false;
+		$doc_root=$_SERVER['DOCUMENT_ROOT'];
+		if(preg_match('#.*[^/]$#',$doc_root))$doc_root.='/';
+		$tdir = $doc_root.$dir;
+		$file_name=preg_replace('#.*/#','',$new_name);
+		switch(mime_content_type($new_name))
+		{
+		case 'image/jpeg':
+			if($img===false)$img=imagecreatefromjpeg($new_name);
+		case 'image/gif':
+			if($img===false)$img=imagecreatefromgif($new_name);
+		case 'image/png':
+			if($img===false)$img=imagecreatefrompng($new_name);
+			if($img!==false)
+			{
+				$sx=imagesx($img);
+				$sy=imagesy($img);
+				if($sx/$sy>1.0)
+				{
+					$nx=200;
+					$ny=(200.0*$sy)/$sx;
+				}else{
+					$nx=(200.0*$sx)/$sy;
+					$ny=200;
+				}
+				$nimg=imagecreatetruecolor($nx,$ny);
+				if(imagecopyresampled ($nimg , $img , 0 , 0 , 0 , 0 , $nx , $ny , $sx , $sy ))
+				{
+					imagejpeg($nimg,$tdir.'/'.$file_name);
+					$got_th=true;
+				}
+				imagedestroy($img);
+			}
+			break;
+		}
+		if($got_th)return '/'.$dir.'/'.$file_name;
+		return $new_name;
 	}
 	
 	function handle_event($ev)
@@ -608,7 +647,9 @@ class samples_db_item extends dom_div
 			case 'attachments.aadd':
 				$name=$_POST['val'];
 				$odir = $doc_root.'si/o/'.$ev->keys['id'];
+				$tdir = $doc_root.'si/t/'.$ev->keys['id'];
 				if(!file_exists($odir))mkdir($odir,0777,true);
+				if(!file_exists($tdir))mkdir($tdir,0777,true);
 				$file_name=preg_replace('#.*/#','',$name);
 				$new_name=$odir.'/'.$file_name;
 				if(file_exists($new_name))
@@ -626,7 +667,7 @@ class samples_db_item extends dom_div
 					}
 				}
 				rename($name,$new_name);
-				$pv_name=$this->gen_preview($new_name);
+				$pv_name=$this->gen_preview($new_name,'si/t/'.$ev->keys['id']);
 				$qg=new query_gen_ext("INSERT");
 				$qg->into->exprs[]=new sql_column(NULL,'samples_attachments');
 				$qg->set->exprs[]=new sql_expression('=',Array(
@@ -1253,6 +1294,33 @@ $tests_m_array['samples_db']['samples_db_usersitem']='samples_db_usersitem';
 
 
 
+class sdb_apv extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		$this->img =new dom_any_noterm('img');
+		$this->append_child($this->img);
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+	}
+	
+	function handle_event($ev)
+	{
+	}
+	
+	function html_inner()
+	{
+		$this->img->attributes['src']=$this->args[$this->context[$this->long_name]['var']];
+		parent::html_inner();
+	}
+}
+
+
 //----------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------
 class sdb_attachments extends dom_div
@@ -1288,6 +1356,12 @@ class sdb_attachments extends dom_div
 		$td=new dom_td;
 		$this->atr->append_child($td);
 		unset($td->id);
+		editor_generic::addeditor('apv',new sdb_apv);
+		$td->append_child($this->editors['apv']);
+		
+		$td=new dom_td;
+		$this->atr->append_child($td);
+		unset($td->id);
 		editor_generic::addeditor('alink',new editor_href);
 		$td->append_child($this->editors['alink']);
 		$this->editors['alink']->href='%s';
@@ -1311,6 +1385,7 @@ class sdb_attachments extends dom_div
 		$this->attachments->append_child($this->ahtr);
 		
 		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('№ п/п'));
+		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Preview'));
 		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Вложение'));
 		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Описание'));
 		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Операции'));
@@ -1389,6 +1464,7 @@ class sdb_attachments extends dom_div
 			$nn++;
 			$this->keys['aid']=$row['aid'];
 			$this->args['aname']=$row['filename'];
+			$this->args['apv']=$row['thumb'];
 			$this->args['adescr']=$row['description'];
 			$this->id_alloc();
 			foreach($this->editors as $e)
