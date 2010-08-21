@@ -77,28 +77,41 @@ class samples_db_list extends dom_div
 		$this->etype=get_class($this);
 		$this->sdiv=new dom_div;
 		$this->append_child($this->sdiv);
+		$this->sdiv->css_style['height']='auto';
+		$this->sdiv->css_style['overflow']='hidden';
 		
 		
 		
 		
 		editor_generic::addeditor('ed_filters',new sdb_filters);
 		$this->sdiv->append_child($this->editors['ed_filters']);
+		$this->editors['ed_filters']->css_style['float']='left';
+		$this->editors['ed_filters']->css_style['border']='2px black solid';
+		editor_generic::addeditor('ed_filters_tags',new sdb_filters_tags);
+		$this->sdiv->append_child($this->editors['ed_filters_tags']);
+		$this->editors['ed_filters_tags']->css_style['float']='left';
+		$this->editors['ed_filters_tags']->css_style['border']='2px black solid';
 		
 		editor_generic::addeditor('ed_order',new sdb_order);
 		$this->sdiv->append_child($this->editors['ed_order']);
+		$this->editors['ed_order']->css_style['float']='left';
+		$this->editors['ed_order']->css_style['border']='2px black solid';
 		
 		editor_generic::addeditor('ed_pager',new util_small_pager);
 		$this->sdiv->append_child($this->editors['ed_pager']);
+		$this->editors['ed_pager']->css_style['float']='left';
+		$this->editors['ed_pager']->css_style['border']='2px black solid';
+		
+		
+		editor_generic::addeditor('ed_list',new sdb_QR);
+		$this->append_child($this->editors['ed_list']);
 		
 		if($_SESSION['interface']!='samples_view')
 		{
 			editor_generic::addeditor('ed_new',new editor_button);
-			$this->sdiv->append_child($this->editors['ed_new']);
+			$this->append_child($this->editors['ed_new']);
 			$this->editors['ed_new']->attributes['value']='Добавить';
 		}
-		
-		editor_generic::addeditor('ed_list',new sdb_QR);
-		$this->append_child($this->editors['ed_list']);
 		
 		editor_generic::addeditor('ed_download',new sdb_DL);
 		$this->append_child($this->editors['ed_download']);
@@ -130,6 +143,7 @@ class samples_db_list extends dom_div
 		$this->args['ed_count']=$this->rootnode->setting_val($this->oid,$this->long_name.'._count',20);
 		$this->args['ed_offset']=$this->rootnode->setting_val($this->oid,$this->long_name.'._offset',0);
 		$this->args['ed_filters']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._filters',0));
+		$this->args['ed_filters_tags']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._filters_tags',0));
 		$this->args['ed_order']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._order',0));
 		$this->editors['ed_list']->table_name='samples_raw';
 		parent::html_inner();
@@ -177,6 +191,8 @@ class samples_db_list extends dom_div
 		$st=new settings_tool;
 		$filters=$sql->qv($st->single_query($this->oid,$this->long_name."._filters",$_SESSION['uid'],0));
 		$ev->settings->filters=unserialize($filters[0]);
+		$filters_tags=$sql->qv($st->single_query($this->oid,$this->long_name."._filters_tags",$_SESSION['uid'],0));
+		$ev->settings->filters_tags=unserialize($filters_tags[0]);
 		$order=$sql->qv($st->single_query($this->oid,$this->long_name."._order",$_SESSION['uid'],0));
 		$ev->settings->order=unserialize($order[0]);
 		switch($ev->rem_name)
@@ -261,6 +277,8 @@ class samples_db_list extends dom_div
 		editor_generic::handle_event($ev);
 		if($ev->filters_changed)
 			$sql->query($st->set_query($this->oid,$this->long_name."._filters",$_SESSION['uid'],0,serialize($ev->settings->filters)));
+		if($ev->filters_tags_changed)
+			$sql->query($st->set_query($this->oid,$this->long_name."._filters_tags",$_SESSION['uid'],0,serialize($ev->settings->filters_tags)));
 		if($ev->order_changed)
 			$sql->query($st->set_query($this->oid,$this->long_name."._order",$_SESSION['uid'],0,serialize($ev->settings->order)));
 		if($ev->changed)$ev->do_reload=true;
@@ -271,6 +289,7 @@ class samples_db_list extends dom_div
 			$this->args['ed_offset']=$offset_a[0];
 			$this->args['ed_count']=$count_a[0];
 			$this->args['ed_filters']=$ev->settings->filters;
+			$this->args['ed_filters_tags']=$ev->settings->filters_tags;
 			$this->args['ed_order']=$ev->settings->order;
 			$r=new sdb_QR;
 			$r->table_name='samples_raw';
@@ -360,10 +379,13 @@ class sdb_as_tn extends editor_txtasg
 		
 		$qg=new query_gen_ext('select distinct');
 		$qg->from->exprs[]=new sql_column(NULL,'samples_tags',NULL,'a');
-		$qg->where->exprs[]=new sql_expression('=',Array(
-			new sql_subquery($sq),
-			new sql_immed(0)
-			));
+		if(isset($ev->keys['id']))
+		{
+			$qg->where->exprs[]=new sql_expression('=',Array(
+				new sql_subquery($sq),
+				new sql_immed(0)
+				));
+		}
 		if(isset($part))
 			$qg->where->exprs[]=new sql_expression('LIKE',Array(
 				new sql_column(NULL,'a','tagname'),
@@ -412,10 +434,19 @@ class sdb_as_tv extends editor_txtasg
 		
 		$qg=new query_gen_ext('select distinct');
 		$qg->from->exprs[]=new sql_column(NULL,'samples_tags',NULL,'a');
-		$qg->where->exprs[]=new sql_expression('=',Array(
-			new sql_subquery($sq),
-			new sql_column(NULL,'a','tagname')
-			));
+		if(isset($ev->settings)&&is_array($ev->settings->filters_tags)&&isset($ev->settings->filters_tags[$ev->keys['n']]))
+		{
+			if($ev->settings->filters_tags[$ev->keys['n']]->col!='any')
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,'a','tagname'),
+					new sql_immed($ev->settings->filters_tags[$ev->keys['n']]->col)
+					));
+		}else{
+			$qg->where->exprs[]=new sql_expression('=',Array(
+				new sql_subquery($sq),
+				new sql_column(NULL,'a','tagname')
+				));
+		}
 		if(isset($part))
 			$qg->where->exprs[]=new sql_expression('LIKE',Array(
 				new sql_column(NULL,'a','tagvalue'),
@@ -574,38 +605,49 @@ class samples_db_item extends dom_div
 		if(preg_match('#.*[^/]$#',$doc_root))$doc_root.='/';
 		$tdir = $doc_root.$dir;
 		$file_name=preg_replace('#.*/#','',$new_name);
-		switch(mime_content_type($new_name))
-		{
-		case 'image/jpeg':
-			if($img===false)$img=imagecreatefromjpeg($new_name);
-		case 'image/gif':
-			if($img===false)$img=imagecreatefromgif($new_name);
-		case 'image/png':
-			if($img===false)$img=imagecreatefrompng($new_name);
-			if($img!==false)
+		$type=mime_content_type($new_name);
+		if(preg_match('#image/#',$type))
+			switch($type)
 			{
-				$sx=imagesx($img);
-				$sy=imagesy($img);
-				if($sx/$sy>1.0)
+			case 'image/jpeg':
+				if($img===false)$img=imagecreatefromjpeg($new_name);
+			case 'image/gif':
+				if($img===false)$img=imagecreatefromgif($new_name);
+			case 'image/png':
+				if($img===false)$img=imagecreatefrompng($new_name);
+				if($img!==false)
 				{
-					$nx=200;
-					$ny=(200.0*$sy)/$sx;
-				}else{
-					$nx=(200.0*$sx)/$sy;
-					$ny=200;
+					$sx=imagesx($img);
+					$sy=imagesy($img);
+					if($sx/$sy>1.0)
+					{
+						$nx=200;
+						$ny=(200.0*$sy)/$sx;
+					}else{
+						$nx=(200.0*$sx)/$sy;
+						$ny=200;
+					}
+					$nimg=imagecreatetruecolor($nx,$ny);
+					if(imagecopyresampled ($nimg , $img , 0 , 0 , 0 , 0 , $nx , $ny , $sx , $sy ))
+					{
+						imagejpeg($nimg,$tdir.'/'.$file_name);
+						$got_th=true;
+					}
+					imagedestroy($img);
 				}
-				$nimg=imagecreatetruecolor($nx,$ny);
-				if(imagecopyresampled ($nimg , $img , 0 , 0 , 0 , 0 , $nx , $ny , $sx , $sy ))
-				{
-					imagejpeg($nimg,$tdir.'/'.$file_name);
-					$got_th=true;
-				}
-				imagedestroy($img);
+				if($got_th)return '/'.$dir.'/'.$file_name;
+				else return '/i/image.png';
+				break;
+			default:
+				return '/i/image.png';
 			}
-			break;
-		}
-		if($got_th)return '/'.$dir.'/'.$file_name;
-		return $new_name;
+		if(preg_match('#excel#',$type))
+			return '/i/gnome-mime-application-vnd.ms-excel.png';
+		if(preg_match('#word#',$type))
+			return '/i/gnome-mime-application-msword.png';
+		if(preg_match('#text/plain#',$type))
+			return '/i/txt.png';
+		return '/i/misc.png';
 	}
 	
 	function handle_event($ev)
@@ -1774,6 +1816,7 @@ class sdb_filters extends dom_div
 		$this->tbl->html_head();
 		$this->row_caps->html();
 		$nn=0;
+		$this->editors['del']->attributes['title']='Удалить';
 		if(is_array($this->filters_where))foreach($this->filters_where as $f)
 		{
 			$this->args['col']=$f->col;
@@ -1789,6 +1832,7 @@ class sdb_filters extends dom_div
 		$this->editors['oper']->main->css_style['display']='none';
 		$this->editors['val']->main->css_style['display']='none';
 		$this->editors['del']->attributes['value']='+';
+		$this->editors['del']->attributes['title']='Добавить';
 		$this->keys['n']=$nn;
 		$nn++;
 		foreach($this->editors as $e)$e->bootstrap();
@@ -1967,6 +2011,7 @@ class sdb_order extends dom_div
 		$this->tbl->html_head();
 		$this->row_caps->html();
 		$nn=0;
+		$this->editors['del']->attributes['title']='Удалить';
 		if(is_array($order))foreach($order as $f)
 		{
 			$this->args['col']=$f->col;
@@ -1980,6 +2025,7 @@ class sdb_order extends dom_div
 		$this->editors['col']->main->css_style['display']='none';
 		$this->editors['rev']->css_style['display']='none';
 		$this->editors['del']->attributes['value']='+';
+		$this->editors['del']->attributes['title']='Добавить';
 		$this->keys['n']=$nn;
 		$nn++;
 		foreach($this->editors as $e)$e->bootstrap();
@@ -2054,6 +2100,206 @@ class sdb_order extends dom_div
 		if($changed)$ev->changed=true;
 	}
 	
+}
+
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
+class sdb_filters_tags extends dom_div
+{
+	function __construct()
+	{
+		global $ddc_tables;
+		parent::__construct();
+		$this->etype=get_class($this);
+		$this->tbl=new dom_table;
+		$this->append_child($this->tbl);
+		$this->row=new dom_tr;
+		$this->tbl->append_child($this->row);
+		
+		$this->row_caps=new dom_tr;
+		$this->tbl->append_child($this->row_caps);
+		$this->add_cap('Поле');
+		$this->add_cap('Операция');
+		$this->add_cap('Значение');
+		$this->add_cap('-');
+		
+		$this->cells=Array();
+		
+		$this->keys=Array();
+		$this->args=Array();
+		
+		$this->colcn=0;
+		
+		$this->add_col(new sdb_as_tn,'col');
+		$this->editors['col']->options['any']='Везде';
+		foreach($ddc_tables['samples_raw']->cols as $c)
+			$this->editors['col']->options[$c['name']]=(isset($c['hname'])?$c['hname']:$c['name']);
+		
+		$this->add_col(new editor_select,'oper');
+		$this->editors['oper']->options=Array(
+			'~=' => '~=',
+			'=' => '=',
+			'>' => '>',
+			'<' => '<',
+			'>=' => '>=',
+			'<=' => '<=',
+			'!=' => '!=',
+			'!~=' => '!~='
+			);
+		
+		$this->add_col(new sdb_as_tv,'val');
+//		$this->add_col(new editor_text,'val');
+		$ed->name='val';
+		
+		$ed=new editor_button;
+		$ed->attributes['value']='-';
+		$this->add_col($ed,'del');
+		$ed->name='del';
+		
+	}
+	function add_cap($t)
+	{
+		$cell_caps=new dom_td;
+		$this->row_caps->append_child($cell_caps);
+		$text_caps=new dom_statictext;
+		$cell_caps->append_child($text_caps);
+		$text_caps->text=$t;
+	}
+	
+	function add_col($editor,$arg)
+	{
+		editor_generic::addeditor($arg,$editor);
+		$this->cells[$this->colcn]=new dom_td;
+		//inherit properties from template???
+		$this->row->append_child($this->cells[$this->colcn]);
+		$this->cells[$this->colcn]->append_child($editor);
+		$this->colcn++;
+	}
+	
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		$this->context[$this->long_name]['retid']=$this->id_gen();
+		$this->context[$this->long_name]['oid']=$this->oid;
+		
+		if(is_array($this->editors))
+			foreach($this->editors as $k => $e)
+			{
+				$this->context[$this->long_name.'.'.$k]['var']=$k;
+				$e->keys=&$this->keys;
+				$e->args=&$this->args;
+				$e->context=&$this->context;
+				$e->bootstrap();
+			}
+		
+	}
+	
+	
+	function html_inner()
+	{
+		$this->filters_where=$this->args[$this->context[$this->long_name]['var']];
+		$this->tbl->html_head();
+		$this->row_caps->html();
+		$nn=0;
+		$this->editors['del']->attributes['title']='Удалить';
+		if(is_array($this->filters_where))foreach($this->filters_where as $f)
+		{
+			$this->args['col']=$f->col;
+			$this->args['oper']=$f->operator;
+			$this->args['val']=$f->val;
+			$this->keys['n']=$nn;
+			$nn++;
+			foreach($this->editors as $e)$e->bootstrap();
+			$this->row->html();
+			$this->row->id_alloc();
+		}
+		$this->editors['col']->main->css_style['display']='none';
+		$this->editors['oper']->main->css_style['display']='none';
+		$this->editors['val']->main->css_style['display']='none';
+		$this->editors['del']->attributes['value']='+';
+		$this->editors['del']->attributes['title']='Добавить';
+		$this->keys['n']=$nn;
+		$nn++;
+		foreach($this->editors as $e)$e->bootstrap();
+		$this->row->html();
+		$this->row->id_alloc();
+		$this->tbl->html_tail();
+	}
+	
+	
+	function handle_event($ev)
+	{
+		$changed=false;
+		$reload_self=false;
+		$this->long_name=$ev->parent_name;
+		$this->context=&$ev->context;
+		$this->filters_where=$ev->settings->filters_tags;
+		
+		
+		$v=$_POST['val'];
+		if($ev->rem_name=='col')
+		{
+			$this->filters_where[$ev->keys['n']]->col=$v;
+			$changed=true;
+		}
+		if($ev->rem_name=='oper')
+		{
+			$this->filters_where[$ev->keys['n']]->operator=$v;
+			$changed=true;
+		}
+		if($ev->rem_name=='val')
+		{
+			$this->filters_where[$ev->keys['n']]->val=$v;
+			$changed=true;
+		}
+		if($ev->rem_name=='del')
+		{
+			if(isset($this->filters_where[$ev->keys['n']]))
+			{
+				$nfl=Array();
+				for($k=0;$k<count($this->filters_where);$k++)
+					if($k!=$ev->keys['n'])$nfl[]=$this->filters_where[$k];
+				$this->filters_where=$nfl;
+			}else{
+				$n->col='any';
+				$n->operator='~=';
+				$n->val='';
+				$this->filters_where[$ev->keys['n']]=$n;
+			}
+			$changed=true;
+			$reload_self=true;
+		}
+		
+		$ev->settings->filters_tags=$this->filters_where;
+		if($changed) $ev->filters_tags_changed=true;
+		if($reload_self)
+		{
+			
+			$customid=$ev->context[$ev->parent_name]['retid'];
+			$oid=$ev->context[$ev->parent_name]['oid'];
+			//$htmlid=$ev->context[$ev->long_name]['htmlid'];
+			
+			$class=get_class($this);
+			$r=new $class;
+			$r->context=&$ev->context;
+			$r->keys=&$ev->keys;
+			$r->oid=$oid;
+			$r->custom_id=$customid;
+			$r->name=$ev->parent_name;
+			$r->etype=$ev->parent_type;
+			$r->args[$r->context[$ev->parent_name]['var']]=&$ev->settings->filters_tags;
+
+			$r->bootstrap();
+			print "(function(){var nya=\$i('".js_escape($customid)."');";
+			print "try{nya.innerHTML=";
+			reload_object($r,true);
+			print "nya.scrollTop=0;}catch(e){ window.location.reload(true);};})();";
+			//common part
+		}
+		editor_generic::handle_event($ev);
+		if($changed)$ev->changed=true;
+	}
 }
 
 //----------------------------------------------------------------------------------
@@ -2202,6 +2448,33 @@ class sdb_QR extends dom_div
 						new sql_immed($this->transform_val($e->operator,$e->val))
 						));
 				};
+		
+		if(is_array($this->args['ed_filters_tags']))
+		{
+			if(count($this->args['ed_filters_tags'])>0)
+			{
+				$qg->from->exprs[]=new sql_column(NULL,'samples_tags',NULL,'t');
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,'t','id'),
+					new sql_column(NULL,'s','id')
+				));
+				
+			}
+			foreach($this->args['ed_filters_tags'] as $e)
+			{
+				if($e->col!='any')
+				{
+					$qg->where->exprs[]=new sql_expression('=',Array(
+						new sql_column(NULL,'t','tagname'),
+						new sql_immed($e->col)
+						));
+				};
+				$qg->where->exprs[]=new sql_expression($this->map_op($e->operator),Array(
+					new sql_column(NULL,'t','tagvalue'),
+					new sql_immed($this->transform_val($e->operator,$e->val))
+					));
+			};
+		}
 		
 		if(is_array($this->args['ed_order']))
 			foreach($this->args['ed_order'] as $e)
