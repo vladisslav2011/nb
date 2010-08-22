@@ -2655,8 +2655,12 @@ class query_result_viewer_any extends dom_div
 		editor_generic::addeditor('ed_order',new QRVA_order);
 		$this->sdiv->append_child($this->editors['ed_order']);
 		
+		$tb=new container_autotable;$this->sdiv->append_child($tb);
 		editor_generic::addeditor('ed_pager',new util_small_pager);
-		$this->sdiv->append_child($this->editors['ed_pager']);
+		$tb->append_child($this->editors['ed_pager']);
+		
+		editor_generic::addeditor('ed_rowcount',new QRVA_rc);
+		$tb->append_child($this->editors['ed_rowcount']);
 		
 		editor_generic::addeditor('ed_list',new QRVA_QR);
 		$this->append_child($this->editors['ed_list']);
@@ -2680,10 +2684,11 @@ class query_result_viewer_any extends dom_div
 		$this->context[$this->long_name]['ed_insert_id']=$this->editors['ed_insert']->id_gen();
 		$this->context[$this->long_name]['link_save_xml_id']=$this->link_save_xml->id_gen();
 		$this->context[$this->long_name]['link_save_csv_id']=$this->link_save_csv->id_gen();
+		$this->context[$this->long_name]['ed_rowcount_id']=$this->editors['ed_rowcount']->id_gen();
 		
 		$this->args['ed_table']=$this->rootnode->setting_val($this->oid,$this->long_name.'._table','');
 		$this->args['ed_db']=$this->rootnode->setting_val($this->oid,$this->long_name.'._db','');
-		
+
 		$this->link_save_xml->attributes['href']="/ext/table_xml_dump.php?table=".urlencode($this->args['ed_table']);
 		$this->link_save_csv->attributes['href']="/ext/table_csv_dump.php?table=".urlencode($this->args['ed_table']);
 		foreach($this->editors as $i => $e)
@@ -2872,7 +2877,7 @@ class query_result_viewer_any extends dom_div
 				break;
 		};
 		
-			foreach($this->t_cols as $col)
+			if(is_array($this->t_cols))foreach($this->t_cols as $col)
 			{
 				if($ev->rem_name==='ed_list.-'.$col['name'])
 				{
@@ -2917,23 +2922,23 @@ class query_result_viewer_any extends dom_div
 			$this->args['ed_table']=$ev->settings->table;
 			$this->args['ed_db']=$ev->settings->db;
 			$this->args['ed_insert']=$ev->settings->insert;
-			$r=new QRVA_QR;
 			
+			$r=new QRVA_QR;
 			$r->context=&$ev->context;
 			$r->keys=&$ev->keys;
 			$r->oid=$oid;
 			$r->args=&$this->args;
 			$r->name=$ev->parent_name.".ed_list";
-			$r->etype=$ev->parent_type.".QRVA_QR";
-
+			$r->etype=$ev->parent_type.".".$r->etype;
+			
 			print "(function(){var nya=\$i('".js_escape($ev->context[$this->long_name]['ed_list_id'])."');";
 			print "try{nya.innerHTML=";
 			reload_object($r,true);
+			print "}catch(e){/* window.location.reload(true);*/};";
 			print "\$i('".js_escape($ev->context[$this->long_name]['link_save_xml_id'])."').setAttribute('href','".
 				js_escape("/ext/table_xml_dump.php?table=".urlencode($this->args['ed_table']))."');";
 			print "\$i('".js_escape($ev->context[$this->long_name]['link_save_csv_id'])."').setAttribute('href','".
 				js_escape("/ext/table_csv_dump.php?table=".urlencode($this->args['ed_table']))."');";
-			print "}catch(e){/* window.location.reload(true);*/};})();";
 			if($ev->reload_insert)
 			{
 				$r=new QRVA_insert;
@@ -2945,11 +2950,23 @@ class query_result_viewer_any extends dom_div
 				$r->name=$ev->parent_name.".ed_insert";
 				$r->etype=$ev->parent_type.".QRVA_insert";
 
-				print "(function(){var nya=\$i('".js_escape($ev->context[$this->long_name]['ed_insert_id'])."');";
+				print "nya=\$i('".js_escape($ev->context[$this->long_name]['ed_insert_id'])."');";
 				print "try{nya.innerHTML=";
 				reload_object($r,true);
-				print "}catch(e){/* window.location.reload(true);*/};})();";
+				print "}catch(e){/* window.location.reload(true);*/};";
+				$rq=new QRVA_rc;
+				$rq->context=&$ev->context;
+				$rq->keys=&$ev->keys;
+				$rq->oid=$oid;
+				$rq->args=&$this->args;
+				$rq->name=$ev->parent_name.".ed_rowcount";
+				$rq->etype=$ev->parent_type.".".$rq->etype;
+				print "nya=\$i('".js_escape($ev->context[$this->long_name]['ed_rowcount_id'])."');";
+				print "try{nya.innerHTML=";
+				reload_object($rq,true);
+				print "}catch(e){/* window.location.reload(true);*/};";
 			}
+			print "})();";
 		}
 		
 		
@@ -3734,6 +3751,46 @@ class editor_password_md5 extends editor_text
 	{
 		$this->args[$this->context[$this->long_name]['var']]='';
 		parent::html();
+	}
+}
+
+class QRVA_rc extends dom_any
+{
+	function __construct()
+	{
+		dom_any::__construct('span');
+		$this->etype=get_class($this);
+		$this->txt=new dom_statictext;
+		$this->append_child($this->txt);
+		$this->main=$this;
+		
+	}
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+	}
+	
+	
+	function html_inner()
+	{
+		global $sql;
+		unset($db);if($this->args['ed_db']!='')$db=$this->args['ed_db'];
+
+		$qg=new query_gen_ext('SELECT');
+		$qg->from->exprs[]=new sql_column($db,$this->args['ed_table'],NULL,'t');
+		$qg->what->exprs[]=new sql_list('count',Array(
+			new sql_immed(1)
+			));
+		$q=$qg->result();
+		if(isset($q))
+		{
+			$res=$sql->query($q);
+			if($res)$this->txt->text=$sql->fetch1($res);
+			else $this->txt->text=$sql->err();
+		}else{
+			$this->txt->text="error";
+		}
+		parent::html_inner();
 	}
 }
 
