@@ -57,7 +57,9 @@ Array(
  'keys' => Array(
 #  Array('key' =>'PRIMARY', 'name' =>'', 'sub' => NULL)
   Array('key' =>'PRIMARY', 'name' =>'id', 'sub' => NULL),
-  Array('key' =>'PRIMARY', 'name' =>'tagid', 'sub' => NULL)
+  Array('key' =>'PRIMARY', 'name' =>'tagid', 'sub' => NULL),
+  Array('key' =>'tagname', 'name' =>'tagname', 'sub' => NULL),
+  
  )
 );
 
@@ -1335,6 +1337,180 @@ class samples_db_usersitem extends dom_div
 $tests_m_array['samples_db']['samples_db_usersitem']='samples_db_usersitem';
 
 
+class samples_db_dev_fill extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		editor_generic::addeditor('clear',new editor_button);
+		editor_generic::addeditor('fill',new editor_button);
+		editor_generic::addeditor('fill2',new editor_button);
+		foreach($this->editors as $n => $e)
+		{
+			$e->attributes['value']=$n;
+			$this->append_child($e);
+		}
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		$this->context[$this->long_name]['oid']=$this->oid;
+		if(!is_array($this->args))$this->args=Array();
+		if(!is_array($this->keys))$this->keys=Array();
+		foreach($this->editors as $i=>$e)
+		{
+			$e->oid=$this->oid;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+		}
+		foreach($this->editors as $e)
+			$e->bootstrap();
+	}
+	
+	function add_qi(&$qi,$n)
+	{
+		$this->qi[$n]=new sql_immed('');
+		$qi->set->exprs[]=new sql_expression('=',Array(new sql_column(NULL,NULL,$n),$this->qi[$n]));
+	}
+	
+	function set_tag($id,$tn,$tv)
+	{
+		global $sql;
+		$qt=new query_gen_ext('SELECT');
+		$qt->from->exprs[]=new sql_column(NULL,'samples_tags');
+		$qt->where->exprs[]=new sql_expression('=',Array(
+			new sql_column(NULl,NULL,'tagname'),
+			new sql_immed($tn)
+			));
+		$qt->where->exprs[]=new sql_expression('=',Array(
+			new sql_column(NULl,NULL,'id'),
+			new sql_immed($id)
+			));
+		$qt->what->exprs[]=new sql_column(NULL,NULL,'tagid');
+		$r=$sql->qv($qt->result());
+		if(isset($r[0]))
+		{
+			$qt->type='update';
+			$qt->into->exprs=$qt->from->exprs;
+			$qt->from->exprs=Array();
+			$qt->what->exprs=Array();
+			$qt->where->exprs[]=new sql_expression('=',Array(
+				new sql_column(NULl,NULL,'tagid'),
+				new sql_immed($r[0])
+				));
+			$qt->set->exprs[]=new sql_expression('=',Array(
+				new sql_column(NULl,NULL,'tagvalue'),
+				new sql_immed($tv)
+				));
+			$res=$sql->query($qt->result());
+			return $res;
+		}else{
+			$qt->type='insert';
+			$qt->into->exprs=$qt->from->exprs;
+			$qt->from->exprs=Array();
+			$qt->what->exprs=Array();
+			$qt->set->exprs=$qt->where->exprs;
+			$qt->where->exprs=Array();
+			$qt->set->exprs[]=new sql_expression('=',Array(
+				new sql_column(NULl,NULL,'tagvalue'),
+				new sql_immed($tv)
+				));
+			$res=$sql->query($qt->result());
+			return $res;
+		}
+	}
+	
+	function handle_event($ev)
+	{
+		global $sql;
+		switch($ev->rem_name)
+		{
+			case 'clear':
+				$qr=new query_gen_ext('DELETE');
+				$qr->from->exprs[]=new sql_column(NULL,'samples_raw');
+				$sql->query($qr->result());
+				$qr=new query_gen_ext('DELETE');
+				$qr->from->exprs[]=new sql_column(NULL,'samples_tags');
+				$sql->query($qr->result());
+				break;
+			case 'fill':
+				$qr=new query_gen_ext('SELECT');
+				$qr->from->exprs[]=new sql_column(NULL,'barcodes_raw');
+				//Академия ПГ 550 укороченное шпон тика (-/-)
+				//Бекар №13-2 ПГ 550 укороченное шпон дуба (-/2)
+				$qr->what->exprs[]=new sql_column(NULL,NULL,'name');
+				$qr->what->exprs[]=new sql_column(NULL,NULL,'code');
+				$qi=new query_gen_ext('INSERT');
+				$qi->into->exprs[]=new sql_column(NULL,'samples_raw');
+				$this->add_qi($qi,'code');
+				$this->add_qi($qi,'name');
+				$this->add_qi($qi,'decoration');
+				$this->add_qi($qi,'comment');
+				$types=Array('Добор','Коробка','Наличник','Элемент добора','Элемент коробки','Элемент наличника');
+				$res=$sql->query($qr->result());
+				$sql->logquerys=false;
+				while($row=$sql->fetcha($res))
+				{
+					//insert first
+					$this->qi['name']->val=$row['name'];
+					$this->qi['code']->val=$row['code'];
+					unset($deco);
+					if(preg_match('/искусственный шпон .*? ?\(/',$row['name']))
+						$deco=preg_replace('/^.*(искусственный шпон .*?) ?\(.*$/','$1',$row['name']);
+					elseif(preg_match('/шпон .*? ?\(/',$row['name']))
+						$deco=preg_replace('/^.*(шпон .*?) ?\(.*$/','$1',$row['name']);
+					elseif(preg_match('/шпониров[^ ]+ .*? ?\(/',$row['name']))
+						$deco=preg_replace('/^.*(шпониров[^ ]+ .*?) ?\(.*$/','$1',$row['name']);
+					elseif(preg_match('/\(шпон [^(]*?\)/',$row['name']))
+						$deco=preg_replace('/^.*\((шпон [^(]*?)\).*$/','$1',$row['name']);
+					else
+						$deco='';
+					$this->qi['decoration']->val=$deco;
+					$this->qi['comment']->val=$row['name'].' импортировано из таблицы кодов';
+					$s=$sql->query($qi->result());
+					if($s !== false)
+					{
+						$aid=$sql->qv("SELECT LAST_INSERT_ID()");
+						$id=$aid[0];
+						unset($type);
+						foreach($types as $t)
+							if(preg_match('/^'.$t.'/',$row['name']))
+							{
+								$type=$t;
+								break;
+							};
+						if(!isset($type))
+						{
+							$type='Дверь';
+							$this->set_tag($id,'высота',preg_match('/укороченное/',$row['name'])?1900:2000);
+							$this->set_tag($id,'ширина',preg_replace('/^.*[^0-9](1?[0-9][05]0).*$/','$1',$row['name']));
+							
+						}else{
+							if(preg_match('/ 21-10 /',$row['name']))$this->set_tag($id,'размер','21-10');
+							if(preg_match('/ 21-13 /',$row['name']))$this->set_tag($id,'размер','21-11');
+						}
+						$dtype='шпонир';
+						if(preg_match('/искусств/',$deco))
+							$dtype='ламинир';
+						$this->set_tag($id,'Вид',$type);
+						$this->set_tag($id,'тип отделки',$dtype);
+					}
+				}
+				
+				
+				break;
+			case 'fill2':
+				break;
+		}
+	}
+	
+}
+$tests_m_array['samples_db']['samples_db_dev_fill']='samples_db_dev_fill';
+
 
 class sdb_apv extends dom_div
 {
@@ -1760,7 +1936,8 @@ class sdb_filters extends dom_div
 			'!~=' => '!~='
 			);
 		
-		$ed=new editor_text;
+		//$ed=new editor_text;
+		$ed=new sdb_as_i;
 		$this->add_col($ed,'val');
 		$ed->name='val';
 		
@@ -1849,7 +2026,7 @@ class sdb_filters extends dom_div
 		$this->long_name=$ev->parent_name;
 		$this->context=&$ev->context;
 		$this->filters_where=$ev->settings->filters;
-		
+		$ev->asg_name='e'.$this->filters_where[$ev->keys['n']]->col;
 		
 		$v=$_POST['val'];
 		if($ev->rem_name=='col')
