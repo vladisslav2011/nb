@@ -1493,7 +1493,7 @@ class samples_db_dev_fill extends dom_div
 							
 						}else{
 							if(preg_match('/ 21-10 /',$row['name']))$this->set_tag($id,'размер','21-10');
-							if(preg_match('/ 21-13 /',$row['name']))$this->set_tag($id,'размер','21-11');
+							if(preg_match('/ 21-13 /',$row['name']))$this->set_tag($id,'размер','21-13');
 						}
 						$dtype='шпонир';
 						if(preg_match('/искусств/',$deco))
