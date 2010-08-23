@@ -1467,6 +1467,8 @@ class samples_db_dev_fill extends dom_div
 						$deco=preg_replace('/^.*(шпониров[^ ]+ .*?) ?\(.*$/','$1',$row['name']);
 					elseif(preg_match('/\(шпон [^(]*?\)/',$row['name']))
 						$deco=preg_replace('/^.*\((шпон [^(]*?)\).*$/','$1',$row['name']);
+					elseif(preg_match('/лам\\. \([^)]*?\)/',$row['name']))
+						$deco=preg_replace('/^.*(лам\\. \([^)]*?\)).*$/','$1',$row['name']);
 					else
 						$deco='';
 					$this->qi['decoration']->val=$deco;
@@ -1495,6 +1497,8 @@ class samples_db_dev_fill extends dom_div
 						}
 						$dtype='шпонир';
 						if(preg_match('/искусств/',$deco))
+							$dtype='ламинир';
+						if(preg_match('/лам\\./',$row['name']))
 							$dtype='ламинир';
 						$this->set_tag($id,'Вид',$type);
 						$this->set_tag($id,'тип отделки',$dtype);
@@ -2628,28 +2632,26 @@ class sdb_QR extends dom_div
 		
 		if(is_array($this->args['ed_filters_tags']))
 		{
-			if(count($this->args['ed_filters_tags'])>0)
-			{
-				$qg->from->exprs[]=new sql_column(NULL,'samples_tags',NULL,'t');
-				$qg->where->exprs[]=new sql_expression('=',Array(
-					new sql_column(NULL,'t','id'),
-					new sql_column(NULL,'s','id')
-				));
-				
-			}
+			$jn=0;
 			foreach($this->args['ed_filters_tags'] as $e)
 			{
+				$qg->from->exprs[]=new sql_column(NULL,'samples_tags',NULL,'t'.$jn);
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,'t'.$jn,'id'),
+					new sql_column(NULL,'s','id')
+				));
 				if($e->col!='any')
 				{
 					$qg->where->exprs[]=new sql_expression('=',Array(
-						new sql_column(NULL,'t','tagname'),
+						new sql_column(NULL,'t'.$jn,'tagname'),
 						new sql_immed($e->col)
 						));
 				};
 				$qg->where->exprs[]=new sql_expression($this->map_op($e->operator),Array(
-					new sql_column(NULL,'t','tagvalue'),
+					new sql_column(NULL,'t'.$jn,'tagvalue'),
 					new sql_immed($this->transform_val($e->operator,$e->val))
 					));
+				$jn++;
 			};
 		}
 		
