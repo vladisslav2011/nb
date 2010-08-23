@@ -289,7 +289,8 @@ class samples_db_list extends dom_div
 			$offset_a=$sql->qv($st->single_query($this->oid,$this->long_name."._offset",$_SESSION['uid'],0));
 			$count_a=$sql->qv($st->single_query($this->oid,$this->long_name."._count",$_SESSION['uid'],0));
 			$this->args['ed_offset']=$offset_a[0];
-			$this->args['ed_count']=$count_a[0];
+			$this->args['ed_count']=intval($count_a[0]);
+			if($this->args['ed_count']==0)$this->args['ed_count']=20;
 			$this->args['ed_filters']=$ev->settings->filters;
 			$this->args['ed_filters_tags']=$ev->settings->filters_tags;
 			$this->args['ed_order']=$ev->settings->order;
