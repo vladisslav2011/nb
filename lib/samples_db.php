@@ -87,23 +87,22 @@ class samples_db_list extends dom_div
 		
 		editor_generic::addeditor('ed_filters',new sdb_filters);
 		$this->sdiv->append_child($this->editors['ed_filters']);
-		$this->editors['ed_filters']->css_style['float']='left';
-		$this->editors['ed_filters']->css_style['border']='2px black solid';
+		$this->editors['ed_filters']->css_style['border-bottom']='2px black solid';
+		
 		editor_generic::addeditor('ed_filters_tags',new sdb_filters_tags);
 		$this->sdiv->append_child($this->editors['ed_filters_tags']);
-		$this->editors['ed_filters_tags']->css_style['float']='left';
-		$this->editors['ed_filters_tags']->css_style['border']='2px black solid';
+		$this->editors['ed_filters_tags']->css_style['border-bottom']='2px black solid';
 		
 		editor_generic::addeditor('ed_order',new sdb_order);
 		$this->sdiv->append_child($this->editors['ed_order']);
-		$this->editors['ed_order']->css_style['float']='left';
-		$this->editors['ed_order']->css_style['border']='2px black solid';
+		$this->editors['ed_order']->css_style['border-bottom']='2px black solid';
 		
 		editor_generic::addeditor('ed_pager',new util_small_pager);
 		$this->sdiv->append_child($this->editors['ed_pager']);
-		$this->editors['ed_pager']->css_style['float']='left';
-		$this->editors['ed_pager']->css_style['border']='2px black solid';
+		$this->editors['ed_pager']->css_style['border-bottom']='2px black solid';
 		
+		editor_generic::addeditor('ed_row_num',new sdb_QNUM);
+		$this->sdiv->append_child($this->editors['ed_row_num']);
 		
 		editor_generic::addeditor('ed_list',new sdb_QR);
 		$this->append_child($this->editors['ed_list']);
@@ -128,6 +127,7 @@ class samples_db_list extends dom_div
 		$this->long_name=editor_generic::long_name();
 		$this->context[$this->long_name]['oid']=$this->oid;
 		$this->context[$this->long_name]['ed_list_id']=$this->editors['ed_list']->id_gen();
+		$this->context[$this->long_name]['ed_row_num_id']=$this->editors['ed_row_num']->id_gen();
 		foreach($this->editors as $i => $e)
 		{
 			$e->oid=$this->oid;
@@ -294,20 +294,34 @@ class samples_db_list extends dom_div
 			$this->args['ed_filters']=$ev->settings->filters;
 			$this->args['ed_filters_tags']=$ev->settings->filters_tags;
 			$this->args['ed_order']=$ev->settings->order;
+			
 			$r=new sdb_QR;
 			$r->table_name='samples_raw';
-			
 			$r->context=&$ev->context;
 			$r->keys=&$ev->keys;
 			$r->oid=$oid;
 			$r->args=$this->args;
 			$r->name=$ev->parent_name.".ed_list";
 			$r->etype=$ev->parent_type.".sdb_QR";
+			
+			$rn=new sdb_QNUM;
+			$rn->context=&$ev->context;
+			$rn->keys=&$ev->keys;
+			$rn->oid=$oid;
+			$rn->args=$this->args;
+			$rn->name=$ev->parent_name.".ed_row_num";
+			$rn->etype=$ev->parent_type.".".get_class($rn);
 
 			print "(function(){var nya=\$i('".js_escape($ev->context[$this->long_name]['ed_list_id'])."');";
 			print "try{nya.innerHTML=";
 			reload_object($r,true);
-			print "}catch(e){/* window.location.reload(true);*/};})();";
+			print "}catch(e){/* window.location.reload(true);*/};";
+			print "nya=\$i('".js_escape($ev->context[$this->long_name]['ed_row_num_id'])."');";
+			print "try{nya.innerHTML=";
+			reload_object($rn,true);
+			print "}catch(e){/* window.location.reload(true);*/};";
+
+			print "})();";
 		}
 		
 		
@@ -1439,6 +1453,7 @@ class samples_db_dev_fill extends dom_div
 				$sql->query($qr->result());
 				break;
 			case 'fill':
+				ini_set('max_execution_time',60*10);
 				$qr=new query_gen_ext('SELECT');
 				$qr->from->exprs[]=new sql_column(NULL,'barcodes_raw');
 				//Академия ПГ 550 укороченное шпон тика (-/-)
@@ -1490,7 +1505,8 @@ class samples_db_dev_fill extends dom_div
 						{
 							$type='Дверь';
 							$this->set_tag($id,'высота',preg_match('/укороченное/',$row['name'])?1900:2000);
-							$this->set_tag($id,'ширина',preg_replace('/^.*[^0-9](1?[0-9][05]0).*$/','$1',$row['name']));
+							$width=intval(preg_replace('/^.*[^0-9](1?[0-9][05]0).*$/','$1',$row['name']));
+							$this->set_tag($id,'ширина',$width);
 							
 						}else{
 							if(preg_match('/ 21-10 /',$row['name']))$this->set_tag($id,'размер','21-10');
@@ -2505,63 +2521,8 @@ class sdb_DL extends dom_div
 
 //----------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------
-class sdb_QR extends dom_div
+class sdb_QR_qg
 {
-	function __construct()
-	{
-		parent::__construct();
-		$this->etype=get_class($this);
-		$this->tbl=new dom_table;
-		$this->append_child($this->tbl);
-		$this->tr=new dom_tr;
-		$this->tbl->append_child($this->tr);
-		$this->td=new dom_td;
-		$this->tr->append_child($this->td);
-		$this->td_text=new dom_statictext;
-		$this->td->append_child($this->td_text);
-		
-		unset($this->table->id);
-		unset($this->tr->id);
-		unset($this->td->id);
-		$this->td_b=new dom_td;
-		$this->tr->append_child($this->td_b);
-		unset($this->td_b->id);
-		
-		if($_SESSION['interface']!='samples_view')
-		{
-			editor_generic::addeditor('del',new editor_button_image);
-			$this->td_b->append_child($this->editors['del']);
-			$this->editors['del']->attributes['title']='Удалить';
-			$this->editors['del']->attributes['src']='/i/del.png';
-		}
-		editor_generic::addeditor('edit',new editor_button_image);
-		$this->td_b->append_child($this->editors['edit']);
-		$this->editors['edit']->attributes['title']='Редактировать/просмотреть';
-		$this->editors['edit']->attributes['src']='/i/edit.png';
-		if($_SESSION['interface']!='samples_view')
-		{
-			editor_generic::addeditor('clone',new editor_button_image);
-			$this->td_b->append_child($this->editors['clone']);
-			$this->editors['clone']->attributes['title']='Копировать';
-			$this->editors['clone']->attributes['src']='/i/copy.png';
-		}
-	}
-	
-	function bootstrap()
-	{
-		$this->long_name=editor_generic::long_name();
-		foreach($this->editors as $i => $e)
-		{
-			$e->oid=$this->oid;
-			$e->context=&$this->context;
-			$e->keys=&$this->keys;
-			$e->args=&$this->args;
-			$this->context[$this->long_name.'.'.$i]['var']=$i;
-		}
-		foreach($this->editors as $e)
-			$e->bootstrap();
-	}
-	
 	function map_op($op)
 	{
 		switch($op)
@@ -2587,30 +2548,15 @@ class sdb_QR extends dom_div
 		}
 	}
 	
-	function html_inner()
+	function gen()
 	{
-		global $sql,$ddc_tables;
-		
-		$this->tbl->html_head();
-		
+		global $ddc_tables;
 		$qg=new query_gen_ext('SELECT');
 		$qg->from->exprs[]=new sql_column(NULL,$this->table_name,NULL,'s');
-		$this->tr->html_head();
 		foreach($ddc_tables[$this->table_name]->cols as $col)
 		{
 			$qg->what->exprs[]=new sql_column(NULL,'s',$col['name']);
-			$this->td_text->text=$col['name'];
-			$this->td->attributes['title']=$col['name'];
-			if(isset($col['hname']))
-				$this->td_text->text=$col['hname'];
-			$this->td->html();
 		}
-		$this->td->attributes['title']='Операции';
-		$this->td_text->text='Операции';
-		$this->td_b->attributes['title']='Операции';
-		$this->td->html();
-		$this->tr->html_tail();
-		
 		if(is_array($this->args['ed_filters']))
 			foreach($this->args['ed_filters'] as $e)
 				if($e->col=='any')
@@ -2665,11 +2611,102 @@ class sdb_QR extends dom_div
 				$qg->order->exprs[]=$m;
 					
 			}
+		$qg->lim_count=$this->args['ed_count'];
+		$qg->lim_offset=$this->args['ed_offset'];
+		return $qg;
+	}
+}
+
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
+class sdb_QR extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		$this->tbl=new dom_table;
+		$this->append_child($this->tbl);
+		$this->tr=new dom_tr;
+		$this->tbl->append_child($this->tr);
+		$this->td=new dom_td;
+		$this->tr->append_child($this->td);
+		$this->td_text=new dom_statictext;
+		$this->td->append_child($this->td_text);
+		
+		unset($this->table->id);
+		unset($this->tr->id);
+		unset($this->td->id);
+		$this->td_b=new dom_td;
+		$this->tr->append_child($this->td_b);
+		unset($this->td_b->id);
+		
+		if($_SESSION['interface']!='samples_view')
+		{
+			editor_generic::addeditor('del',new editor_button_image);
+			$this->td_b->append_child($this->editors['del']);
+			$this->editors['del']->attributes['title']='Удалить';
+			$this->editors['del']->attributes['src']='/i/del.png';
+		}
+		editor_generic::addeditor('edit',new editor_button_image);
+		$this->td_b->append_child($this->editors['edit']);
+		$this->editors['edit']->attributes['title']='Редактировать/просмотреть';
+		$this->editors['edit']->attributes['src']='/i/edit.png';
+		if($_SESSION['interface']!='samples_view')
+		{
+			editor_generic::addeditor('clone',new editor_button_image);
+			$this->td_b->append_child($this->editors['clone']);
+			$this->editors['clone']->attributes['title']='Копировать';
+			$this->editors['clone']->attributes['src']='/i/copy.png';
+		}
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		if(is_array($this->editors))
+			foreach($this->editors as $i => $e)
+			{
+				$e->oid=$this->oid;
+				$e->context=&$this->context;
+				$e->keys=&$this->keys;
+				$e->args=&$this->args;
+				$this->context[$this->long_name.'.'.$i]['var']=$i;
+			}
+		if(is_array($this->editors))
+			foreach($this->editors as $e)
+				$e->bootstrap();
+	}
+	
+	function html_inner()
+	{
+		global $sql,$ddc_tables;
+		
+		$this->tbl->html_head();
+		
+		$mqg=new sdb_QR_qg;
+		$mqg->args=&$this->args;
+		$mqg->table_name=$this->table_name;
+		$qg=$mqg->gen();
+		
+		$this->tr->html_head();
+		foreach($ddc_tables[$this->table_name]->cols as $col)
+		{
+			$this->td_text->text=$col['name'];
+			$this->td->attributes['title']=$col['name'];
+			if(isset($col['hname']))
+				$this->td_text->text=$col['hname'];
+			$this->td->html();
+		}
+		$this->td->attributes['title']='Операции';
+		$this->td_text->text='Операции';
+		$this->td_b->attributes['title']='Операции';
+		$this->td->html();
+		$this->tr->html_tail();
+		
 		$pk_cols=Array();
 		foreach($ddc_tables[$this->table_name]->keys as $k)
 			if($k['key']=='PRIMARY')$pk_cols[]=$k['name'];
-		$qg->lim_count=$this->args['ed_count'];
-		$qg->lim_offset=$this->args['ed_offset'];
 		$qc=$qg->result();
 		
 		$res=$sql->query($qc);
@@ -2697,6 +2734,56 @@ class sdb_QR extends dom_div
 		editor_generic::handle_event($ev);
 	}
 }
+
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
+class sdb_QNUM extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		$this->s=new dom_statictext;
+		$this->append_child($this->s);
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+	}
+	
+	function html_inner()
+	{
+		global $sql;
+		$mqg=new sdb_QR_qg;
+		$mqg->args=&$this->args;
+		$mqg->table_name='samples_raw';
+		$qg=$mqg->gen();
+		$qg->what->exprs=Array(
+			new sql_list('count',Array(
+				new sql_immed(1)
+				),'c')
+			);
+		$qg->order->exprs=Array();
+		unset($qg->lim_count);
+		unset($qg->lim_offset);
+		$filtered=$sql->qv($qg->result());
+		
+		$qg->where->exprs=Array();
+		$qg->from->exprs=Array(new sql_column(NULL,'samples_raw'));
+		$unfiltered=$sql->qv($qg->result());
+		
+		
+		$this->s->text='выбрано '.$filtered[0].' из '.$unfiltered[0];
+		parent::html_inner();
+	}
+	
+	function handle_event($ev)
+	{
+		editor_generic::handle_event($ev);
+	}
+}
+
 
 
 
