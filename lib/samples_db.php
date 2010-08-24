@@ -2627,18 +2627,26 @@ class sdb_QR extends dom_div
 		$this->etype=get_class($this);
 		$this->tbl=new dom_table;
 		$this->append_child($this->tbl);
+		
+		$this->trh=new dom_tr;
+		$this->tbl->append_child($this->trh);
+		$this->tdh=new dom_td;
+		$this->trh->append_child($this->tdh);
+		$this->tdh_text=new dom_statictext;
+		$this->tdh->append_child($this->tdh_text);
+		
 		$this->tr=new dom_tr;
 		$this->tbl->append_child($this->tr);
-		$this->td=new dom_td;
+/*		$this->td=new dom_td;
 		$this->tr->append_child($this->td);
 		$this->td_text=new dom_statictext;
-		$this->td->append_child($this->td_text);
+		$this->td->append_child($this->td_text);*/
 		
 		unset($this->table->id);
 		unset($this->tr->id);
 		unset($this->td->id);
 		$this->td_b=new dom_td;
-		$this->tr->append_child($this->td_b);
+		//$this->tr->append_child($this->td_b);
 		unset($this->td_b->id);
 		
 		if($_SESSION['interface']!='samples_view')
@@ -2678,6 +2686,18 @@ class sdb_QR extends dom_div
 				$e->bootstrap();
 	}
 	
+	
+	function xadde($n,$e)
+	{
+		editor_generic::addeditor($n,$e);
+		$e->oid=$this->oid;
+		$e->context=&$this->context;
+		$e->keys=&$this->keys;
+		$e->args=&$this->args;
+		$this->context[$this->long_name.'.'.$n]['var']=$n;
+		
+	}
+	
 	function html_inner()
 	{
 		global $sql,$ddc_tables;
@@ -2689,20 +2709,29 @@ class sdb_QR extends dom_div
 		$mqg->table_name=$this->table_name;
 		$qg=$mqg->gen();
 		
-		$this->tr->html_head();
+		$this->trh->html_head();
 		foreach($ddc_tables[$this->table_name]->cols as $col)
 		{
-			$this->td_text->text=$col['name'];
-			$this->td->attributes['title']=$col['name'];
+			$this->tdh_text->text=$col['name'];
+			$this->tdh->attributes['title']=$col['name'];
 			if(isset($col['hname']))
-				$this->td_text->text=$col['hname'];
-			$this->td->html();
+				$this->tdh_text->text=$col['hname'];
+			$this->tdh->html();
+			$ed=isset($col['viewer'])?$col['viewer']:'editor_statictext';
+			$this->xadde($col['name'],new $ed);
+			$td=new dom_td;
+			unset($td->id);
+			$td->attributes['title']=$col['name'];
+			$this->tr->append_child($td);
+			$td->append_child($this->editors[$col['name']]);
+			
 		}
-		$this->td->attributes['title']='Операции';
-		$this->td_text->text='Операции';
-		$this->td_b->attributes['title']='Операции';
-		$this->td->html();
-		$this->tr->html_tail();
+		$this->tr->append_child($this->td_b);
+		$this->tdh->attributes['title']='Операции';
+		$this->tdh_text->text='Операции';
+		$this->tdh_b->attributes['title']='Операции';
+		$this->tdh->html();
+		$this->trh->html_tail();
 		
 		$pk_cols=Array();
 		foreach($ddc_tables[$this->table_name]->keys as $k)
@@ -2712,19 +2741,15 @@ class sdb_QR extends dom_div
 		$res=$sql->query($qc);
 		while($row=$sql->fetcha($res))
 		{
-			$this->tr->html_head();
 			foreach($row as $rn=>$rv)
 			{
-				$this->td_text->text=$rv;
-				$this->td->attributes['title']=$ddc_tables[$this->table_name]->cols[$rn]['name'];
-				$this->td->html();
+				$this->args[$rn]=$rv;
 			}
 			foreach($pk_cols as $k)
 				$this->keys[$k]=$row[$k];
 			foreach($this->editors as $e)
 				$e->bootstrap();
-			$this->td_b->html();
-			$this->tr->html_tail();
+			$this->tr->html();
 		}
 		$this->tbl->html_tail();
 	}
