@@ -476,6 +476,7 @@ class dom_async_mon extends dom_div
 		$this->css_style['background-color']='#FFFF7E';
 		$this->css_style['border']='3px solid #666633';
 		$this->css_style['visibility']='hidden';
+		$this->css_style['z-index']='10000';
 		$this->custom_id='async_monitor';
 		$this->append_child(new dom_statictext($text));
 		$acync_count=new dom_span;
@@ -879,22 +880,27 @@ class page_samples_db extends dom_root_print
 		
 		
 		//$pk=new path_view_control;
-		$pk=new dom_table_x(3,1);
+		$pk=new container_autotable;
 		
 		$a=new dom_any('a');$a->attributes['href']='?p=samples_db_list';
 		$a->append_child(new dom_statictext('Образцы'));
-		$pk->cells[0][0]->append_child($a);
+		$pk->append_child($a);
+
+		$a=new dom_any('a');$a->attributes['href']='?p=samples_db_list_1';
+		$a->append_child(new dom_statictext('Образцы(вариант)'));
+		$pk->append_child($a);
+		
 		if($_SESSION['interface']=='samples_admin')
 		{
 			$a=new dom_any('a');$a->attributes['href']='?p=samples_db_users';
 			$a->append_child(new dom_statictext('Пользователи'));
-			$pk->cells[0][1]->append_child($a);
+			$pk->append_child($a);
 		}
 		
 		$logout=new dom_textbutton;
 		$logout->attributes['value']='Выход';
 		$logout->attributes['onclick']='chse.send_or_push({static:\'auth=logout&val=\',val:\'\'});';
-		$pk->cells[0][2]->append_child($logout);
+		$pk->append_child($logout);
 		
 		$this->append_child($pk);
 		

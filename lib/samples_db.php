@@ -77,48 +77,57 @@ class samples_db_list extends dom_div
 	{
 		parent::__construct();
 		$this->etype=get_class($this);
-		$this->sdiv=new dom_div;
-		$this->append_child($this->sdiv);
-		$this->sdiv->css_style['height']='auto';
-		$this->sdiv->css_style['overflow']='hidden';
 		
 		
 		
 		
 		editor_generic::addeditor('ed_filters',new sdb_filters);
-		$this->sdiv->append_child($this->editors['ed_filters']);
-		$this->editors['ed_filters']->css_style['border-bottom']='2px black solid';
 		
 		editor_generic::addeditor('ed_filters_tags',new sdb_filters_tags);
-		$this->sdiv->append_child($this->editors['ed_filters_tags']);
-		$this->editors['ed_filters_tags']->css_style['border-bottom']='2px black solid';
 		
 		editor_generic::addeditor('ed_order',new sdb_order);
-		$this->sdiv->append_child($this->editors['ed_order']);
-		$this->editors['ed_order']->css_style['border-bottom']='2px black solid';
 		
 		editor_generic::addeditor('ed_pager',new util_small_pager);
-		$this->sdiv->append_child($this->editors['ed_pager']);
-		$this->editors['ed_pager']->css_style['border-bottom']='2px black solid';
 		
 		editor_generic::addeditor('ed_row_num',new sdb_QNUM);
-		$this->sdiv->append_child($this->editors['ed_row_num']);
 		
 		editor_generic::addeditor('ed_list',new sdb_QR);
-		$this->append_child($this->editors['ed_list']);
 		
 		if($_SESSION['interface']!='samples_view')
 		{
 			editor_generic::addeditor('ed_new',new editor_button);
-			$this->append_child($this->editors['ed_new']);
 			$this->editors['ed_new']->attributes['value']='Добавить';
 		}
 		
 		editor_generic::addeditor('ed_download',new sdb_DL);
+		
+		$this->link_nodes();
+		
+		
+		
+	}
+	
+	function link_nodes()
+	{
+		$this->sdiv=new dom_div;
+		$this->append_child($this->sdiv);
+		$this->sdiv->css_style['height']='auto';
+		$this->sdiv->css_style['overflow']='hidden';
+
+		$this->editors['ed_filters']->css_style['border-bottom']='2px black solid';
+		$this->editors['ed_filters_tags']->css_style['border-bottom']='2px black solid';
+		$this->editors['ed_order']->css_style['border-bottom']='2px black solid';
+		$this->editors['ed_pager']->css_style['border-bottom']='2px black solid';
+
+		$this->sdiv->append_child($this->editors['ed_filters']);
+		$this->sdiv->append_child($this->editors['ed_filters_tags']);
+		$this->sdiv->append_child($this->editors['ed_order']);
+		$this->sdiv->append_child($this->editors['ed_pager']);
+		$this->sdiv->append_child($this->editors['ed_row_num']);
+		$this->append_child($this->editors['ed_list']);
+		if(isset($this->editors['ed_new']))	$this->append_child($this->editors['ed_new']);
+		
 		$this->append_child($this->editors['ed_download']);
-		
-		
-		
 		
 	}
 	
@@ -329,6 +338,66 @@ class samples_db_list extends dom_div
 	
 };
 $tests_m_array['samples_db']['samples_db_list']='samples_db_list';
+
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
+
+class samples_db_list_1 extends samples_db_list
+{
+	function link_nodes()
+	{
+		$this->bdiv=new dom_div;
+		$this->append_child($this->bdiv);
+		$this->bdiv->css_style['position']='fixed';
+		$this->bdiv->css_style['top']='5px';
+		$this->bdiv->css_style['left']='50%';
+		$this->bdiv->css_style['background-color']='white';
+		$this->bdiv->css_style['border']='1px solid green';
+		
+		$ctls=Array('ed_filters','ed_filters_tags','ed_order');
+		$tt=new container_autotable;
+		$this->bdiv->append_child($tt);
+		$tt->append_child($this->editors['ed_pager']);
+		foreach($ctls as $ctl)
+		{
+			$this->bdiv->append_child($this->editors[$ctl]);
+			$this->editors[$ctl]->css_style['display']='none';
+			$this->editors[$ctl]->onbtn=new dom_div;
+			$this->editors[$ctl]->onbtn->append_child(new dom_statictext($ctl));
+			$this->editors[$ctl]->onbtn->css_style['cursor']='default';
+			$tt->append_child($this->editors[$ctl]->onbtn);
+		}
+		$this->link_nodes_ctls=$ctls;
+		
+		$this->sdiv=new dom_div;
+		$this->append_child($this->sdiv);
+		$this->sdiv->css_style['height']='auto';
+		$this->sdiv->css_style['overflow']='hidden';
+
+		$this->sdiv->append_child($this->editors['ed_row_num']);
+		$this->append_child($this->editors['ed_list']);
+		if(isset($this->editors['ed_new']))	$this->append_child($this->editors['ed_new']);
+		
+		$this->append_child($this->editors['ed_download']);
+	}
+	
+	function bootstrap()
+	{
+		parent::bootstrap();
+		$this->rootnode->endscripts[]="var x=\$i('".js_escape($this->bdiv->id_gen())."');x.style.marginLeft='-'+(x.clientWidth/2).toString()+'px';";
+		foreach($this->link_nodes_ctls as $ctl)
+		{
+			$this->editors[$ctl]->onbtn->attributes['onclick']=
+				"var c =\$i('".$this->editors[$ctl]->id_gen()."');if(c.style.display=='none')".
+				"{".
+					"c.style.display='block';this.style.backgroundColor='red';".
+				"}else{".
+					"c.style.display='none';this.style.backgroundColor='white';".
+				"}";
+		}
+	}
+}
+$tests_m_array['samples_db']['samples_db_list_1']='samples_db_list_1';
 
 //----------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------
@@ -2565,7 +2634,7 @@ class sdb_QR_qg
 					foreach($ddc_tables[$this->table_name]->cols as $col)
 					{
 						$op->exprs[]=new sql_expression($this->map_op($e->operator),Array(
-							new sql_column(NULL,NULL,$col['name']),
+							new sql_column(NULL,'s',$col['name']),
 							new sql_immed($this->transform_val($e->operator,$e->val))
 							));
 					}
@@ -2708,6 +2777,7 @@ class sdb_QR extends dom_div
 		$mqg->args=&$this->args;
 		$mqg->table_name=$this->table_name;
 		$qg=$mqg->gen();
+		
 		
 		$this->trh->html_head();
 		foreach($ddc_tables[$this->table_name]->cols as $col)
