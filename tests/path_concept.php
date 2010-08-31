@@ -813,7 +813,7 @@ class page_developer extends dom_root_print
 		if(isset($class))
 		{
 			$c=new $class;
-			$c->name='tester';
+			$c->name=$class;
 			$c->oid=$path_keys->oid;
 			$this->append_child($c);
 			$c->context=&$this->context;

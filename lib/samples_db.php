@@ -304,22 +304,24 @@ class samples_db_list extends dom_div
 			$this->args['ed_filters_tags']=$ev->settings->filters_tags;
 			$this->args['ed_order']=$ev->settings->order;
 			
-			$r=new sdb_QR;
+			$r_class=get_class($this->editors['ed_list']);
+			$r=new $r_class;
 			$r->table_name='samples_raw';
 			$r->context=&$ev->context;
 			$r->keys=&$ev->keys;
 			$r->oid=$oid;
 			$r->args=$this->args;
 			$r->name=$ev->parent_name.".ed_list";
-			$r->etype=$ev->parent_type.".sdb_QR";
+			$r->etype=$ev->parent_type.".".$r_class;
 			
-			$rn=new sdb_QNUM;
+			$r_class=get_class($this->editors['ed_row_num']);
+			$rn=new $r_class;
 			$rn->context=&$ev->context;
 			$rn->keys=&$ev->keys;
 			$rn->oid=$oid;
 			$rn->args=$this->args;
 			$rn->name=$ev->parent_name.".ed_row_num";
-			$rn->etype=$ev->parent_type.".".get_class($rn);
+			$rn->etype=$ev->parent_type.".".$r_class;
 
 			print "(function(){var nya=\$i('".js_escape($ev->context[$this->long_name]['ed_list_id'])."');";
 			print "try{nya.innerHTML=";
@@ -3367,12 +3369,6 @@ class QRVA_QR extends dom_div
 		$this->editors['del']->attributes['title']='Удалить';
 		$this->editors['del']->attributes['src']='/i/del.png';
 		$this->ceditors[]=$this->editors['del'];
-		
-		editor_generic::addeditor('edit',new editor_button_image);
-		$this->td_b->append_child($this->editors['edit']);
-		$this->editors['edit']->attributes['title']='Редактировать/просмотреть';
-		$this->editors['edit']->attributes['src']='/i/edit.png';
-		$this->ceditors[]=$this->editors['edit'];
 		
 		editor_generic::addeditor('clone',new editor_button_image);
 		$this->td_b->append_child($this->editors['clone']);
