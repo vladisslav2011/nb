@@ -137,6 +137,8 @@ class samples_db_list extends dom_div
 		$this->context[$this->long_name]['oid']=$this->oid;
 		$this->context[$this->long_name]['ed_list_id']=$this->editors['ed_list']->id_gen();
 		$this->context[$this->long_name]['ed_row_num_id']=$this->editors['ed_row_num']->id_gen();
+		if(!is_array($this->args))$this->args=Array();
+		if(!is_array($this->keys))$this->keys=Array();
 		foreach($this->editors as $i => $e)
 		{
 			$e->oid=$this->oid;
@@ -147,16 +149,16 @@ class samples_db_list extends dom_div
 		}
 		foreach($this->editors as $e)
 			$e->bootstrap();
-	}
-	
-	function html_inner()
-	{
 		$this->args['ed_count']=$this->rootnode->setting_val($this->oid,$this->long_name.'._count',20);
 		$this->args['ed_offset']=$this->rootnode->setting_val($this->oid,$this->long_name.'._offset',0);
 		$this->args['ed_filters']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._filters',0));
 		$this->args['ed_filters_tags']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._filters_tags',0));
 		$this->args['ed_order']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._order',0));
 		$this->editors['ed_list']->table_name='samples_raw';
+	}
+	
+	function html_inner()
+	{
 		parent::html_inner();
 	}
 	
@@ -348,27 +350,41 @@ class samples_db_list_1 extends samples_db_list
 {
 	function link_nodes()
 	{
+		global $top_fixed_div;
 		$this->bdiv=new dom_div;
-		$this->append_child($this->bdiv);
-		$this->bdiv->css_style['position']='fixed';
-		$this->bdiv->css_style['top']='5px';
-		$this->bdiv->css_style['left']='50%';
-		$this->bdiv->css_style['background-color']='white';
-		$this->bdiv->css_style['border']='1px solid green';
-		
-		$ctls=Array('ed_filters','ed_filters_tags','ed_order');
 		$tt=new container_autotable;
-		$this->bdiv->append_child($tt);
-		$tt->append_child($this->editors['ed_pager']);
-		foreach($ctls as $ctl)
+		if(isset($top_fixed_div))
+		{
+			$d=new dom_div;
+			$d->append_child($tt);
+			$top_fixed_div->append_child($d);
+			$top_fixed_div->append_child($this->bdiv);
+			$this->bdiv->css_style['position']='fixed';
+			$this->bdiv->css_style['background-color']='white';
+			$this->bdiv->css_style['border']='1px solid #bbbbbb';
+		}else{
+			$this->append_child($this->bdiv);
+			$this->bdiv->css_style['position']='fixed';
+			$this->bdiv->css_style['top']='5px';
+			$this->bdiv->css_style['left']='50%';
+			$this->bdiv->css_style['background-color']='white';
+			$this->bdiv->css_style['border']='1px solid #bbbbbb';
+			$this->bdiv->append_child($tt);
+		}
+		
+		$ctls=Array('ed_filters' => 'Фильтры','ed_filters_tags' => '"Теги"','ed_order' => 'Сортировка');
+		foreach($ctls as $ctl => $hn)
 		{
 			$this->bdiv->append_child($this->editors[$ctl]);
 			$this->editors[$ctl]->css_style['display']='none';
 			$this->editors[$ctl]->onbtn=new dom_div;
-			$this->editors[$ctl]->onbtn->append_child(new dom_statictext($ctl));
-			$this->editors[$ctl]->onbtn->css_style['cursor']='default';
+			$this->editors[$ctl]->onbtn->append_child(new dom_statictext($hn));
+			$this->editors[$ctl]->onbtn->css_style['cursor']='pointer';
+			$this->editors[$ctl]->onbtn->css_style['padding-left']='2px';
+			$this->editors[$ctl]->onbtn->css_style['padding-right']='2px';
 			$tt->append_child($this->editors[$ctl]->onbtn);
 		}
+		$tt->append_child($this->editors['ed_pager']);
 		$this->link_nodes_ctls=$ctls;
 		
 		$this->sdiv=new dom_div;
@@ -387,14 +403,14 @@ class samples_db_list_1 extends samples_db_list
 	{
 		parent::bootstrap();
 		$this->rootnode->endscripts[]="var x=\$i('".js_escape($this->bdiv->id_gen())."');x.style.marginLeft='-'+(x.clientWidth/2).toString()+'px';";
-		foreach($this->link_nodes_ctls as $ctl)
+		foreach($this->link_nodes_ctls as $ctl => $hn)
 		{
 			$this->editors[$ctl]->onbtn->attributes['onclick']=
 				"var c =\$i('".$this->editors[$ctl]->id_gen()."');if(c.style.display=='none')".
 				"{".
-					"c.style.display='block';this.style.backgroundColor='red';".
+					"c.style.display='block';this.style.backgroundColor='white';".
 				"}else{".
-					"c.style.display='none';this.style.backgroundColor='white';".
+					"c.style.display='none';this.style.backgroundColor='';".
 				"}";
 		}
 	}

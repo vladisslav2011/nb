@@ -839,7 +839,7 @@ class page_samples_db extends dom_root_print
 {
 	function __construct()
 	{
-		global $path_keys,$sql;
+		global $path_keys,$sql,$top_fixed_div;
 		parent::__construct();
 		$this->context=Array();
 		$this->title='Образцы';
@@ -881,6 +881,12 @@ class page_samples_db extends dom_root_print
 		
 		//$pk=new path_view_control;
 		$pk=new container_autotable;
+		$pk->css_style['position']='fixed';
+		$pk->css_style['left']='10px';
+		$pk->css_style['top']='5px';
+		$pk->css_style['height']='2em';
+		$pk->css_style['background']='#bbbbbb';
+		$pk->css_style['border']='groove black 2px';
 		
 		$a=new dom_any('a');$a->attributes['href']='?p=samples_db_list';
 		$a->append_child(new dom_statictext('Образцы'));
@@ -900,9 +906,17 @@ class page_samples_db extends dom_root_print
 		$logout=new dom_textbutton;
 		$logout->attributes['value']='Выход';
 		$logout->attributes['onclick']='chse.send_or_push({static:\'auth=logout&val=\',val:\'\'});';
+		
+		$top_fixed_div=new dom_div;
+		$pk->append_child($top_fixed_div);
+		
 		$pk->append_child($logout);
 		
 		$this->append_child($pk);
+		
+		$pk_ph=new dom_div;
+		$this->append_child($pk_ph);
+		$pk_ph->css_style['height']='4em';
 		
 		if($_SESSION['settings_preset']=='')$_SESSION['settings_preset']=0;
 		$settings_tool=new settings_tool;
