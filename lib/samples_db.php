@@ -82,15 +82,15 @@ class samples_db_list extends dom_div
 		
 		
 		editor_generic::addeditor('ed_filters',new sdb_filters);
-		
 		editor_generic::addeditor('ed_filters_tags',new sdb_filters_tags);
-		
 		editor_generic::addeditor('ed_order',new sdb_order);
 		
+		editor_generic::addeditor('ed_filters_count',new sdb_filters_count);
+		editor_generic::addeditor('ed_filters_tags_count',new sdb_filters_count);
+		editor_generic::addeditor('ed_order_count',new sdb_filters_count);
+		
 		editor_generic::addeditor('ed_pager',new util_small_pager);
-		
 		editor_generic::addeditor('ed_row_num',new sdb_QNUM);
-		
 		editor_generic::addeditor('ed_list',new sdb_QR);
 		
 		if($_SESSION['interface']!='samples_view')
@@ -119,9 +119,21 @@ class samples_db_list extends dom_div
 		$this->editors['ed_order']->css_style['border-bottom']='2px black solid';
 		$this->editors['ed_pager']->css_style['border-bottom']='2px black solid';
 
+		$d=new dom_div;$d->append_child(new dom_statictext("Фильтры "));
+		$d->append_child($this->editors['ed_filters_count']);
+		$this->sdiv->append_child($d);
 		$this->sdiv->append_child($this->editors['ed_filters']);
+		
+		$d=new dom_div;$d->append_child(new dom_statictext("\"Теги\" "));
+		$d->append_child($this->editors['ed_filters_tags_count']);
+		$this->sdiv->append_child($d);
 		$this->sdiv->append_child($this->editors['ed_filters_tags']);
+		
+		$d=new dom_div;$d->append_child(new dom_statictext("Сортировка "));
+		$d->append_child($this->editors['ed_order_count']);
+		$this->sdiv->append_child($d);
 		$this->sdiv->append_child($this->editors['ed_order']);
+		
 		$this->sdiv->append_child($this->editors['ed_pager']);
 		$this->sdiv->append_child($this->editors['ed_row_num']);
 		$this->append_child($this->editors['ed_list']);
@@ -135,8 +147,9 @@ class samples_db_list extends dom_div
 	{
 		$this->long_name=editor_generic::long_name();
 		$this->context[$this->long_name]['oid']=$this->oid;
-		$this->context[$this->long_name]['ed_list_id']=$this->editors['ed_list']->id_gen();
-		$this->context[$this->long_name]['ed_row_num_id']=$this->editors['ed_row_num']->id_gen();
+		$a=Array('ed_list','ed_row_num','ed_filters_count','ed_filters_tags_count','ed_order_count');
+		foreach($a as $aa)
+			$this->context[$this->long_name][$aa.'_id']=$this->editors[$aa]->id_gen();
 		if(!is_array($this->args))$this->args=Array();
 		if(!is_array($this->keys))$this->keys=Array();
 		foreach($this->editors as $i => $e)
@@ -147,14 +160,19 @@ class samples_db_list extends dom_div
 			$e->args=&$this->args;
 			$this->context[$this->long_name.'.'.$i]['var']=$i;
 		}
-		foreach($this->editors as $e)
-			$e->bootstrap();
+		$this->context[$this->long_name.'.ed_filters_count']['var']='ed_filters';
+		$this->context[$this->long_name.'.ed_filters_tags_count']['var']='ed_filters_tags';
+		$this->context[$this->long_name.'.ed_order_count']['var']='ed_order';
+		
 		$this->args['ed_count']=$this->rootnode->setting_val($this->oid,$this->long_name.'._count',20);
 		$this->args['ed_offset']=$this->rootnode->setting_val($this->oid,$this->long_name.'._offset',0);
 		$this->args['ed_filters']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._filters',0));
 		$this->args['ed_filters_tags']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._filters_tags',0));
+		
 		$this->args['ed_order']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._order',0));
 		$this->editors['ed_list']->table_name='samples_raw';
+		foreach($this->editors as $e)
+			$e->bootstrap();
 	}
 	
 	function html_inner()
@@ -316,28 +334,49 @@ class samples_db_list extends dom_div
 			$r->name=$ev->parent_name.".ed_list";
 			$r->etype=$ev->parent_type.".".$r_class;
 			
-			$r_class=get_class($this->editors['ed_row_num']);
-			$rn=new $r_class;
-			$rn->context=&$ev->context;
-			$rn->keys=&$ev->keys;
-			$rn->oid=$oid;
-			$rn->args=$this->args;
-			$rn->name=$ev->parent_name.".ed_row_num";
-			$rn->etype=$ev->parent_type.".".$r_class;
-
 			print "(function(){var nya=\$i('".js_escape($ev->context[$this->long_name]['ed_list_id'])."');";
 			print "try{nya.innerHTML=";
 			reload_object($r,true);
 			print "}catch(e){/* window.location.reload(true);*/};";
-			print "nya=\$i('".js_escape($ev->context[$this->long_name]['ed_row_num_id'])."');";
-			print "try{nya.innerHTML=";
-			reload_object($rn,true);
-			print "}catch(e){/* window.location.reload(true);*/};";
+			$this->reload_editor('ed_row_num',$ev,$oid);
+			
+			if($ev->filters_changed)
+			{
+				$ev->context[$ev->parent_name.'.ed_filters_count']['var']='ed_filters';
+				$this->reload_editor('ed_filters_count',$ev,$oid);
+			}
+			if($ev->filters_tags_changed)
+			{
+				$ev->context[$ev->parent_name.'.ed_filters_tags_count']['var']='ed_filters_tags';
+				$this->reload_editor('ed_filters_tags_count',$ev,$oid);
+			}
+			if($ev->order_changed)
+			{
+				$ev->context[$ev->parent_name.'.ed_order_count']['var']='ed_order';
+				$this->reload_editor('ed_order_count',$ev,$oid);
+			}
+
 
 			print "})();";
 		}
 		
 		
+	}
+	
+	function reload_editor($ed,$ev,$oid)
+	{
+		$r_class=get_class($this->editors[$ed]);
+		$rn=new $r_class;
+		$rn->context=&$ev->context;
+		$rn->keys=&$ev->keys;
+		$rn->oid=$oid;
+		$rn->args=$this->args;
+		$rn->name=$ev->parent_name.".".$ed;
+		$rn->etype=$ev->parent_type.".".$r_class;
+		print "nya=\$i('".js_escape($ev->context[$this->long_name][$ed.'_id'])."');";
+		print "try{nya.innerHTML=";
+		reload_object($rn,true);
+		print "}catch(e){/* window.location.reload(true);*/};";
 	}
 	
 };
@@ -1997,6 +2036,42 @@ class sdb_tags extends dom_div
 
 
 
+
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
+
+class sdb_filters_count extends dom_span
+{
+	function __construct()
+	{
+		global $ddc_tables;
+		parent::__construct();
+		$this->etype=get_class($this);
+		$this->txt=new dom_statictext;
+		$this->append_child($this->txt);
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+	}
+	
+	function handle_event($ev)
+	{
+	}
+	
+	function html_inner()
+	{
+		$f=$this->args[$this->context[$this->long_name]['var']];
+		if(is_array($f))
+			$this->txt->text=count($f);
+		else
+			$this->txt->text=0;
+		parent::html_inner();
+	}
+	
+
+}
 
 //----------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------
