@@ -3115,6 +3115,72 @@ class sdb_QR_1 extends dom_div
 
 //----------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------
+class sdb_QR_2 extends sdb_QR_1
+{
+	function link_nodes()
+	{
+		global $ddc_tables;
+		
+		$this->tbl=new dom_table;
+		$this->append_child($this->tbl);
+		
+		$this->trh=new dom_tr;
+		$this->tbl->append_child($this->trh);
+		
+		$this->tr=new dom_tr;
+		$this->tbl->append_child($this->tr);
+/*		$this->td=new dom_td;
+		$this->tr->append_child($this->td);
+		$this->td_text=new dom_statictext;
+		$this->td->append_child($this->td_text);*/
+		
+		unset($this->table->id);
+		unset($this->tr->id);
+		unset($this->td->id);
+		$this->td_b=new dom_td;
+		//$this->tr->append_child($this->td_b);
+		unset($this->td_b->id);
+		
+		if($_SESSION['interface']!='samples_view')
+		{
+			$this->td_b->append_child($this->editors['del']);
+		}
+		$this->td_b->append_child($this->editors['edit']);
+		if($_SESSION['interface']!='samples_view')
+		{
+			$this->td_b->append_child($this->editors['clone']);
+		}
+		
+		foreach($ddc_tables['samples_raw']->cols as $col)
+		{
+			$td=new dom_td;
+			$this->tr->append_child($td);
+			unset($td->id);
+			$td->append_child($this->editors[$col['name']]);
+			
+			$tdh=new dom_td;
+			$this->trh->append_child($tdh);
+			$tdh_text=new dom_statictext;
+			$tdh->append_child($tdh_text);
+			$tdh_text->text=$col['name'];
+			$tdh->attributes['title']=$col['name'];
+			if(isset($col['hname']))
+				$tdh_text->text=$col['hname'];
+		}
+		$tdh=new dom_td;
+		$this->trh->append_child($tdh);
+		$tdh_text=new dom_statictext;
+		$tdh->append_child($tdh_text);
+		$tdh->attributes['title']='Операции';
+		$tdh_text->text='Операции';
+		$tdh_b->attributes['title']='Операции';
+
+		$this->tr->append_child($this->td_b);
+	}
+}
+
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
 class sdb_QNUM extends dom_div
 {
 	function __construct()
