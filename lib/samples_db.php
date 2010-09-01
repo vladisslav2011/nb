@@ -387,7 +387,41 @@ $tests_m_array['samples_db']['samples_db_list']='samples_db_list';
 
 class samples_db_list_1 extends samples_db_list
 {
-	function link_nodes()
+	function __construct()
+	{
+		dom_div::__construct();
+		$this->etype=get_class($this);
+		
+		
+		
+		
+		editor_generic::addeditor('ed_filters',new sdb_filters);
+		editor_generic::addeditor('ed_filters_tags',new sdb_filters_tags);
+		editor_generic::addeditor('ed_order',new sdb_order);
+		
+		editor_generic::addeditor('ed_filters_count',new sdb_filters_count);
+		editor_generic::addeditor('ed_filters_tags_count',new sdb_filters_count);
+		editor_generic::addeditor('ed_order_count',new sdb_filters_count);
+		
+		editor_generic::addeditor('ed_pager',new util_small_pager);
+		editor_generic::addeditor('ed_row_num',new sdb_QNUM);
+		editor_generic::addeditor('ed_list',new sdb_QR_1);
+		
+		if($_SESSION['interface']!='samples_view')
+		{
+			editor_generic::addeditor('ed_new',new editor_button);
+			$this->editors['ed_new']->attributes['value']='Добавить';
+		}
+		
+		editor_generic::addeditor('ed_download',new sdb_DL);
+		
+		$this->link_nodes();
+		
+		
+		
+	}
+
+function link_nodes()
 	{
 		global $top_fixed_div;
 		$this->bdiv=new dom_div;
@@ -2895,6 +2929,162 @@ class sdb_QR extends dom_div
 		$this->tdh_b->attributes['title']='Операции';
 		$this->tdh->html();
 		$this->trh->html_tail();
+		
+		$pk_cols=Array();
+		foreach($ddc_tables[$this->table_name]->keys as $k)
+			if($k['key']=='PRIMARY')$pk_cols[]=$k['name'];
+		$qc=$qg->result();
+		
+		$res=$sql->query($qc);
+		while($row=$sql->fetcha($res))
+		{
+			foreach($row as $rn=>$rv)
+			{
+				$this->args[$rn]=$rv;
+			}
+			foreach($pk_cols as $k)
+				$this->keys[$k]=$row[$k];
+			foreach($this->editors as $e)
+				$e->bootstrap();
+			$this->tr->html();
+		}
+		$this->tbl->html_tail();
+	}
+	
+	function handle_event($ev)
+	{
+		editor_generic::handle_event($ev);
+	}
+}
+
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
+class sdb_QR_1 extends dom_div
+{
+	function __construct()
+	{
+		global $ddc_tables;
+		parent::__construct();
+		$this->etype=get_class($this);
+		
+		foreach($ddc_tables['samples_raw']->cols as $col)
+		{
+			$et=isset($col['viewer'])?$col['viewer']:'editor_statictext';
+			editor_generic::addeditor($col['name'],new $et);
+			
+		}
+		if($_SESSION['interface']!='samples_view')
+		{
+			editor_generic::addeditor('del',new editor_button_image);
+			$this->editors['del']->attributes['title']='Удалить';
+			$this->editors['del']->attributes['src']='/i/del.png';
+		}
+		editor_generic::addeditor('edit',new editor_button_image);
+		$this->editors['edit']->attributes['title']='Редактировать/просмотреть';
+		$this->editors['edit']->attributes['src']='/i/edit.png';
+		if($_SESSION['interface']!='samples_view')
+		{
+			editor_generic::addeditor('clone',new editor_button_image);
+			$this->editors['clone']->attributes['title']='Копировать';
+			$this->editors['clone']->attributes['src']='/i/copy.png';
+		}
+		
+		$this->link_nodes();
+		
+	}
+	
+	function link_nodes()
+	{
+		global $ddc_tables;
+		
+		$this->tbl=new dom_table;
+		$this->append_child($this->tbl);
+		
+		$this->trh=new dom_tr;
+		$this->tbl->append_child($this->trh);
+		
+		$this->tr=new dom_tr;
+		$this->tbl->append_child($this->tr);
+/*		$this->td=new dom_td;
+		$this->tr->append_child($this->td);
+		$this->td_text=new dom_statictext;
+		$this->td->append_child($this->td_text);*/
+		
+		unset($this->table->id);
+		unset($this->tr->id);
+		unset($this->td->id);
+		$this->td_b=new dom_td;
+		//$this->tr->append_child($this->td_b);
+		unset($this->td_b->id);
+		
+		if($_SESSION['interface']!='samples_view')
+		{
+			$this->td_b->append_child($this->editors['del']);
+		}
+		$this->td_b->append_child($this->editors['edit']);
+		if($_SESSION['interface']!='samples_view')
+		{
+			$this->td_b->append_child($this->editors['clone']);
+		}
+		
+		foreach($ddc_tables['samples_raw']->cols as $col)
+		{
+			$td=new dom_td;
+			$this->tr->append_child($td);
+			unset($td->id);
+			$td->append_child($this->editors[$col['name']]);
+			
+			$tdh=new dom_td;
+			$this->trh->append_child($tdh);
+			$tdh_text=new dom_statictext;
+			$tdh->append_child($tdh_text);
+			$tdh_text->text=$col['name'];
+			$tdh->attributes['title']=$col['name'];
+			if(isset($col['hname']))
+				$tdh_text->text=$col['hname'];
+		}
+		$tdh=new dom_td;
+		$this->trh->append_child($tdh);
+		$tdh_text=new dom_statictext;
+		$tdh->append_child($tdh_text);
+		$tdh->attributes['title']='Операции';
+		$tdh_text->text='Операции';
+		$tdh_b->attributes['title']='Операции';
+
+		$this->tr->append_child($this->td_b);
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		if(is_array($this->editors))
+			foreach($this->editors as $i => $e)
+			{
+				$e->oid=$this->oid;
+				$e->context=&$this->context;
+				$e->keys=&$this->keys;
+				$e->args=&$this->args;
+				$this->context[$this->long_name.'.'.$i]['var']=$i;
+			}
+		if(is_array($this->editors))
+			foreach($this->editors as $e)
+				$e->bootstrap();
+	}
+	
+	
+	function html_inner()
+	{
+		global $sql,$ddc_tables;
+		
+		$this->tbl->html_head();
+		
+		$mqg=new sdb_QR_qg;
+		$mqg->args=&$this->args;
+		$mqg->table_name=$this->table_name;
+		$qg=$mqg->gen();
+		
+		
+		$this->trh->html();
 		
 		$pk_cols=Array();
 		foreach($ddc_tables[$this->table_name]->keys as $k)
