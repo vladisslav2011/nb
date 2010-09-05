@@ -405,7 +405,7 @@ class samples_db_list_1 extends samples_db_list
 		
 		editor_generic::addeditor('ed_pager',new util_small_pager);
 		editor_generic::addeditor('ed_row_num',new sdb_QNUM);
-		editor_generic::addeditor('ed_list',new sdb_QR_1);
+		editor_generic::addeditor('ed_list',new sdb_QR_2);
 		
 		if($_SESSION['interface']!='samples_view')
 		{
@@ -482,8 +482,10 @@ function link_nodes()
 				"var c =\$i('".$this->editors[$ctl]->id_gen()."');if(c.style.display=='none')".
 				"{".
 					"c.style.display='block';this.style.backgroundColor='white';".
+					"this.style.border='1px solid red';".
 				"}else{".
 					"c.style.display='none';this.style.backgroundColor='';".
+					"this.style.border='';".
 				"}";
 		}
 	}
@@ -886,6 +888,7 @@ class samples_db_item extends dom_div
 					}
 				}
 				rename($name,$new_name);
+				$type=mime_content_type($new_name);
 				$pv_name=$this->gen_preview($new_name,'si/t/'.$ev->keys['id']);
 				$qg=new query_gen_ext("INSERT");
 				$qg->into->exprs[]=new sql_column(NULL,'samples_attachments');
@@ -899,7 +902,7 @@ class samples_db_item extends dom_div
 					));
 				$qg->set->exprs[]=new sql_expression('=',Array(
 					new sql_column(NULL,NULL,'type'),
-					new sql_immed('unknown')
+					new sql_immed($type)
 					));
 				$qg->set->exprs[]=new sql_expression('=',Array(
 					new sql_column(NULL,NULL,'description'),
@@ -2969,7 +2972,7 @@ class sdb_QR_1 extends dom_div
 		
 		foreach($ddc_tables['samples_raw']->cols as $col)
 		{
-			$et=isset($col['viewer'])?$col['viewer']:'editor_statictext';
+			$et=isset($col['viewer'])?$col['viewer']:'editor_statictext_af';
 			editor_generic::addeditor($col['name'],new $et);
 			
 		}
@@ -3071,6 +3074,13 @@ class sdb_QR_1 extends dom_div
 				$e->bootstrap();
 	}
 	
+	function prepare_qg()
+	{
+		$mqg=new sdb_QR_qg;
+		$mqg->args=&$this->args;
+		$mqg->table_name=$this->table_name;
+		return $mqg->gen();
+	}
 	
 	function html_inner()
 	{
@@ -3078,10 +3088,7 @@ class sdb_QR_1 extends dom_div
 		
 		$this->tbl->html_head();
 		
-		$mqg=new sdb_QR_qg;
-		$mqg->args=&$this->args;
-		$mqg->table_name=$this->table_name;
-		$qg=$mqg->gen();
+		$qg=$this->prepare_qg();
 		
 		
 		$this->trh->html();
@@ -3115,11 +3122,37 @@ class sdb_QR_1 extends dom_div
 
 //----------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------
+class sdb_QR_thumb extends dom_any_noterm
+{
+	function __construct()
+	{
+		parent::__construct('img');
+		$this->etype=get_class($this);
+	}
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+	}
+	
+	function html_head()
+	{
+		$this->attributes['src']=$this->args[$this->context[$this->long_name]['var']];
+		parent::html_head();
+	}
+	function handle_event($ev)
+	{
+	}
+}
+
 class sdb_QR_2 extends sdb_QR_1
 {
 	function link_nodes()
 	{
 		global $ddc_tables;
+		
+		foreach($ddc_tables['samples_raw']->cols as $col)
+			$cols[$col['name']]=Array('name'=>$col['name'],'hname'=>$col['hname']);
+		unset($cols['code']);
 		
 		$this->tbl=new dom_table;
 		$this->append_child($this->tbl);
@@ -3151,22 +3184,57 @@ class sdb_QR_2 extends sdb_QR_1
 			$this->td_b->append_child($this->editors['clone']);
 		}
 		
-		foreach($ddc_tables['samples_raw']->cols as $col)
+		$div=new dom_div;
+		$div->css_style['font-size']='16pt';
+		$td=new dom_td;$this->tr->append_child($td);
+		$td->append_child($div);
+		$div->append_child($this->editors['code']);
+		$tdh=new dom_td;
+		$this->trh->append_child($tdh);
+		
+		$div=new dom_div;
+		$div->css_style['font-size']='16pt';
+		$tdh->append_child($div);
+		$tdh_text=new dom_statictext;
+		$div->append_child($tdh_text);
+		$tdh_text->text='Код';
+		$tdh->attributes['title']='Код';
+		
+		$cdiv=new dom_div;
+		$td->append_child($cdiv);
+		$cdivh=new dom_div;
+		$tdh->append_child($cdivh);
+		
+		foreach($cols as $col)
 		{
+			$div=new dom_div;
+			$cdiv->append_child($div);
+			unset($div->id);
+			$div->append_child($this->editors[$col['name']]);
+			
+			$div=new dom_div;
+			$cdivh->append_child($div);
+			$tdh_text=new dom_statictext;
+			$div->append_child($tdh_text);
+			$tdh_text->text=$col['name'];
+			$div->attributes['title']=$col['name'];
+			if(isset($col['hname']))
+				$tdh_text->text=$col['hname'];
+		}
+			editor_generic::addeditor('thumb',new sdb_QR_thumb);
 			$td=new dom_td;
 			$this->tr->append_child($td);
 			unset($td->id);
-			$td->append_child($this->editors[$col['name']]);
-			
+			$td->append_child($this->editors['thumb']);
 			$tdh=new dom_td;
 			$this->trh->append_child($tdh);
 			$tdh_text=new dom_statictext;
 			$tdh->append_child($tdh_text);
-			$tdh_text->text=$col['name'];
-			$tdh->attributes['title']=$col['name'];
-			if(isset($col['hname']))
-				$tdh_text->text=$col['hname'];
-		}
+			$tdh_text->text='thumb';
+			$tdh->attributes['title']='thumb';
+
+
+
 		$tdh=new dom_td;
 		$this->trh->append_child($tdh);
 		$tdh_text=new dom_statictext;
@@ -3176,6 +3244,32 @@ class sdb_QR_2 extends sdb_QR_1
 		$tdh_b->attributes['title']='Операции';
 
 		$this->tr->append_child($this->td_b);
+	}
+	
+	function prepare_qg()
+	{
+		$mqg=new sdb_QR_qg;
+		$mqg->args=&$this->args;
+		$mqg->table_name=$this->table_name;
+		$qg=$mqg->gen();
+		$q=new query_gen_ext('select');
+		$q->lim_count=1;
+		$q->from->exprs[]=new sql_column(NULL,'samples_attachments',NULL,'x');
+		$q->where->exprs[]=new sql_expression('=',Array(
+			new sql_column(NULL,'x','id'),
+			new sql_column(NULL,'s','id')
+			));
+		$q->where->exprs[]=new sql_expression('=',Array(
+			new sql_column(NULL,'x','description'),
+			new sql_immed('')
+			));
+		$q->where->exprs[]=new sql_expression('LIKE',Array(
+			new sql_column(NULL,'x','type'),
+			new sql_immed('image%')
+			));
+		$q->what->exprs[]=new sql_column(NULL,'x','thumb');
+		$qg->what->exprs[]=new sql_subquery($q,'thumb');
+		return $qg;
 	}
 }
 
