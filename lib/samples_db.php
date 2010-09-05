@@ -451,7 +451,8 @@ function link_nodes()
 			$this->bdiv->append_child($this->editors[$ctl]);
 			$this->editors[$ctl]->css_style['display']='none';
 			$this->editors[$ctl]->onbtn=new dom_div;
-			$this->editors[$ctl]->onbtn->append_child(new dom_statictext($hn));
+			$this->editors[$ctl]->onbtn->append_child(new dom_statictext($hn.":"));
+			$this->editors[$ctl]->onbtn->append_child($this->editors[$ctl.'_count']);
 			$this->editors[$ctl]->onbtn->css_style['cursor']='pointer';
 			$this->editors[$ctl]->onbtn->css_style['padding-left']='2px';
 			$this->editors[$ctl]->onbtn->css_style['padding-right']='2px';
@@ -3136,7 +3137,9 @@ class sdb_QR_thumb extends dom_any_noterm
 	
 	function html_head()
 	{
-		$this->attributes['src']=$this->args[$this->context[$this->long_name]['var']];
+		$this->attributes['src']='/i/no-image.png';
+		if($this->args[$this->context[$this->long_name]['var']])
+			$this->attributes['src']=$this->args[$this->context[$this->long_name]['var']];
 		parent::html_head();
 	}
 	function handle_event($ev)
@@ -3144,6 +3147,8 @@ class sdb_QR_thumb extends dom_any_noterm
 	}
 }
 
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
 class sdb_QR_2 extends sdb_QR_1
 {
 	function link_nodes()
@@ -3153,6 +3158,7 @@ class sdb_QR_2 extends sdb_QR_1
 		foreach($ddc_tables['samples_raw']->cols as $col)
 			$cols[$col['name']]=Array('name'=>$col['name'],'hname'=>$col['hname']);
 		unset($cols['code']);
+		unset($cols['id']);
 		
 		$this->tbl=new dom_table;
 		$this->append_child($this->tbl);
@@ -3211,6 +3217,9 @@ class sdb_QR_2 extends sdb_QR_1
 			$cdiv->append_child($div);
 			unset($div->id);
 			$div->append_child($this->editors[$col['name']]);
+			$div->attributes['title']=$col['name'];
+			if(isset($col['hname']))
+				$div->attributes['title']=$col['hname'];
 			
 			$div=new dom_div;
 			$cdivh->append_child($div);
