@@ -1734,6 +1734,7 @@ class query_result_viewer_codessel extends dom_any
 		$this->context[$this->long_name.'.ed_count']['var']='@@ed_count';
 		$this->context[$this->long_name.'.ed_offset']['var']='@@ed_offset';
 		$this->context[$this->long_name.'.current_task']['var']='@@current_task';
+		$this->context[$this->long_name.'.current_task']['rawquery']='SELECT DISTINCT `task` FROM `barcodes_print`';
 		$this->context[$this->long_name]['retid']=$this->rdiv->id_gen();
 		$this->context[$this->long_name]['fltr_id']=$this->editors['fltr']->main_id();
 		$this->context[$this->long_name]['selonly_id']=$this->editors['only_selected']->main_id();
