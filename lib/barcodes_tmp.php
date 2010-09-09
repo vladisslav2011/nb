@@ -1793,7 +1793,33 @@ class query_result_viewer_codessel extends dom_any
 		//print "<pre>";print_r($this->keys);print "</pre>";
 		foreach($this->editors as $e)
 			$e->bootstrap();
-	
+		$this->editors['print_direct_btn_acct']->attributes['onkeypress'].=
+			"var k=event.charCode;".
+			"if(k==108)".
+			"{".
+				"var x=\$i('".js_escape($this->editors['labels_remaining']->main->id_gen())."');".
+				"x.focus();x.value=parseInt(x.value)+2;this.focus();".
+				"return false;".
+			"}".
+			"if(k==76)".
+			"{".
+				"var x=\$i('".js_escape($this->editors['labels_remaining']->main->id_gen())."');".
+				"x.focus();x.value=\$i('".js_escape($this->editors['labels_init']->main->id_gen())."').value;this.focus();".
+				"return false;".
+			"}".
+			"if(k==114)".
+			"{".
+				"var x=\$i('".js_escape($this->editors['ribbon_remaining']->main->id_gen())."');".
+				"x.focus();x.value=parseInt(x.value)+5;this.focus();".
+				"return false;".
+			"}".
+			"if(k==82)".
+			"{".
+				"var x=\$i('".js_escape($this->editors['ribbon_remaining']->main->id_gen())."');".
+				"x.focus();x.value=\$i('".js_escape($this->editors['ribbon_init']->main->id_gen())."').value;this.focus();".
+				"return false;".
+			"}";
+			
 	}
 	
 	function reset_lr($id)
