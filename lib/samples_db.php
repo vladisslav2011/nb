@@ -653,9 +653,30 @@ class samples_db_item extends dom_div
 {
 	function __construct()
 	{
-		global $sql,$ddc_tables;
+		global $ddc_tables;
 		parent::__construct();
 		$this->etype=get_class($this);
+		
+		
+		foreach($ddc_tables['samples_raw']->cols as $col)
+		{
+			$ed='sdb_as_i';
+			if(isset($col['editor']))$ed=$col['editor'];
+			editor_generic::addeditor('e'.$col['name'],new $ed);
+			$ed='editor_statictext';
+			if(isset($col['viewer']))$ed=$col['viewer'];
+			editor_generic::addeditor('v'.$col['name'],new $ed);
+		}
+		editor_generic::addeditor('attachments',new sdb_attachments);
+		editor_generic::addeditor('tags',new sdb_tags);
+		
+		
+		$this->link_nodes();
+	}
+	
+	function link_nodes()
+	{
+		global $ddc_tables;
 		$this->sdiv=new dom_div;
 		$this->append_child($this->sdiv);
 		
@@ -677,9 +698,6 @@ class samples_db_item extends dom_div
 			
 			$ntd=new dom_td;
 			$tr->append_child($ntd);
-			$ed='sdb_as_i';
-			if(isset($col['editor']))$ed=$col['editor'];
-			editor_generic::addeditor('e'.$col['name'],new $ed);
 			$ntd->append_child($this->editors['e'.$col['name']]);
 			
 			$tr=new dom_tr;
@@ -693,20 +711,13 @@ class samples_db_item extends dom_div
 			
 			$ntd=new dom_td;
 			$tr->append_child($ntd);
-			$ed='editor_statictext';
-			if(isset($col['viewer']))$ed=$col['viewer'];
-			editor_generic::addeditor('v'.$col['name'],new $ed);
 			$ntd->append_child($this->editors['v'.$col['name']]);
 			
 		}
 		
-		editor_generic::addeditor('attachments',new sdb_attachments);
 		$this->append_child($this->editors['attachments']);
 		
-		editor_generic::addeditor('tags',new sdb_tags);
 		$this->append_child($this->editors['tags']);
-		
-		
 	}
 	
 	function bootstrap()
@@ -1734,8 +1745,6 @@ class sdb_attachments extends dom_div
 		parent::__construct();
 		$this->etype=get_class($this);
 		
-		$this->attachments=new dom_table;
-		$this->append_child($this->attachments);
 		if($_SESSION['interface']!='samples_view')
 		{
 			$adescr_editor='editor_text';
@@ -1746,6 +1755,32 @@ class sdb_attachments extends dom_div
 		}
 		
 		
+		editor_generic::addeditor('anum',new editor_statictext);
+		editor_generic::addeditor('apv',new sdb_apv);
+		editor_generic::addeditor('alink',new editor_href);
+		$this->editors['alink']->href='%s';
+		editor_generic::addeditor('aname',new editor_statictext);
+		editor_generic::addeditor('adescr',new $adescr_editor);
+		editor_generic::addeditor('adel',new $adel_editor);
+		$this->editors['adel']->attributes['src']='/i/del.png';
+		if($_SESSION['interface']!='samples_view')
+		{
+			editor_generic::addeditor('aadd',new editor_file_upload);
+			$this->editors['aadd']->type_hidden->attributes['value']='rawname';
+			$this->editors['aadd']->normal_postback=1;
+		}else{
+			editor_generic::addeditor('aadd',new editor_statictext);
+		}
+		
+		$this->link_nodes();
+		
+		
+	}
+	
+	function link_nodes()
+	{
+		$this->attachments=new dom_table;
+		$this->append_child($this->attachments);
 		
 		$this->atr=new dom_tr;
 		$this->attachments->append_child($this->atr);
@@ -1753,36 +1788,28 @@ class sdb_attachments extends dom_div
 		$td=new dom_td;
 		$this->atr->append_child($td);
 		unset($td->id);
-		editor_generic::addeditor('anum',new editor_statictext);
 		$td->append_child($this->editors['anum']);
 		
 		$td=new dom_td;
 		$this->atr->append_child($td);
 		unset($td->id);
-		editor_generic::addeditor('apv',new sdb_apv);
 		$td->append_child($this->editors['apv']);
 		
 		$td=new dom_td;
 		$this->atr->append_child($td);
 		unset($td->id);
-		editor_generic::addeditor('alink',new editor_href);
 		$td->append_child($this->editors['alink']);
-		$this->editors['alink']->href='%s';
-		editor_generic::addeditor('aname',new editor_statictext);
 		$this->editors['alink']->main->append_child($this->editors['aname']);
 		
 		$td=new dom_td;
 		$this->atr->append_child($td);
 		unset($td->id);
-		editor_generic::addeditor('adescr',new $adescr_editor);
 		$td->append_child($this->editors['adescr']);
 		
 		$td=new dom_td;
 		$this->atr->append_child($td);
 		unset($td->id);
-		editor_generic::addeditor('adel',new $adel_editor);
 		$td->append_child($this->editors['adel']);
-		$this->editors['adel']->attributes['src']='/i/del.png';
 		
 		$this->ahtr=new dom_tr;
 		$this->attachments->append_child($this->ahtr);
@@ -1793,23 +1820,13 @@ class sdb_attachments extends dom_div
 		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Описание'));
 		$td=new dom_td;	$this->ahtr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Операции'));
 		
-		if($_SESSION['interface']!='samples_view')
-		{
-			editor_generic::addeditor('aadd',new editor_file_upload);
-			$this->append_child($this->editors['aadd']);
-			$this->editors['aadd']->type_hidden->attributes['value']='rawname';
-			$this->editors['aadd']->normal_postback=1;
-		}else{
-			editor_generic::addeditor('aadd',new editor_statictext);
-			$this->append_child($this->editors['aadd']);
-		}
+		$this->append_child($this->editors['aadd']);
 		
 		
 		$this->notr=new dom_tr;
 		$this->attachments->append_child($this->notr);
 		$td=new dom_td;	$this->notr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Нет вложений'));
 		$td->attributes['colspan']='4';$td->css_style['text-align']='center';
-		
 		
 		
 	}
