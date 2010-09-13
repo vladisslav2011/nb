@@ -3536,16 +3536,14 @@ class sdb_QR_1 extends dom_div
 			editor_generic::addeditor('del',new editor_button_image);
 			$this->editors['del']->attributes['title']='Удалить';
 			$this->editors['del']->attributes['src']='/i/del.png';
-		}
-		editor_generic::addeditor('edit',new editor_button_image);
-		$this->editors['edit']->attributes['title']='Редактировать/просмотреть';
-		$this->editors['edit']->attributes['src']='/i/edit.png';
-		if($_SESSION['interface']!='samples_view')
-		{
 			editor_generic::addeditor('clone',new editor_button_image);
 			$this->editors['clone']->attributes['title']='Копировать';
 			$this->editors['clone']->attributes['src']='/i/copy.png';
 		}
+		
+		editor_generic::addeditor('edit_link',new editor_href);
+		$this->editors['edit_link']->href='?p=samples_db_item&id=%s';
+		$this->editors['edit_link']->attributes['title']='Редактировать/просмотреть';
 		
 		$this->link_nodes();
 		
@@ -3579,7 +3577,8 @@ class sdb_QR_1 extends dom_div
 		{
 			$this->td_b->append_child($this->editors['del']);
 		}
-		$this->td_b->append_child($this->editors['edit']);
+		$this->td_b->append_child($this->editors['edit_link']);
+		$this->editors['edit_link']->append_child(new dom_statictext('Редактировать'));
 		if($_SESSION['interface']!='samples_view')
 		{
 			$this->td_b->append_child($this->editors['clone']);
@@ -3624,6 +3623,7 @@ class sdb_QR_1 extends dom_div
 				$e->args=&$this->args;
 				$this->context[$this->long_name.'.'.$i]['var']=$i;
 			}
+		$this->context[$this->long_name.'.edit_link']['var']='id';
 		if(is_array($this->editors))
 			foreach($this->editors as $e)
 				$e->bootstrap();
@@ -3730,17 +3730,12 @@ class sdb_QR_2 extends sdb_QR_1
 		unset($this->table->id);
 		unset($this->tr->id);
 		unset($this->td->id);
-		$this->td_b=new dom_td;
-		//$this->tr->append_child($this->td_b);
-		unset($this->td_b->id);
 		
 		if($_SESSION['interface']!='samples_view')
 		{
+			$this->td_b=new dom_td;
+			unset($this->td_b->id);
 			$this->td_b->append_child($this->editors['del']);
-		}
-		$this->td_b->append_child($this->editors['edit']);
-		if($_SESSION['interface']!='samples_view')
-		{
 			$this->td_b->append_child($this->editors['clone']);
 		}
 		
@@ -3788,25 +3783,30 @@ class sdb_QR_2 extends sdb_QR_1
 			$td=new dom_td;
 			$this->tr->append_child($td);
 			unset($td->id);
-			$td->append_child($this->editors['thumb']);
+			//$td->append_child($this->editors['thumb']);
+			$td->append_child($this->editors['edit_link']);
+			$this->editors['edit_link']->main->append_child($this->editors['thumb']);
 			$tdh=new dom_td;
 			$this->trh->append_child($tdh);
 			$tdh_text=new dom_statictext;
 			$tdh->append_child($tdh_text);
-			$tdh_text->text='thumb';
+			$tdh_text->text='';
 			$tdh->attributes['title']='thumb';
 
 
 
-		$tdh=new dom_td;
-		$this->trh->append_child($tdh);
-		$tdh_text=new dom_statictext;
-		$tdh->append_child($tdh_text);
-		$tdh->attributes['title']='Операции';
-		$tdh_text->text='Операции';
-		$tdh_b->attributes['title']='Операции';
-
-		$this->tr->append_child($this->td_b);
+		if($_SESSION['interface']!='samples_view')
+		{
+			$tdh=new dom_td;
+			$this->trh->append_child($tdh);
+			$tdh_text=new dom_statictext;
+			$tdh->append_child($tdh_text);
+			$tdh->attributes['title']='Операции';
+			$tdh_text->text='Операции';
+			$tdh_b->attributes['title']='Операции';
+	
+			$this->tr->append_child($this->td_b);
+		}
 	}
 	
 	function prepare_qg()
