@@ -1296,10 +1296,22 @@ class samples_db_item extends dom_div
 	
 	function link_nodes()
 	{
+		$tbl=new dom_table;
+		$tr1=new dom_tr;
+		$tr2=new dom_tr;
+		$td11=new dom_td;
+		$td12=new dom_td;
+		$td21=new dom_td;
+		$td21->attributes['colspan']='2';
 		
-		$this->append_child($this->editors['static']);
-		$this->append_child($this->editors['attachments']);
-		$this->append_child($this->editors['tags']);
+		$this->append_child($tbl);
+		$tbl->append_child($tr1);$tbl->append_child($tr2);
+		$tr1->append_child($td11);$tr1->append_child($td12);
+		$tr2->append_child($td21);
+		
+		$td11->append_child($this->editors['static']);
+		$td12->append_child($this->editors['attachments']);
+		$td21->append_child($this->editors['tags']);
 	}
 	
 	function bootstrap()
@@ -2314,7 +2326,7 @@ class sdb_attachments extends dom_div
 		
 	}
 	
-	function link_nodes()
+	function link_nodes_()
 	{
 		$this->attachments=new dom_table;
 		$this->append_child($this->attachments);
@@ -2364,6 +2376,61 @@ class sdb_attachments extends dom_div
 		$this->attachments->append_child($this->notr);
 		$td=new dom_td;	$this->notr->append_child($td);unset($td->id);$td->append_child(new dom_statictext('Нет вложений'));
 		$td->attributes['colspan']='4';$td->css_style['text-align']='center';
+		
+		
+	}
+	
+	function link_nodes()
+	{
+		$this->attachments=new dom_div;
+		$this->append_child($this->attachments);
+		
+		$this->atr=new dom_div;
+		$this->atr->css_style['float']='left';
+		$this->atr->css_style['text-align']='center';
+		$this->attachments->append_child($this->atr);
+		$this->attachments->css_style['overflow']='hidden';
+		
+		$td=new dom_div;
+		$this->atr->append_child($td);
+		unset($td->id);
+		$td->append_child($this->editors['anum']);
+		
+		
+		$td=new dom_div;
+		$this->atr->append_child($td);unset($td->id);
+		$td->css_style['width']='205px';
+		$td->css_style['height']='205px';
+		$td->append_child($this->editors['alink']);
+		$this->editors['alink']->main->append_child($this->editors['apv']);
+		
+		$td=new dom_div;
+		$this->atr->append_child($td);
+		unset($td->id);
+		
+		$tb0=new dom_table;unset($tb0->id);$td->append_child($tb0);
+		$tr0=new dom_tr;unset($tr0->id);$tb0->append_child($tr0);
+		
+		$td0=new dom_td;unset($td0->id);$tr0->append_child($td0);
+		$tb0->css_style['margin']='auto';
+		$td0->append_child($this->editors['adescr']);
+		
+		if($_SESSION['interface']!='samples_view')
+		{
+			$td0=new dom_td;unset($td0->id);$tr0->append_child($td0);
+			$td0->append_child($this->editors['adel']);
+			
+		}
+		$this->append_child($this->editors['aadd']);
+		
+		$this->ahtr=new dom_div;
+		$this->attachments->append_child($this->ahtr);
+		
+		
+		$this->notr=new dom_div;
+		$this->attachments->append_child($this->notr);
+		$this->notr->append_child(new dom_statictext('Нет вложений'));
+		$this->notr->css_style['text-align']='center';
 		
 		
 	}
