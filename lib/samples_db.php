@@ -533,6 +533,8 @@ class sdb_as_i extends editor_txtasg
 	
 }
 
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
 class sdb_as_tn extends editor_txtasg
 {
 	function __construct()
@@ -588,6 +590,8 @@ class sdb_as_tn extends editor_txtasg
 	
 }
 
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
 class sdb_as_tv extends editor_txtasg
 {
 	function __construct()
@@ -648,8 +652,10 @@ class sdb_as_tv extends editor_txtasg
 	}
 	
 }
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
 
-class samples_db_item extends dom_div
+class samples_db_item_0 extends dom_div
 {
 	function __construct()
 	{
@@ -1154,6 +1160,537 @@ class samples_db_item extends dom_div
 	
 
 };
+
+
+class samples_db_item_static extends dom_div
+{
+	function __construct()
+	{
+		global $ddc_tables;
+		parent::__construct();
+		$this->etype=get_class($this);
+		
+		
+		if($_SESSION['interface']!='samples_view')
+		{
+		
+			foreach($ddc_tables['samples_raw']->cols as $col)
+			{
+				$ed='sdb_as_i';
+				if(isset($col['editor']))$ed=$col['editor'];
+				editor_generic::addeditor('e'.$col['name'],new $ed);
+			}
+		}else{
+			foreach($ddc_tables['samples_raw']->cols as $col)
+			{
+				$ed='editor_statictext';
+				if(isset($col['viewer']))$ed=$col['viewer'];
+				editor_generic::addeditor('e'.$col['name'],new $ed);
+			}
+		}
+		
+		
+		$this->link_nodes();
+	}
+	
+	function link_nodes()
+	{
+		global $ddc_tables;
+
+		$this->tbl=new dom_table;
+		$this->append_child($this->tbl);
+		
+		foreach($ddc_tables['samples_raw']->cols as $col)
+		{
+			$tr=new dom_tr;
+			$this->tbl->append_child($tr);
+			
+			$ntd=new dom_td;
+			$tr->append_child($ntd);
+			$ntext=new dom_statictext;
+			$ntd->append_child($ntext);
+			$ntext->text=isset($col['hname'])?$col['hname']:$col['name'];
+			
+			$ntd=new dom_td;
+			$tr->append_child($ntd);
+			$ntd->append_child($this->editors['e'.$col['name']]);
+		}
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		$this->context[$this->long_name]['oid']=$this->oid;
+		if(!is_array($this->args))$this->args=Array();
+		if(!is_array($this->keys))$this->keys=Array();
+		foreach($this->editors as $i=>$e)
+		{
+			$e->oid=$this->oid;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+		}
+		foreach($this->editors as $e)
+			$e->bootstrap();
+	}
+	
+	function html_inner()
+	{
+		global $sql,$ddc_tables;
+		$qg=new query_gen_ext('SELECT');
+		$qg->from->exprs[]=new sql_column(NULL,'samples_raw',NULL,'s');
+		
+		foreach($ddc_tables['samples_raw']->cols as $col)
+		{
+			$qg->what->exprs[]=new sql_column(NULL,'s',$col['name']);
+		}
+		
+		$qg->where->exprs[]=new sql_expression('=',
+			Array(
+				new sql_column(NULL,'s','id'),
+				new sql_immed($_GET['id'])
+				));
+		$qc=$qg->result();
+		$res=$sql->query($qc);
+		while($row=$sql->fetcha($res))
+		{
+			foreach($row as $ri => $rv)
+			{
+				$this->args['e'.$ri]=$rv;
+			}
+		}
+		$this->keys['id']=$_GET['id'];
+		foreach($this->editors as $e)
+			$e->bootstrap();
+		$this->tbl->html();
+	}
+	
+	
+	function handle_event($ev)
+	{
+		editor_generic::handle_event($ev);
+	}
+	
+
+};
+
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
+class samples_db_item extends dom_div
+{
+	function __construct()
+	{
+		global $ddc_tables;
+		parent::__construct();
+		$this->etype=get_class($this);
+		
+		
+		editor_generic::addeditor('static',new samples_db_item_static);
+		editor_generic::addeditor('attachments',new sdb_attachments);
+		editor_generic::addeditor('tags',new sdb_tags);
+		
+		
+		$this->link_nodes();
+	}
+	
+	function link_nodes()
+	{
+		
+		$this->append_child($this->editors['static']);
+		$this->append_child($this->editors['attachments']);
+		$this->append_child($this->editors['tags']);
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		$this->context[$this->long_name]['oid']=$this->oid;
+		$this->keys['id']=intval($_GET['id']);
+		foreach($this->editors as $n => $v)
+			$this->context[$this->long_name][$n.'_id']=$this->editors[$n]->id_gen();
+		if(!is_array($this->args))$this->args=Array();
+		foreach($this->editors as $i=>$e)
+		{
+			$e->oid=$this->oid;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+		}
+		foreach($this->editors as $e)
+			$e->bootstrap();
+	}
+	
+	function gen_preview($new_name,$dir)
+	{
+		$img=false;
+		$got_th=false;
+		$doc_root=$_SERVER['DOCUMENT_ROOT'];
+		if(preg_match('#.*[^/]$#',$doc_root))$doc_root.='/';
+		$tdir = $doc_root.$dir;
+		$file_name=preg_replace('#.*/#','',$new_name);
+		$type=mime_content_type($new_name);
+		if(preg_match('#image/#',$type))
+			switch($type)
+			{
+			case 'image/jpeg':
+				if($img===false)$img=imagecreatefromjpeg($new_name);
+			case 'image/gif':
+				if($img===false)$img=imagecreatefromgif($new_name);
+			case 'image/png':
+				if($img===false)$img=imagecreatefrompng($new_name);
+				if($img!==false)
+				{
+					$sx=imagesx($img);
+					$sy=imagesy($img);
+					if($sx/$sy>1.0)
+					{
+						$nx=200;
+						$ny=(200.0*$sy)/$sx;
+					}else{
+						$nx=(200.0*$sx)/$sy;
+						$ny=200;
+					}
+					$nimg=imagecreatetruecolor($nx,$ny);
+					if(imagecopyresampled ($nimg , $img , 0 , 0 , 0 , 0 , $nx , $ny , $sx , $sy ))
+					{
+						imagejpeg($nimg,$tdir.'/'.$file_name);
+						$got_th=true;
+					}
+					imagedestroy($img);
+				}
+				if($got_th)return '/'.$dir.'/'.$file_name;
+				else return '/i/image.png';
+				break;
+			default:
+				return '/i/image.png';
+			}
+		if(preg_match('#excel#',$type))
+			return '/i/gnome-mime-application-vnd.ms-excel.png';
+		if(preg_match('#word#',$type))
+			return '/i/gnome-mime-application-msword.png';
+		if(preg_match('#text/plain#',$type))
+			return '/i/txt.png';
+		return '/i/misc.png';
+	}
+	
+	function handle_event($ev)
+	{
+		global $sql,$ddc_tables;
+		$ev->do_reload=false;
+		$this->long_name=$ev->parent_name;
+		$this->oid=$ev->context[$ev->parent_name]['oid'];
+		$st=new settings_tool;
+		if($_SESSION['interface']=='samples_view')
+		{
+			print "alert('Редактирование отключено');window.location.reload(true);";
+			exit;
+		}
+		foreach($ddc_tables['samples_raw']->cols as $col)
+			if($ev->rem_name=='static.e'.$col['name'])
+			{
+				$qg=new query_gen_ext('update');
+				$qg->into->exprs[]=new sql_column(NULL,'samples_raw',NULL,'s');
+				$qg->where->exprs[]=new sql_expression('=',
+					Array(
+						new sql_column(NULL,'s','id'),
+						new sql_immed($ev->keys['id'])
+						));
+				$qg->set->exprs[]=new sql_expression('=',
+					Array(
+						new sql_column(NULL,'s',$col['name']),
+						new sql_immed($_POST['val'])
+						));
+				$r=$sql->query($qg->result());
+/*				if($r===false)
+					print "alert('".js_escape($qg->result())."');";*/
+			}
+
+		$doc_root=$_SERVER['DOCUMENT_ROOT'];
+		if(preg_match('#.*[^/]$#',$doc_root))$doc_root.='/';
+		switch($ev->rem_name)
+		{
+			case 'attachments.aadd':
+				$name=$_POST['val'];
+				$odir = $doc_root.'si/o/'.$ev->keys['id'];
+				$tdir = $doc_root.'si/t/'.$ev->keys['id'];
+				if(!file_exists($odir))mkdir($odir,0777,true);
+				if(!file_exists($tdir))mkdir($tdir,0777,true);
+				$file_name=preg_replace('#.*/#','',$name);
+				$new_name=$odir.'/'.$file_name;
+				if(file_exists($new_name))
+				{
+					$cnt=0;
+					if(preg_match('/\./',$file_name))
+					{
+						while(file_exists($odir.'/'.preg_replace('#\.([^./]+)$#','_'.$cnt.'.$1',$file_name)))$cnt++;
+						$file_name=preg_replace('#\.([^./]+)$#','_'.$cnt.'.$1',$file_name);
+						$new_name=$odir.'/'.$file_name;
+					}else{
+						while(file_exists($new_name.'_'.$snt))$cnt++;
+						$file_name=$file_name.'_'.$cnt;
+						$new_name=$odir.'/'.$file_name;
+					}
+				}
+				rename($name,$new_name);
+				$type=mime_content_type($new_name);
+				$pv_name=$this->gen_preview($new_name,'si/t/'.$ev->keys['id']);
+				$qg=new query_gen_ext("INSERT");
+				$qg->into->exprs[]=new sql_column(NULL,'samples_attachments');
+				$qg->set->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'aid'),
+					new sql_immed('')
+					));
+				$qg->set->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				$qg->set->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'type'),
+					new sql_immed($type)
+					));
+				$qg->set->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'description'),
+					new sql_immed('')
+					));
+				$qg->set->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'filename'),
+					new sql_immed($file_name)
+					));
+				$qg->set->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'thumb'),
+					new sql_immed($pv_name)
+					));
+				$res=$sql->query($qg->result());
+				if($res===false)
+				{
+					//handle error
+					print "alert('query failed : ".js_escape($qg->result())."');";
+				}
+				$aid=$sql->qv("SELECT LAST_INSERT_ID()");
+				if($aid===NULL)
+				{
+					//handle error
+					print "alert('query failed : ".js_escape($qg->result())."');";
+				}else{
+					$aid=$aid[0];
+					$attachments_focus=$aid;
+				}
+				$ev->reload_attachments=true;
+				$ev->activate_aid=$aid;
+				
+				
+				
+				break;
+			case 'attachments.adel':
+				
+				$qg=new query_gen_ext("SELECT");
+				$qg->from->exprs[]=new sql_column(NULL,'samples_attachments');
+				
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'aid'),
+					new sql_immed($ev->keys['aid'])
+					));
+				$qg->what->exprs[]=new sql_column(NULL,NULL,'filename');
+				$qg->what->exprs[]=new sql_column(NULL,NULL,'thumb');
+				$r=$sql->qa($qg->result());
+				if($r===false)
+				{
+					//handle error
+				}
+				$full=$doc_root.'si/o/'.$ev->keys['id'].'/'.$r[0]['filename'];
+				$thumb=$doc_root.'si/t/'.$ev->keys['id'].'/'.$r[0]['filename'];
+				if(file_exists($full))unlink($full);
+				if(file_exists($thumb))unlink($thumb);
+					
+					
+				$qg=new query_gen_ext("DELETE");
+				$qg->from->exprs[]=new sql_column(NULL,'samples_attachments');
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'aid'),
+					new sql_immed($ev->keys['aid'])
+					));
+				$res=$sql->query($qg->result());
+				$ev->reload_attachments=true;
+				break;
+			case 'attachments.adescr':
+				$qg=new query_gen_ext("UPDATE");
+				$qg->into->exprs[]=new sql_column(NULL,'samples_attachments');
+				
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'aid'),
+					new sql_immed($ev->keys['aid'])
+					));
+				$qg->set->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'description'),
+					new sql_immed($_POST['val'])
+					));
+//				print "alert('".js_escape($qg->result())."');";
+				$sql->query($qg->result());
+				
+				break;
+			case 'tags.aadd':
+			
+				$qg=new query_gen_ext("SELECT");
+				$qg->from->exprs[]=new sql_column(NULL,'samples_tags');
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'tagname'),
+					new sql_immed('')
+					));
+				$qg->what->exprs[]=new sql_list('count',Array(new sql_column(NULL,NULL,'tagid')),'c');
+				$r=$sql->qv($qg->result());
+				if(intval($r[0])<=0)
+				{
+				
+					$qg=new query_gen_ext("INSERT");
+					$qg->into->exprs[]=new sql_column(NULL,'samples_tags');
+					$qg->set->exprs[]=new sql_expression('=',Array(
+						new sql_column(NULL,NULL,'tagname'),
+						new sql_immed('')
+						));
+					$qg->set->exprs[]=new sql_expression('=',Array(
+						new sql_column(NULL,NULL,'id'),
+						new sql_immed($ev->keys['id'])
+						));
+					$res=$sql->query($qg->result());
+				}
+				$tags_focus=1;
+				$ev->reload_tags=true;
+				break;
+			case 'tags.adel':
+			
+				$qg=new query_gen_ext("DELETE");
+				$qg->from->exprs[]=new sql_column(NULL,'samples_tags');
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'tagid'),
+					new sql_immed($ev->keys['tagid'])
+					));
+				$r=$sql->qa($qg->result());
+				$ev->reload_tags=true;
+				break;
+			case 'tags.atagname':
+				$qg=new query_gen_ext("SELECT");
+				$qg->from->exprs[]=new sql_column(NULL,'samples_tags');
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'tagname'),
+					new sql_immed($_POST['val'])
+					));
+				$qg->what->exprs[]=new sql_column(NULL,NULL,'tagid');
+				$r=$sql->qv($qg->result());
+				if(intval($r[0])==0)
+				{
+					$qg=new query_gen_ext("UPDATE");
+					$qg->into->exprs[]=new sql_column(NULL,'samples_tags');
+					
+					$qg->where->exprs[]=new sql_expression('=',Array(
+						new sql_column(NULL,NULL,'id'),
+						new sql_immed($ev->keys['id'])
+						));
+					$qg->where->exprs[]=new sql_expression('=',Array(
+						new sql_column(NULL,NULL,'tagid'),
+						new sql_immed($ev->keys['tagid'])
+						));
+					$qg->set->exprs[]=new sql_expression('=',Array(
+						new sql_column(NULL,NULL,'tagname'),
+						new sql_immed($_POST['val'])
+						));
+					$sql->query($qg->result());
+				}else{
+					$ev->failure='Уже существует';
+				}
+				break;
+			case 'tags.atagvalue':
+				$qg=new query_gen_ext("UPDATE");
+				$qg->into->exprs[]=new sql_column(NULL,'samples_tags');
+				
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'id'),
+					new sql_immed($ev->keys['id'])
+					));
+				$qg->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'tagid'),
+					new sql_immed($ev->keys['tagid'])
+					));
+				$qg->set->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,'tagvalue'),
+					new sql_immed($_POST['val'])
+					));
+//				print "alert('".js_escape($qg->result())."');";
+				$sql->query($qg->result());
+				
+				break;
+		};
+		
+		$ev->asg_name=preg_replace('/\.fo$/','',$ev->rem_name);
+		
+		editor_generic::handle_event($ev);
+		
+		if($ev->reload_attachments)
+		{
+			$r=new sdb_attachments;
+			
+			$r->focus_hint=$attachments_focus;
+			$r->context=&$ev->context;
+			$r->keys=&$ev->keys;
+			$r->oid=$oid;
+			$r->args=$this->args;
+			$r->name=$ev->parent_name.".attachments";
+			$r->etype=$ev->parent_type.".sdb_attachments";
+
+			print "var nya=\$i('".js_escape($ev->context[$this->long_name]['attachments_id'])."');";
+			print "try{nya.innerHTML=";
+			reload_object($r,true);
+			print "}catch(e){/* window.location.reload(true);*/};";
+		}
+		if($ev->reload_tags)
+		{
+			$r=new sdb_tags;
+			
+			$r->focus_hint=$tags_focus;
+			$r->context=&$ev->context;
+			$r->keys=&$ev->keys;
+			$r->oid=$oid;
+			$r->args=$this->args;
+			$r->name=$ev->parent_name.".tags";
+			$r->etype=$ev->parent_type.".sdb_tags";
+
+			print "var nya=\$i('".js_escape($ev->context[$this->long_name]['tags_id'])."');";
+			print "try{nya.innerHTML=";
+			reload_object($r,true);
+			print "}catch(e){/* window.location.reload(true);*/};";
+		}
+		
+		
+	}
+	
+
+};
+
 $tests_m_array['samples_db']['samples_db_item']='samples_db_item';
 
 //----------------------------------------------------------------------------------
