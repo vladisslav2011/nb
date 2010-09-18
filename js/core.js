@@ -348,12 +348,13 @@ this.update_ghost=function(x,y)
 
 this.destroy_ghost=function()
 {
+	if(typeof(this.drag_context.ghost)=='undefined')return;
 	try{
 		this.drag_context.ghost.style.display='none';
 		this.drag_context.ghost.parentNode.removeChild(this.drag_context.ghost);
 		this.drag_context.plus.style.display='none';
 	}catch(e){};
-	this.drag_context.ghost={};
+	delete this.drag_context.ghost;
 }
 
 
@@ -539,8 +540,9 @@ this.doc_mouse_up=function(ev)
 	if(this.drag_context.active)
 	{
 		this.drag_context.active=false;
-		this.destroy_ghost();
+//		this.destroy_ghost();
 	}
+	this.destroy_ghost();
 	if(this.drag_context.hit)
 	{
 		this.drag_context.hit=false;
