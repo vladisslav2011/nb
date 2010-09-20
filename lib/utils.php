@@ -1,4 +1,7 @@
 <?php
+
+
+
 function js_escape($s)
 {
  return addcslashes($s,'/\\'."'\n\r");

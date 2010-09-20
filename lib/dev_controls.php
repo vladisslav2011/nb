@@ -3606,6 +3606,11 @@ class ref_listx extends dom_div
 
 class ed_tree_null_manipulator
 {
+	function __construct()
+	{
+		$this->pprefix='';
+	}
+	
 	function find($obj,$path)//find node from $obj by $path
 	{
 		return NULL;//if nothing was found
@@ -3659,6 +3664,7 @@ class ed_tree_main extends dom_div
 		
 		editor_generic::addeditor('tracker',new ed_tree_tracker);
 		$this->ctl=$this->editors['tracker'];
+		$this->main=$this->editors['tracker'];
 		/*
 			this button holds keyboard input state information and dispatches keyboard generated events related to tree items
 			id_list[]
@@ -3760,13 +3766,13 @@ class ed_tree_main extends dom_div
 		print 'needs override';
 	}
 	
-	function fetch()
+	function fetch($ev=NULL)
 	{
 		print "needs override!";
 		return $this->args[$this->context[$this->long_name]['var']];
 	}
 	
-	function store($new)
+	function store($new,$ev=NULL)
 	{
 		print "needs override!";
 		//do something!
@@ -3787,11 +3793,11 @@ class ed_tree_main extends dom_div
 		$this->long_name=$ev->parent_name;
 		$this->context=&$ev->context;
 		$this->keys=&$ev->keys;
-		$obj=$this->fetch();
+		$obj=$this->fetch($ev);
 		$ma=$this->manipulator();
-		if($ev->keys['!']=='o')
+		if($ev->keys[$ma->pprefix.'!']=='o')
 		{
-			$current=$ma->find($obj,$ev->keys['path']);
+			$current=$ma->find($obj,$ev->keys[$ma->pprefix.'path']);
 			$ev->current=$current;
 			$ev->obj=$obj;
 			$ev->ma=$ma;
@@ -3879,13 +3885,15 @@ class ed_tree_main extends dom_div
 		
 		if($ev->reload_right)
 		{
+			unset($ev->reload_right);
 			$r=$ma->item_editor();
+			$r->ev_ref=&$ev;
 			$r->context=&$ev->context;
 			$r->context[$ev->parent_name.'.fa']['button_id']=$ev->context[$ev->parent_name]['ctl_id'];
 			$r->context[$ev->parent_name]['cid']=$_POST['cid'];
 			$r->keys=&$ev->keys;
-			if(isset($_POST['path']))$r->keys['path']=$_POST['path'];
-			$r->keys['!']='o';
+			if(isset($_POST['path']))$r->keys[$ma->pprefix.'path']=$_POST['path'];
+			$r->keys[$ma->pprefix.'!']='o';
 			$r->oid=$this->oid;
 			$r->name=$ev->parent_name;
 			$r->etype=$ev->parent_type;
@@ -4127,7 +4135,7 @@ class ed_tree_nofa extends dom_div
 				if(isset($obj))
 				{
 					//Text field. Impossible. Objects should handle them themselves. Nothing to do except a debug message.
-					$this->rootnode->out('Damn. Got raw field instead of object at ['.$this->keys['path'].']+'.$ref.', "'.htmlspecialchars($obj).'"');
+					$this->rootnode->out('Damn. Got raw field instead of object at ['.$this->keys[$ma->pprefix.'path'].']+'.$ref.', "'.htmlspecialchars($obj).'"');
 					return;
 				}else{
 					$this->ed=$this->undef;
@@ -4145,7 +4153,7 @@ class ed_tree_nofa extends dom_div
 				$this->ed=$this->normal;
 			}else{
 			//Text field. Impossible. Objects should handle them themselves. Nothing to do except a debug message.
-				$this->rootnode->out('Damn. Got raw field instead of object at ['.$this->keys['path'].']+'.$ref.', "'.htmlspecialchars($obj).'"');
+				$this->rootnode->out('Damn. Got raw field instead of object at ['.$this->keys[$ma->pprefix.'path'].']+'.$ref.', "'.htmlspecialchars($obj).'"');
 				return;
 			}
 		}
@@ -4303,6 +4311,11 @@ class ed_tree_item_editor extends dom_div//virtual component injector
 
 class meta_query_manipulator
 {
+	function __construct()
+	{
+		$this->pprefix='-mq-';
+	}
+	
 	function find($obj,$path)
 	{
 		$found=$obj;
@@ -4505,12 +4518,12 @@ class ed_tree_meta_editor extends ed_tree_item_editor//virtual component injecto
 class ed_tree_main_meta extends ed_tree_main
 {
 	
-	function fetch()
+	function fetch($ev=NULL)
 	{
 		return unserialize($_SESSION['ed_tree_main_fortest']);
 	}
 	
-	function store($new)
+	function store($new,$ev=NULL)
 	{
 		if(! isset($new->rev))$new->rev=0;
 		else $new->rev++;
@@ -5002,7 +5015,7 @@ class editor_txtasg_q0 extends editor_txtasg
 			};
 			if(preg_match('/tbl$/',$ev->real_name))
 			{
-				$ra=$this->table_aliases($ev->obj,$ev->keys['path'],$k);
+				$ra=$this->table_aliases($ev->obj,$ev->keys[$ev->ma->pprefix.'path'],$k);
 				$res=$sql->query('SHOW TABLES'.(($ev->current->db != '')?(" FROM `".$sql->esc($ev->current->db)."`"):"").
 					(($k != '')?(" LIKE '%".$sql->esc($k)."%'"):""));
 				while($row=$sql->fetchn($res))
@@ -5014,7 +5027,7 @@ class editor_txtasg_q0 extends editor_txtasg
 			};
 			if(preg_match('/col$/',$ev->real_name))
 			{
-				$ra=$this->column_aliases($ev->obj,$ev->keys['path'],$ev->current->tbl,$k);
+				$ra=$this->column_aliases($ev->obj,$ev->keys[$ev->ma->pprefix.'path'],$ev->current->tbl,$k);
 				if(count($ra)==1)
 				{
 					$res=$sql->query('SHOW COLUMNS'.(($ev->current->tbl != '')?(" FROM ".(($ev->current->db != '')?("`".$sql->esc($ev->current->db)."`."):"")."`".$sql->esc($ev->current->tbl)."`"):"").
@@ -5154,12 +5167,12 @@ class editor_txtasg_q0 extends editor_txtasg
 class ed_tree_main_query_gen_ext extends ed_tree_main
 {
 	
-	function fetch()
+	function fetch($ev=NULL)
 	{
 		return unserialize($_SESSION['ed_tree_main_query_gen_ext_test']);
 	}
 	
-	function store($new)
+	function store($new,$ev=NULL)
 	{
 		if(! isset($new->rev))$new->rev=0;
 		else $new->rev++;
@@ -5321,6 +5334,11 @@ $tests_m_array['complex']['ed_tree_main_query_gen_ext_test']='ed_tree_main_query
 
 class htm_manipulator
 {
+	function __construct()
+	{
+		$this->pprefix='-ht-';
+	}
+	
 	function find($obj,$path)
 	{
 		$found=$obj;
@@ -5447,6 +5465,10 @@ class htm_manipulator
 			return '<'.$obj->tag.'>';
 		case 'htm_text':
 			return "'".$obj->text."'";
+		case 'htm_query_text':
+			return "[".$obj->text."]";
+		case 'htm_group':
+			return "query...";
 		}
 		return "unknown";
 	}
@@ -5482,6 +5504,15 @@ class ed_htm_editor extends ed_tree_item_editor//virtual component injector
 			break;
 		case 'htm_text':
 			$this->field_add($obj,'text','text',new editor_text);
+			break;
+		case 'htm_query_text':
+			$this->field_add($obj,'text','text',new editor_text);
+			break;
+		case 'htm_group':
+		//specific query editor reference (edit query embedded into ed_htm_editor tree at given position)
+			//$this->field_add($obj,'text','text',new editor_text);
+			$this->field_add($obj,'query','query',new ed_query_in_group);
+			
 			break;
 		}
 	}
@@ -5604,12 +5635,12 @@ class ed_htm_editor extends ed_tree_item_editor//virtual component injector
 class ed_tree_main_htm extends ed_tree_main
 {
 	
-	function fetch()
+	function fetch($ev=NULL)
 	{
 		return unserialize($_SESSION['ed_tree_main_htm_test']);
 	}
 	
-	function store($new)
+	function store($new,$ev=NULL)
 	{
 		if(! isset($new->rev))$new->rev=0;
 		else $new->rev++;
@@ -5628,6 +5659,7 @@ class ed_tree_main_htm extends ed_tree_main
 			'htm_node'=>'htm_node',
 			'htm_text'=>'htm_text',
 			'htm_group'=>'htm_group',
+			'htm_query_text'=>'htm_query_text',
 			);
 	}
 }
@@ -5911,6 +5943,17 @@ class htm_text
 	}
 }
 
+class htm_query_text
+{
+	//TODO: replace with correct implementation!
+	function result($p)
+	{
+		$n=new dom_statictext;
+		$p->append_child($n);
+		$n->text=$this->text;
+	}
+}
+
 class htm_group
 {
 	function __construct()
@@ -6067,11 +6110,11 @@ class ed_attributes extends dom_table
 	
 	function handle_event($ev)
 	{
-		if($ev->rem_name=='name')
+/*		if($ev->rem_name=='name')
 		{
 			$ev->current->attributes[$ev->keys['attributes']]->name=$_POST['val'];
 			$ev->do_store=true;
-		}
+		}*/
 		editor_generic::handle_event($ev);
 	}
 }
@@ -6180,11 +6223,11 @@ class ed_css_props extends dom_table
 	
 	function handle_event($ev)
 	{
-		if($ev->rem_name=='name')
+/*		if($ev->rem_name=='name')
 		{
 			$ev->current->attributes[$ev->keys['css_style']]->name=$_POST['val'];
 			$ev->do_store=true;
-		}
+		}*/
 		editor_generic::handle_event($ev);
 	}
 }
@@ -6497,6 +6540,62 @@ $html_css_attributes=Array(
 	Array('MozBorderStartStyle','MozBorderStartStyle'),
 	Array('MozBorderStartWidth','MozBorderStartWidth')*/
 );
+
+
+#####################################################################################################
+
+
+
+class ed_query_in_group extends ed_tree_main
+{
+	
+	function fetch($ev=NULL)
+	{
+		$eev=$ev;
+		if($eev===NULL)$eev=$this->ev_ref;
+		$a=$this->args[$this->context[$this->long_name]['var']];
+		if(is_object($a))
+			if(get_class($a)=='query_gen_ext')return $a;
+		if(!is_object($eev->current->query))$eev->current->query=new query_gen_ext;
+		if(get_class($eev->current->query)!='query_gen_ext')$eev->current->query=new query_gen_ext;
+		return $eev->current->query;
+	}
+	
+	function store($new,$ev=NULL)
+	{
+		if(! isset($new->rev))$new->rev=0;
+		else $new->rev++;
+	}
+	
+	function manipulator()
+	{
+		return new query_gen_ext_manipulator;
+	}
+	
+	function add_menu()
+	{
+			//TODO: localization
+		$this->add_item_list=Array(
+			'sql_null'=>'<nul>',
+			'sql_immed'=>'<im>',
+			'sql_var'=>'<va>',
+			'sql_column'=>'<col>',
+			'sql_expression'=>'<ex>',
+			'sql_list'=>'<li>',
+			'sql_subquery'=>'<sq>'
+			);
+	}
+}
+
+
+
+
+
+
+
+
+
+
 
 
 
