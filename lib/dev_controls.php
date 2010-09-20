@@ -5760,57 +5760,6 @@ $tests_m_array['complex']['ed_tree_main_htm_test']='ed_tree_main_htm_test';
 
 
 
-class dom_query_root extends dom_void
-{
-	function __construct()
-	{
-		parent::__construct();
-		$this->vars=Array();
-	}
-	
-	function append_child($node)
-	{
-		$node->query_root=$this;
-		parent::append_child($node);
-	}
-}
-
-class dom_query_query extends dom_void
-{
-	function __construct()
-	{
-		parent::__construct();
-		$this->query_raw='';
-		$this->query_gen_ext=NULL;
-	}
-	
-	function append_child($node)
-	{
-		$node->query_root=$this->query_root;
-		parent::append_child($node);
-	}
-	
-	function html_inner()
-	{
-		global $sql;
-		if(isset($this->query_gen_ext))
-		{
-			$this->query_raw=$this->query_gen_ext->result();
-		}
-		if($this->query_raw != '')
-		{
-			$res=$sql->query($this->query_raw);
-			while($row=$sql->fetcha($res))
-			{
-				foreach($row as $k =>$v)
-					$this->query_root->vars[$k]=$v;
-				parent::html_inner();
-			}
-			$sql->free($res);
-		}
-	}
-}
-
 $dom_query_node_noterm=Array(
 'area'=>1,
 'base'=>1,
@@ -5830,17 +5779,10 @@ $dom_query_node_noterm=Array(
 );
 class dom_query_node extends dom_void
 {
-	function append_child($node)
-	{
-		$node->query_root=$this->query_root;
-		parent::append_child($node);
-	}
-	
 	function html()
 	{
 		global $dom_query_node_noterm;
-		$node_name=strtolower(is_object($this->node_name)?$this->query_root->vars[$this->node_name->ref]:$this->node_name);
-		$this->rootnode->out('<'.$node_name);
+		$this->rootnode->out('<'.$this->node_name);
 		if(isset($this->css_class))
 		{
 			if(is_array($this->css_class))
@@ -5848,13 +5790,13 @@ class dom_query_node extends dom_void
 				$css_class=Array();
 				foreach($this->css_class as $n =>$v)
 				{
-					if(is_object($v)?$this->query_root->vars[$v->ref]:$v)$css_class[]=$n;
+					if(is_object($v)?$this->rootnode->externals[$v->ref]:$v)$css_class[]=$n;
 				}
 				if(count($css_class)>0)
 					$this->rootnode->out(' class="'.htmlspecialchars(implode(' ',$css_class),ENT_QUOTES).'"');
 			}else{
 				$this->rootnode->out(' class="'.htmlspecialchars(
-					is_object($this->css_class)?$this->query_root->vars[$this->css_class->ref]:$this->css_class,ENT_QUOTES).'"');
+					is_object($this->css_class)?$this->rootnode->externals[$this->css_class->ref]:$this->css_class,ENT_QUOTES).'"');
 			}
 		}
 		if(isset($this->css_style))
@@ -5864,17 +5806,17 @@ class dom_query_node extends dom_void
 				$css_style=Array();
 				foreach($this->css_style as $n =>$v)
 				{
-					$css_style[]=$n.':'.(is_object($v)?($this->query_root->vars[$v->ref].$v->unit):$v);
+					$css_style[]=$n.':'.(is_object($v)?($this->rootnode->externals[$v->ref].$v->unit):$v);
 				}
 				if(count($css_style)>0)
 					$this->rootnode->out(' style="'.htmlspecialchars(implode('; ',$css_style),ENT_QUOTES).'"');
 			}else{
 				$this->rootnode->out(' style="'.htmlspecialchars(
-					is_object($this->css_style)?$this->query_root->vars[$this->css_style->ref]:$this->css_style,ENT_QUOTES).'"');
+					is_object($this->css_style)?$this->rootnode->externals[$this->css_style->ref]:$this->css_style,ENT_QUOTES).'"');
 			}
 		}
 		if(is_array($this->attributes))foreach($this->attributes as $n => $v)
-			$this->rootnode->out(' '.$n.'="'.htmlspecialchars((is_object($v)?($this->query_root->vars[$v->ref]):$v),ENT_QUOTES).'"');
+			$this->rootnode->out(' '.$n.'="'.htmlspecialchars((is_object($v)?($this->rootnode->externals[$v->ref]):$v),ENT_QUOTES).'"');
 		if(!$dom_query_node_noterm[$node_name])
 		{
 			$this->rootnode->out('>');
@@ -5883,13 +5825,6 @@ class dom_query_node extends dom_void
 		}else $this->rootnode->out('/>');
 		
 		
-	}
-}
-class dom_query_text extends dom_void
-{
-	function html()
-	{
-		$this->rootnode->out(htmlspecialchars((is_object($this->text)?($this->query_root->vars[$this->text->ref]):$this->text),ENT_QUOTES));
 	}
 }
 
@@ -5913,11 +5848,17 @@ class htm_node
 		$p->append_child($n);
 		if(is_array($this->attributes))foreach($this->attributes as $a)
 		{
-			$n->attributes[$a->name]=$a->value->main;
+			if($a->value->isref)
+				$n->attributes[$a->name]->ref=$a->value->main;
+			else
+				$n->attributes[$a->name]=$a->value->main;
 		}
 		if(is_array($this->css_style))foreach($this->css_style as $a)
 		{
-			$n->css_style[$a->name]=$a->value->main;
+			if($a->value->isref)
+				$n->css_style[$a->name]->ref=$a->value->main;
+			else
+				$n->css_style[$a->name]=$a->value->main;
 		}
 		
 		
@@ -5948,9 +5889,8 @@ class htm_query_text
 	//TODO: replace with correct implementation!
 	function result($p)
 	{
-		$n=new dom_statictext;
+		$n=new dom_query_text($this->text);
 		$p->append_child($n);
-		$n->text=$this->text;
 	}
 }
 
@@ -5963,12 +5903,53 @@ class htm_group
 	
 	function result($p)
 	{
-		$n=new dom_statictext;
+		$n=new query_iterator($this->query);
 		$p->append_child($n);
-		$n->text='htm_group stub. TODO: implement query iterator';
 		if(is_array($this->exprs) && count($this->exprs)>0)foreach($this->exprs as $e)
 			$e->result($n);
 	}
+}
+
+
+class query_iterator extends dom_void
+{
+	function __construct($q)
+	{
+		parent::__construct();
+		$this->qu=$q;
+	}
+	
+	function html_inner()
+	{
+		global $sql;
+		if(!is_array($this->rootnode->externals))$this->rootnode->externals=Array();
+		if(get_class($this->qu)!='query_gen_ext')return;
+		$this->qu->externals=$this->rootnode->externals;
+		$q=$this->qu->result();
+		$res=$sql->query($q);
+		while($row=$sql->fetcha($res))
+		{
+			//$this->rootnode->externals=array_merge($this->rootnode->externals,$row);
+			foreach($row as $k => $v)
+				$this->rootnode->externals[$k]=$v;
+			dom_any::html_inner();
+		}
+		$sql->free($res);
+	}
+	
+	function html()
+	{
+		$this->html_inner();
+	}
+}
+
+class dom_query_text extends dom_statictext
+{
+	function html()
+	{
+		$this->rootnode->out(htmlspecialchars($this->rootnode->externals[$this->text],ENT_QUOTES));
+	}
+	
 }
 
 
