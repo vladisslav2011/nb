@@ -1419,7 +1419,9 @@ function strip_aliases($o=NULL,$skip=false)
 		#$this->strip_aliases($o->unions);
 		
 		unset($o->into->func);
-		$this->strip_aliases($o->into);
+		if(is_array($o->into->exprs))
+			foreach($o->into->exprs as $e)
+				$this->strip_aliases($e,true);
 		unset($o->set->func);
 		$this->strip_aliases($o->set);
 		unset($o->update->func);
