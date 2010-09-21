@@ -3798,6 +3798,8 @@ class ed_tree_main extends dom_div
 		if($ev->keys[$ma->pprefix.'!']=='o')
 		{
 			$current=$ma->find($obj,$ev->keys[$ma->pprefix.'path']);
+			if(isset($ev->current))$ev->currents[]=$ev->current;
+			if(isset($ev->obj))$ev->objs[]=$ev->obj;
 			$ev->current=$current;
 			$ev->obj=$obj;
 			$ev->ma=$ma;
@@ -5506,7 +5508,7 @@ class ed_htm_editor extends ed_tree_item_editor//virtual component injector
 			$this->field_add($obj,'text','text',new editor_text);
 			break;
 		case 'htm_query_text':
-			$this->field_add($obj,'text','text',new editor_text);
+			$this->field_add($obj,'text','text',new editor_txtasg_h0);
 			break;
 		case 'htm_group':
 		//specific query editor reference (edit query embedded into ed_htm_editor tree at given position)
@@ -5817,11 +5819,11 @@ class dom_query_node extends dom_void
 		}
 		if(is_array($this->attributes))foreach($this->attributes as $n => $v)
 			$this->rootnode->out(' '.$n.'="'.htmlspecialchars((is_object($v)?($this->rootnode->externals[$v->ref]):$v),ENT_QUOTES).'"');
-		if(!$dom_query_node_noterm[$node_name])
+		if(!isset($dom_query_node_noterm[$this->node_name]))
 		{
 			$this->rootnode->out('>');
 			parent::html_inner();
-			$this->rootnode->out('</'.$node_name.'>');
+			$this->rootnode->out('</'.$this->node_name.'>');
 		}else $this->rootnode->out('/>');
 		
 		
@@ -5966,7 +5968,7 @@ class ed_immediate_or_var extends dom_div
 		$this->append_child($e);
 		editor_generic::addeditor('isref',new editor_checkbox);
 		$tr->append_child($this->editors['isref']);
-		editor_generic::addeditor('main',new editor_text);
+		editor_generic::addeditor('main',new editor_txtasg_h0);
 		$tr->append_child($this->editors['main']);
 		editor_generic::addeditor('unit',new editor_select);
 		$tr->append_child($this->editors['unit']);
@@ -6568,6 +6570,42 @@ class ed_query_in_group extends ed_tree_main
 	}
 }
 
+class editor_txtasg_h0 extends editor_txtasg
+{
+	function fetch_list($ev,$k=NULL)
+	{
+		if(isset($ev->objs))
+			$obj=$ev->objs[0];
+		else
+			$obj=$ev->obj;
+		return $this->pulla($obj,Array());
+		return NULL;
+	}
+	function pulla($obj, $ra)
+	{
+		global $sql;
+				print '/*x*/';
+		if((get_class($obj)=='htm_group')&&(get_class($obj->query)=='query_gen_ext'))
+			foreach($obj->query->what->exprs as $e)
+			{
+				if($e->alias !='')
+					$ra[]=Array('val'=>$e->alias);
+				elseif(get_class($e)=='sql_column')
+				{
+					$ra[]=Array('val'=>$e->col);
+				}
+			}
+		elseif(is_array($obj->exprs))
+			foreach($obj->exprs as $e)
+				$ra=array_merge($ra,$this->pulla($e,$ra));
+		return $ra;
+	}
+}
+
+
+
+
+#####################################################################################################
 
 
 
