@@ -4074,6 +4074,7 @@ class ed_tree_nofa extends dom_div
 		$this->undef->main_div=new dom_div;
 		$this->undef->main_div->css_style['border-top']='0.2em dotted gray';
 		$this->undef->main_div->css_style['margin-top']='0.1em';
+		$this->undef->main_div->css_style['margin-left']='-1em';
 		$this->undef->main_div->css_style['height']='0.3em';
 		$this->undef->append_child($this->undef->main_div);
 		$this->undef->txt=new dom_statichtml('&nbsp;');
