@@ -955,46 +955,50 @@ class query_result_viewer_codes extends dom_any
 		$this->row->html_tail();
 		$this->row->id_alloc();
 		
-		
+		unset($first_editor);
 		$res=$sql->query($q);
 		if($res)
-		while($row=$sql->fetcha($res))
 		{
-			$this->row->html_head();
-			foreach($row as $k => $e)
-				$this->args[$k]=$e;
-			
-			if(is_array($this->keycols))
-				foreach($this->keycols as $kk)
-					$this->keys[$kk]=$this->args[$kk];
-			unset($first_editor);
-			unset($dst_rows);
-			for($k=0 ; $k < $this->colcn ; $k++)
+			while($row=$sql->fetcha($res))
 			{
-				$this->editors['ed'.$k]->onfocus_add='$i(\''.js_escape($this->row->id_gen()).'\').style.backgroundColor=\'#FFDDDD\';';
-				$this->editors['ed'.$k]->onblur_add='$i(\''.js_escape($this->row->id_gen()).'\').style.backgroundColor=\'\';';
-				$this->editors['ed'.$k]->bootstrap();
-				$this->cell->html_head();
-				if(!(get_class($this->editors['ed'.$k])=='editor_text_st1') && !isset($first_editor))$dst_rows[]=$this->cell->id_gen();
-				if((get_class($this->editors['ed'.$k])=='editor_text_st1') && ! isset($first_editor))
-					$first_editor=$this->editors['ed'.$k]->main_id();
-				$this->editors['ed'.$k]->html();
-				#$this->rootnode->out($this->editors['ed'.$k]->context[$this->long_name.'.ed'.$k]['dbname']);
-				#$this->rootnode->out($this->editors['ed'.$k]->keys['id']);
-				$this->cell->html_tail();
-				$this->cell->id_alloc();
+				$this->row->html_head();
+				foreach($row as $k => $e)
+					$this->args[$k]=$e;
+				
+				if(is_array($this->keycols))
+					foreach($this->keycols as $kk)
+						$this->keys[$kk]=$this->args[$kk];
+				unset($dst_rows);
+				for($k=0 ; $k < $this->colcn ; $k++)
+				{
+					$this->editors['ed'.$k]->onfocus_add='$i(\''.js_escape($this->row->id_gen()).'\').style.backgroundColor=\'#FFDDDD\';';
+					$this->editors['ed'.$k]->onblur_add='$i(\''.js_escape($this->row->id_gen()).'\').style.backgroundColor=\'\';';
+					$this->editors['ed'.$k]->bootstrap();
+					$this->cell->html_head();
+					if(get_class($this->editors['ed'.$k])!='editor_text_st1')$dst_rows[]=$this->cell->id_gen();
+					if((get_class($this->editors['ed'.$k])=='editor_text_st1') && (! isset($first_editor)))
+						$first_editor=$this->editors['ed'.$k]->main_id();
+					$this->editors['ed'.$k]->html();
+					#$this->rootnode->out($this->editors['ed'.$k]->context[$this->long_name.'.ed'.$k]['dbname']);
+					#$this->rootnode->out($this->editors['ed'.$k]->keys['id']);
+					$this->cell->html_tail();
+					$this->cell->id_alloc();
+				}
+				$this->row->html_tail();
+	//			$this->rootnode->out('<script type=text/javascript>$i(\''.$this->row->id_gen().'\').onclick=\''.js_escape('$i(\''.js_escape($first_editor).'\').focus();').'\';</script>');
+				
+				$sc='';
+				if(is_array($dst_rows))
+					foreach($dst_rows as $r)
+					$sc.='$i(\''.js_escape($r).'\').setAttribute("onclick",\''.js_escape('var a=$i(\''.js_escape($first_editor).'\');if(a){a.focus();a.selectionStart=0;a.selectionEnd=a.value.length;};').'\');';
+				//	$this->cell->attributes['onclick']='$i(\''.js_escape($first_editor->id_gen()).'\').focus();');
+				$this->rootnode->endscripts[]=$sc;
+				$this->row->id_alloc();
 			}
-			$this->row->html_tail();
-//			$this->rootnode->out('<script type=text/javascript>$i(\''.$this->row->id_gen().'\').onclick=\''.js_escape('$i(\''.js_escape($first_editor).'\').focus();').'\';</script>');
-			
-			$sc='';
-			if(is_array($dst_rows))
-				foreach($dst_rows as $r)
-				$sc.='$i(\''.js_escape($r).'\').setAttribute("onclick",\''.js_escape('var a=$i(\''.js_escape($first_editor).'\');if(a){a.focus();a.selectionStart=0;a.selectionEnd=a.value.length;};').'\');';
-			//	$this->cell->attributes['onclick']='$i(\''.js_escape($first_editor->id_gen()).'\').focus();');
+			$sc='function first_row_ed(){return $i(\''.js_escape($first_editor).'\');};';
 			$this->rootnode->endscripts[]=$sc;
-			$this->row->id_alloc();
 		}
+		
 		else $this->txt->text='error';
 	}
 	
@@ -1795,6 +1799,18 @@ class query_result_viewer_codessel extends dom_any
 			$e->bootstrap();
 		$this->editors['print_direct_btn_acct']->attributes['onkeypress'].=
 			"var k=event.charCode;".
+			"if(k==49)".
+			"{".
+				"var x=\$i('".js_escape($this->editors['print_direct_btn_+1']->main->id_gen())."');".
+				"x.click();".
+				"return false;".
+			"}".
+			"if(k==43)".
+			"{".
+				"var x=first_row_ed();".
+				"x.focus();x.value=parseInt(x.value)+4;this.focus();".
+				"return false;".
+			"}".
 			"if(k==108)".
 			"{".
 				"var x=\$i('".js_escape($this->editors['labels_remaining']->main->id_gen())."');".
