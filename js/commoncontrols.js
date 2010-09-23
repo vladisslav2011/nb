@@ -1235,7 +1235,7 @@ function try_show_hint(object,bind,struct)
 		//img.setAttribute('onmouseout',omout);
 		object.hint_div.appendChild(d);
 	}
-	document.body.appendChild(object.hint_div);
+	bind.appendChild(object.hint_div);
 	object.hint_displayed=true;
 	var r=findPosXY(bind);
 	var nl=r.x+bind.offsetWidth-object.hint_div.offsetWidth;

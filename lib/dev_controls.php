@@ -4858,7 +4858,7 @@ class query_gen_ext_manipulator
 		{
 		case 'sql_null':return 'Null'.(($obj->alias!='')?" as ".$obj->alias:'');
 		case 'sql_immed':return "'".$obj->val."'".(($obj->alias!='')?" as ".$obj->alias:'');
-		case 'sql_var':return "@'".$obj->val."'".(($obj->alias!='')?" as ".$obj->alias:'');
+		case 'sql_var':return "@'".$obj->var."'".(($obj->alias!='')?" as ".$obj->alias:'');
 		case 'sql_subquery':return "subquery".(($obj->alias!='')?" as ".$obj->alias:'');
 		case 'sql_expression':return $obj->operator."():".count($obj->exprs).(($obj->alias!='')?" as ".$obj->alias:'');
 		case 'sql_list':return ($obj->func=='' ? '(a,b,..)' : $obj->func.'(x)').":".count($obj->exprs).(($obj->alias!='')?" as ".$obj->alias:'');
