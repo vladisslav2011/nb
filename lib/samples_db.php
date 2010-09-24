@@ -1719,14 +1719,14 @@ class samples_db_users extends dom_div
 		
 		
 		
-		editor_generic::addeditor('ed_filters',new sdb_filters);
+/*		editor_generic::addeditor('ed_filters',new sdb_filters);
 		$this->sdiv->append_child($this->editors['ed_filters']);
 		
 		editor_generic::addeditor('ed_order',new sdb_order);
 		$this->sdiv->append_child($this->editors['ed_order']);
 		
 		editor_generic::addeditor('ed_pager',new util_small_pager);
-		$this->sdiv->append_child($this->editors['ed_pager']);
+		$this->sdiv->append_child($this->editors['ed_pager']);*/
 		
 		if($_SESSION['interface']!='samples_view')
 		{
@@ -1765,10 +1765,10 @@ class samples_db_users extends dom_div
 	
 	function html_inner()
 	{
-		$this->args['ed_count']=$this->rootnode->setting_val($this->oid,$this->long_name.'._count',20);
+		/*$this->args['ed_count']=$this->rootnode->setting_val($this->oid,$this->long_name.'._count',20);
 		$this->args['ed_offset']=$this->rootnode->setting_val($this->oid,$this->long_name.'._offset',0);
 		$this->args['ed_filters']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._filters',0));
-		$this->args['ed_order']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._order',0));
+		$this->args['ed_order']=unserialize($this->rootnode->setting_val($this->oid,$this->long_name.'._order',0));*/
 		$this->editors['ed_list']->table_name=$this->table_name;
 		parent::html_inner();
 	}
@@ -1793,7 +1793,7 @@ class samples_db_users extends dom_div
 					print "alert('Редактирование отключено');window.location.reload(true);";
 					exit;
 				}
-				if($sql->query("INSERT INTO `".$this->table_name."` SET uid=''")!==false)
+				if($sql->query("INSERT INTO `".$this->table_name."` SET interface='samples_view'")!==false)
 				{
 					$r=$sql->qv("SELECT LAST_INSERT_ID()");
 					print "window.location.href='".js_escape('?p=samples_db_usersitem&uid='.urlencode($r[0]))."';";
@@ -1873,10 +1873,10 @@ class samples_db_users extends dom_div
 		{
 			$offset_a=$sql->qv($st->single_query($this->oid,$this->long_name."._offset",$_SESSION['uid'],0));
 			$count_a=$sql->qv($st->single_query($this->oid,$this->long_name."._count",$_SESSION['uid'],0));
-			$this->args['ed_offset']=$offset_a[0];
+			/*$this->args['ed_offset']=$offset_a[0];
 			$this->args['ed_count']=$count_a[0];
 			$this->args['ed_filters']=$ev->settings->filters;
-			$this->args['ed_order']=$ev->settings->order;
+			$this->args['ed_order']=$ev->settings->order;*/
 			$r=new sdb_QR;
 			$r->table_name='*users';
 			
@@ -1933,7 +1933,17 @@ class samples_db_usersitem extends dom_div
 			$tr->append_child($ntd);
 			$ed='editor_text';
 			if(isset($col['editor']))$ed=$col['editor'];
-			editor_generic::addeditor('e'.$col['name'],new $ed);
+			if($col['name']=='interface')
+			{
+				editor_generic::addeditor('e'.$col['name'],new editor_select);
+				$this->editors['e'.$col['name']]->options=Array(
+				'samples_view' => 'samples_view',
+				'samples_edit' => 'samples_edit',
+				'samples_admin' => 'samples_admin',
+				);
+			}
+			else
+				editor_generic::addeditor('e'.$col['name'],new $ed);
 			$ntd->append_child($this->editors['e'.$col['name']]);
 			
 			$tr=new dom_tr;
