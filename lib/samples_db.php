@@ -519,6 +519,7 @@ class sdb_as_i extends editor_txtasg
 				));
 				
 		$qg->lim_count=30;
+		
 		$res=$sql->query($qg->result());
 		while($row=$sql->fetchn($res))
 		{
@@ -1658,7 +1659,7 @@ class samples_db_item extends dom_div
 				break;
 		};
 		
-		$ev->asg_name=preg_replace('/\.fo$/','',$ev->rem_name);
+		$ev->asg_name=preg_replace('/^static\./','',preg_replace('/\.fo$/','',$ev->rem_name));
 		
 		editor_generic::handle_event($ev);
 		
