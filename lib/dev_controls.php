@@ -4860,6 +4860,7 @@ class query_gen_ext_manipulator
 		case 'sql_null':return 'Null'.(($obj->alias!='')?" as ".$obj->alias:'');
 		case 'sql_immed':return "'".$obj->val."'".(($obj->alias!='')?" as ".$obj->alias:'');
 		case 'sql_var':return "@'".$obj->var."'".(($obj->alias!='')?" as ".$obj->alias:'');
+		case 'sql_extval':return "{".$obj->var."}".(($obj->alias!='')?" as ".$obj->alias:'');
 		case 'sql_subquery':return "subquery".(($obj->alias!='')?" as ".$obj->alias:'');
 		case 'sql_expression':return $obj->operator."():".count($obj->exprs).(($obj->alias!='')?" as ".$obj->alias:'');
 		case 'sql_list':return ($obj->func=='' ? '(a,b,..)' : $obj->func.'(x)').":".count($obj->exprs).(($obj->alias!='')?" as ".$obj->alias:'');
@@ -4921,6 +4922,13 @@ class ed_query_gen_ext_editor extends ed_tree_item_editor//virtual component inj
 			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
 			break;
 		case 'sql_var':
+			//TODO: localization
+			$this->field_add($obj,'var','Значение',new editor_txtasg_q0);
+			$this->field_add($obj,'alias','alias',new editor_text);
+			$this->field_add($obj,'variable','Переменная',new editor_txtasg_q0);
+			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
+			break;
+		case 'sql_extval':
 			//TODO: localization
 			$this->field_add($obj,'var','Значение',new editor_txtasg_q0);
 			$this->field_add($obj,'alias','alias',new editor_text);
@@ -5194,6 +5202,7 @@ class ed_tree_main_query_gen_ext extends ed_tree_main
 			'sql_null'=>'<nul>',
 			'sql_immed'=>'<im>',
 			'sql_var'=>'<va>',
+			'sql_extval'=>'<ev>',
 			'sql_column'=>'<col>',
 			'sql_expression'=>'<ex>',
 			'sql_list'=>'<li>',
@@ -5506,7 +5515,9 @@ class ed_htm_editor extends ed_tree_item_editor//virtual component injector
 			$this->field_add($obj,'css_style','css_style',new ed_css_props);
 			break;
 		case 'htm_text':
-			$this->field_add($obj,'text','text',new editor_text);
+			$this->field_add($obj,'text','text',new editor_textarea);
+			$this->editors['text']->main->css_style['width']='400px';
+			$this->editors['text']->main->css_style['height']='100px';
 			break;
 		case 'htm_query_text':
 			$this->field_add($obj,'text','text',new editor_txtasg_h0);
@@ -5927,7 +5938,7 @@ class query_iterator extends dom_void
 		global $sql;
 		if(!is_array($this->rootnode->externals))$this->rootnode->externals=Array();
 		if(get_class($this->qu)!='query_gen_ext')return;
-		$this->qu->externals=$this->rootnode->externals;
+		$this->qu->externals=&$this->rootnode->externals;
 		$q=$this->qu->result();
 		$res=$sql->query($q);
 		while($row=$sql->fetcha($res))
@@ -6563,6 +6574,7 @@ class ed_query_in_group extends ed_tree_main
 			'sql_null'=>'<nul>',
 			'sql_immed'=>'<im>',
 			'sql_var'=>'<va>',
+			'sql_extval'=>'<ev>',
 			'sql_column'=>'<col>',
 			'sql_expression'=>'<ex>',
 			'sql_list'=>'<li>',
@@ -6585,7 +6597,6 @@ class editor_txtasg_h0 extends editor_txtasg
 	function pulla($obj, $ra)
 	{
 		global $sql;
-				print '/*x*/';
 		if((get_class($obj)=='htm_group')&&(get_class($obj->query)=='query_gen_ext'))
 			foreach($obj->query->what->exprs as $e)
 			{

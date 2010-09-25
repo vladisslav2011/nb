@@ -420,6 +420,45 @@ class sql_var
 	}
 }
 
+class sql_extval
+{
+	/* Walk and set $object->value from $this->externals[$object->var] on generation*/
+	public $var='',$alias='';
+	public $error=NULL;
+	
+	function __construct($var=NULL,$alias=NULL)
+	{
+		if(isset($var))$this->var=$var;
+		if(isset($alias))$this->alias=$alias;
+	}
+	
+	function result()
+	{
+		/*
+		if($alias=='')
+		{
+			$this->error=loc_get_val('sql_immed','noalias','Immediate value with no alias set!');
+			return NULL;
+		}*/
+		//do not quote numbers
+		if(preg_match('/^-?\d+\.?\d*$/',$this->val)||preg_match('/^-?\d*\.\d+$/',$this->val)||preg_match('/^-?\d\.\d*[eE]-?\d+$/',$this->val))
+			$res=' '.sql::esc($this->val);
+		else
+			$res=' \''.sql::esc($this->val).'\'';
+		if($this->alias != '')
+			$res.=' AS `'.sql::esc($this->alias).'`';
+		if($this->variable !='')
+			$res=' @`'.sql::esc($this->variable).'` :='.$res;
+		return $res;
+	}
+	
+	function match_update($root,$item,$scope)
+	{
+		if(get_class($this)===get_class($item) && $this->var===$item->var)return OP_R_MATCHED;
+		else return OP_R_DIFF;
+	}
+}
+
 class sql_column
 {
 	public $db='',$tbl='',$col='',$alias='';
@@ -1265,11 +1304,48 @@ function col_replace($from,$to)
 	//unions so far....
 }
 
+function set_externals($e)
+{
+	if(!is_object($e))return;
+	if(get_class($e)=='sql_extval')
+	{
+		$e->val=$this->externals[$e->var];
+		return;
+	}
+	if(get_class($e)=='query_gen_ext')
+	{
+		$ff=Array('what','from','where','into','having','order','group','set','update','union_order','joins');
+		foreach($ff as $f)
+			if(isset($this->$f))
+				$this->set_externals($this->$f);
+		return;
+	}
+	if(get_class($e)=='sql_joins')
+	{
+		if(is_array($e->exprs))
+			foreach($e->exprs as $ee)
+			{
+				$this->set_externals($ee->on);
+				$this->set_externals($ee->what);
+			}
+		return;
+	}
+	if(get_class($e)=='sql_subquery')
+		if(isset($e->query))
+			$this->set_externals($e->query);
+	if(is_array($e->exprs))
+		foreach($e->exprs as $x)
+			$this->set_externals($x);
+}
+
 
 
 function result()
 {
 	
+	/* resolve extrernals */
+	if(isset($this->externals))
+		$this->set_externals($this);
 	$res='';
 	$what_part='';
 	if(isset($this->what) && is_array($this->what->exprs))$what_part=$this->what->result();
