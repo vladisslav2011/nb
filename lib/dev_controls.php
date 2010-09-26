@@ -4068,7 +4068,9 @@ class ed_tree_nofa extends dom_div
 		
 		$this->normal->children_container=new dom_div;
 		$this->normal->append_child($this->normal->children_container);
-		$this->normal->children_container->css_style['padding-left']='1em';
+		$this->normal->children_container->css_style['padding-left']='0.9em';
+		$this->normal->children_container->css_style['margin-left']='1px';
+		$this->normal->children_container->css_style['border-left']='1px solid black';
 		
 		$this->undef=new dom_div;
 		$this->undef->main_div=new dom_div;

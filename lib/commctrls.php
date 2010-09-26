@@ -844,10 +844,10 @@ class editor_text extends dom_any
 			'};'
 			;
 		}else
-			print 'var x=chse.bgifc(\''.js_escape($ev->context[$ev->long_name]['htmlid']).'\',\'\');'.
+			print "var x=chse.bgifc('".js_escape($ev->context[$ev->long_name]['htmlid'])."','');".
 			'if(x){'.
 			//print 'var x=$i(\''.js_escape($ev->context[$ev->long_name]['htmlid']).'\');x.style.backgroundColor=\'\';'.
-			'$i(x.failure_viewer).style.display=\'none\';'.
+			'try{$i(x.failure_viewer).style.display=\'none\';}catch(e){};'.
 			'};';
 	}
 }
