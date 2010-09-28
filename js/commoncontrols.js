@@ -2,17 +2,24 @@
 
 function barcode_bin(bin,width,height,mode)
 {
-	var r=document.createElement('TABLE');
-	var tr=document.createElement('TR');
+	var r=document.createElement('table');
+	r.style.borderCollapse='collapse';
+	var tr=document.createElement('tr');
 	r.appendChild(tr);
 	for(var k=0;k<bin.length;k++)
 	{
 		if(mode==0)//backgroundColor
 		{
-			var td=document.createElement('TD');
-			var d=document.createElement('DIV');
+			var td=document.createElement('td');
+			td.style.border='0px solid white';
+			td.style.padding='0px';
+			td.style.margin='0px';
+			var d=document.createElement('div');
+			d.style.border='0px solid white';
+			d.style.padding='0px';
+			d.style.margin='0px';
 			td.appendChild(d);
-			d.appendChild(document.createTextNode('&nbsp;'));
+			d.appendChild(document.createTextNode(' '));
 			tr.appendChild(td);
 			if(bin[k]=='1')
 				d.style.backgroundColor='black';
@@ -22,8 +29,14 @@ function barcode_bin(bin,width,height,mode)
 			d.style.height=height;
 			
 		}else{
-			var td=document.createElement('TD');
-			var d=document.createElement('IMG');
+			var td=document.createElement('td');
+			td.style.border='0px solid white';
+			td.style.padding='0px';
+			td.style.margin='0px';
+			var d=document.createElement('img');
+			d.style.border='0px solid white';
+			d.style.padding='0px';
+			d.style.margin='0px';
 			td.appendChild(d);
 			tr.appendChild(td);
 			if(bin[k]=='1')
@@ -36,6 +49,222 @@ function barcode_bin(bin,width,height,mode)
 	}
 	return r;
 }
+
+
+function barcode_len(l,width,height,mode)
+{
+	var n="";
+	var s="1";
+	for(var k=0;k<l.length;k++)
+	{
+		var c=parseInt(l[k]);
+		for(t=0;t<c;t++) n += s;
+		if(s=="1")s="0";else s="1";
+	}
+	return barcode_bin(n,width,height,mode);
+}
+
+function code128l(start,code,width,height,mode)
+{
+	var code128=Array(
+		Array(0,"212222"," "," ","00"),
+		Array(1,"222122","!","!","01"),
+		Array(2,"222221","\"","\"","02"),
+		Array(3,"121223","#","#","03"),
+		Array(4,"121322","$","$","04"),
+		Array(5,"131222","%","%","05"),
+		Array(6,"122213","&","&","06"),
+		Array(7,"122312","'","'","07"),
+		Array(8,"132212","(","(","08"),
+		Array(9,"221213",")",")","09"),
+		Array(10,"221312","*","*","10"),
+		Array(11,"231212","+","+","11"),
+		Array(12,"112232",",",",","12"),
+		Array(13,"122132","-","-","13"),
+		Array(14,"122231",".",".","14"),
+		Array(15,"113222","/","/","15"),
+		Array(16,"123122","0","0","16"),
+		Array(17,"123221","1","1","17"),
+		Array(18,"223211","2","2","18"),
+		Array(19,"221132","3","3","19"),
+		Array(20,"221231","4","4","20"),
+		Array(21,"213212","5","5","21"),
+		Array(22,"223112","6","6","22"),
+		Array(23,"312131","7","7","23"),
+		Array(24,"311222","8","8","24"),
+		Array(25,"321122","9","9","25"),
+		Array(26,"321221",":",":","26"),
+		Array(27,"312212",";",";","27"),
+		Array(28,"322112","<","<","28"),
+		Array(29,"322211","=","=","29"),
+		Array(30,"212123",">",">","30"),
+		Array(31,"212321","?","?","31"),
+		Array(32,"232121","@","@","32"),
+		Array(33,"111323","A","A","33"),
+		Array(34,"131123","B","B","34"),
+		Array(35,"131321","C","C","35"),
+		Array(36,"112313","D","D","36"),
+		Array(37,"132113","E","E","37"),
+		Array(38,"132311","F","F","38"),
+		Array(39,"211313","G","G","39"),
+		Array(40,"231113","H","H","40"),
+		Array(41,"231311","I","I","41"),
+		Array(42,"112133","J","J","42"),
+		Array(43,"112331","K","K","43"),
+		Array(44,"132131","L","L","44"),
+		Array(45,"113123","M","M","45"),
+		Array(46,"113321","N","N","46"),
+		Array(47,"133121","O","O","47"),
+		Array(48,"313121","P","P","48"),
+		Array(49,"211331","Q","Q","49"),
+		Array(50,"231131","R","R","50"),
+		Array(51,"213113","S","S","51"),
+		Array(52,"213311","T","T","52"),
+		Array(53,"213131","U","U","53"),
+		Array(54,"311123","V","V","54"),
+		Array(55,"311321","W","W","55"),
+		Array(56,"331121","X","X","56"),
+		Array(57,"312113","Y","Y","57"),
+		Array(58,"312311","Z","Z","58"),
+		Array(59,"332111","[","[","59"),
+		Array(60,"314111","\\","\\","60"),
+		Array(61,"221411","]","]","61"),
+		Array(62,"431111","^","^","62"),
+		Array(63,"111224","_","_","63"),
+		Array(64,"111422","NUL","`","64"),
+		Array(65,"121124","SOH","a","65"),
+		Array(66,"121421","STX","b","66"),
+		Array(67,"141122","ETX","c","67"),
+		Array(68,"141221","EOT","d","68"),
+		Array(69,"112214","ENQ","e","69"),
+		Array(70,"112412","ACK","f","70"),
+		Array(71,"122114","BEL","g","71"),
+		Array(72,"122411","BS","h","72"),
+		Array(73,"142112","HT","i","73"),
+		Array(74,"142211","LF","j","74"),
+		Array(75,"241211","VT","k","75"),
+		Array(76,"221114","FF","l","76"),
+		Array(77,"413111","CR","m","77"),
+		Array(78,"241112","SO","n","78"),
+		Array(79,"134111","SI","o","79"),
+		Array(80,"111242","DLE","p","80"),
+		Array(81,"121142","DC1","q","81"),
+		Array(82,"121241","DC2","r","82"),
+		Array(83,"114212","DC3","s","83"),
+		Array(84,"124112","DC4","t","84"),
+		Array(85,"124211","NAK","u","85"),
+		Array(86,"411212","SYN","v","86"),
+		Array(87,"421112","ETB","w","87"),
+		Array(88,"421211","CAN","x","88"),
+		Array(89,"212141","EM","y","89"),
+		Array(90,"214121","SUB","z","90"),
+		Array(91,"412121","ESC","{","91"),
+		Array(92,"111143","FS","|","92"),
+		Array(93,"111341","GS","}","93"),
+		Array(94,"131141","RS","~","94"),
+		Array(95,"114113","US","DEL","95"),
+		Array(96,"114311","FNC 3","FNC 3","96"),
+		Array(97,"411113","FNC 2","FNC 2","97"),
+		Array(98,"411311","Shift B","Shift A","98"),
+		Array(99,"113141","Code C","Code C","99"),
+		Array(100,"114131","Code B","FNC4","Code B"),
+		Array(101,"311141","FNC 4","Code A","Code A"),
+		Array(102,"411131","FNC 1","FNC 1","FNC 1"),
+		Array(103,"211412","Start Code A","Start Code A","Start Code A"),
+		Array(104,"211214","Start Code B","Start Code B","Start Code B"),
+		Array(105,"211232","Start Code C","Start Code C","Start Code C"),
+		Array(106,"2331112","Stop","Stop","Stop")
+	);
+	
+	var seq=Array();
+	//iterate over objects
+	var set=2;
+	switch(start)
+	{
+	case "A":
+	case "a":
+		seq.push(103);
+		set=2;
+	break;
+	case "B":
+	case "b":
+		seq.push(104);
+		set=3;
+	break;
+	case "C":
+	case "c":
+		seq.push(105);
+		set=4;
+	break;
+	};
+	var inent=false;
+	var ent="";
+	for(var k=0;k<code.length;k++)
+	{
+		if(inent && code[k]!=">")
+			ent+=code[k];
+		if(inent && code[k]==">")
+		{
+			inent=false;
+			if(ent.match(/[0-9+]/))
+			{
+				seq.push(parseInt(ent));
+			}else{
+				for(var t=0;t<107;t++)
+					if(code128[t][set]==ent)
+					{
+						seq.push(t);
+						break;
+					}
+			}
+		}
+		if(code[k]=="<")
+		{
+			inent=true;
+			ent="";
+		}else{
+			if(set==2)//a
+			{
+				for(var t=0;t<107;t++)
+					if(code128[t][set]==code[k])
+					{
+						seq.push(t);
+						break;
+					}
+			}
+			if(set==3)//b
+			{
+				for(var t=0;t<107;t++)
+					if(code128[t][set]==code[k])
+					{
+						seq.push(t);
+						break;
+					}
+			}
+			if(set==4)//b
+			{
+				if(k+1 != code.length)
+				{
+					seq.push(parseInt(code[k]+code[k+1]));
+					k++;
+				}
+			}
+		}
+	}
+	var res="";
+	var check=0;
+	for(var k=0;k<seq.length;k++)
+	{
+		if(k==0)check+=seq[k];
+		else check+=seq[k]*k;
+		res+=code128[seq[k]][1];
+	}
+	check=check % 103;
+	res+=code128[check][1];
+	res+=code128[106][1];
+	return barcode_len(res,width,height,mode);
+}
+
 
 
 function init()

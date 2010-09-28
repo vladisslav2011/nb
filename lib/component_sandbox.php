@@ -881,6 +881,37 @@ $tests_m_array['util']['csv2vcard_1']='csv2vcard_1';
 
 
 
+class test_code128 extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		$this->res=new dom_div;
+		$this->field=new dom_input;
+		$this->field->attributes['type']='text';
+		$this->doit=new dom_input;
+		$this->doit->attributes['type']='button';
+		$this->doit->attributes['onclick']=
+			"var c=\$i('".$this->field->id_gen()."').value;".
+			"\$i('".$this->res->id_gen()."').innerHTML='';".
+			"\$i('".$this->res->id_gen()."').appendChild(code128l(c[0],c.replace(/^./,\"\"),'2px','150px',1));";
+		
+		$this->append_child($this->field);
+		$this->append_child($this->doit);
+		
+		$this->append_child($this->res);
+		
+	}
+	
+	function bootstrap()
+	{
+	}
+	
+	function handle_event($ev)
+	{
+	}
+}
 
 
 
@@ -888,7 +919,7 @@ $tests_m_array['util']['csv2vcard_1']='csv2vcard_1';
 
 
 
-
+$tests_m_array['sandbox']['code128']='test_code128';
 
 
 
