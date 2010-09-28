@@ -961,6 +961,7 @@ class query_result_viewer_codes extends dom_any
 		{
 			while($row=$sql->fetcha($res))
 			{
+				unset($this_editor);
 				$this->row->html_head();
 				foreach($row as $k => $e)
 					$this->args[$k]=$e;
@@ -978,6 +979,8 @@ class query_result_viewer_codes extends dom_any
 					if(get_class($this->editors['ed'.$k])!='editor_text_st1')$dst_rows[]=$this->cell->id_gen();
 					if((get_class($this->editors['ed'.$k])=='editor_text_st1') && (! isset($first_editor)))
 						$first_editor=$this->editors['ed'.$k]->main_id();
+					if((get_class($this->editors['ed'.$k])=='editor_text_st1') && (! isset($this_editor)))
+						$this_editor=$this->editors['ed'.$k]->main_id();
 					$this->editors['ed'.$k]->html();
 					#$this->rootnode->out($this->editors['ed'.$k]->context[$this->long_name.'.ed'.$k]['dbname']);
 					#$this->rootnode->out($this->editors['ed'.$k]->keys['id']);
@@ -990,12 +993,12 @@ class query_result_viewer_codes extends dom_any
 				$sc='';
 				if(is_array($dst_rows))
 					foreach($dst_rows as $r)
-					$sc.='$i(\''.js_escape($r).'\').setAttribute("onclick",\''.js_escape('var a=$i(\''.js_escape($first_editor).'\');if(a){a.focus();a.selectionStart=0;a.selectionEnd=a.value.length;};').'\');';
+					$sc.='$i(\''.js_escape($r).'\').setAttribute("onclick",\''.js_escape('var a=$i(\''.js_escape($this_editor).'\');if(a){a.focus();a.selectionStart=0;a.selectionEnd=a.value.length;};').'\');';
 				//	$this->cell->attributes['onclick']='$i(\''.js_escape($first_editor->id_gen()).'\').focus();');
 				$this->rootnode->endscripts[]=$sc;
 				$this->row->id_alloc();
 			}
-			$sc='function first_row_ed(){return $i(\''.js_escape($first_editor).'\');};';
+			$sc='first_row_ed=function(){return $i(\''.js_escape($first_editor).'\');};';
 			$this->rootnode->endscripts[]=$sc;
 		}
 		
@@ -1808,7 +1811,7 @@ class query_result_viewer_codessel extends dom_any
 			"if(k==43)".
 			"{".
 				"var x=first_row_ed();".
-				"x.focus();x.value=parseInt(x.value)+4;this.focus();".
+				"x.focus();y=parseInt(x.value);if(isNaN(y))x.value=4;else x.value=y+4;this.focus();".
 				"return false;".
 			"}".
 			"if(k==108)".

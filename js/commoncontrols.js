@@ -1,4 +1,43 @@
 
+
+function barcode_bin(bin,width,height,mode)
+{
+	var r=document.createElement('TABLE');
+	var tr=document.createElement('TR');
+	r.appendChild(tr);
+	for(var k=0;k<bin.length;k++)
+	{
+		if(mode==0)//backgroundColor
+		{
+			var td=document.createElement('TD');
+			var d=document.createElement('DIV');
+			td.appendChild(d);
+			d.appendChild(document.createTextNode('&nbsp;'));
+			tr.appendChild(td);
+			if(bin[k]=='1')
+				d.style.backgroundColor='black';
+			else
+				d.style.backgroundColor='white';
+			d.style.width=width;
+			d.style.height=height;
+			
+		}else{
+			var td=document.createElement('TD');
+			var d=document.createElement('IMG');
+			td.appendChild(d);
+			tr.appendChild(td);
+			if(bin[k]=='1')
+				d.setAttribute('src','/i/black.png');
+			else
+				d.setAttribute('src','/i/white.png');
+			d.style.width=width;
+			d.style.height=height;
+		}
+	}
+	return r;
+}
+
+
 function init()
 {
 	chse.callback_uri=window.location.href;
