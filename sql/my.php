@@ -182,6 +182,18 @@ class sql
 		}
 		return NULL;
 	}
+	function qv1($q)
+	{
+		$res=$this->query($q);
+		if($res===TRUE) return $res;
+		if($res===FALSE) return $res;//is it real? Or always undef if failed
+		if(!isset($res))return NULL;
+		$ret=Array();
+		if($row=$this->fetchn($res))
+			$ret=$row[0];
+		$this->free($res);
+		return $ret;
+	}
 }
 
 

@@ -1603,6 +1603,7 @@ class EMTSE_choice extends dom_div//in:string htext,Array rows
 	
 	function bootstrap()
 	{
+		$this->long_name=editor_generic::long_name();
 		if(is_array($this->editors))foreach($this->editors as $i => $e)
 		{
 			$e->context=&$this->context;
@@ -1611,7 +1612,6 @@ class EMTSE_choice extends dom_div//in:string htext,Array rows
 			$e->oid=$this->oid;
 		}
 		if(is_array($this->editors))foreach($this->editors as $e)$e->bootstrap();
-		$this->long_name=editor_generic::long_name();
 	}
 	
 	function html_inner()
@@ -1657,7 +1657,6 @@ class EMTSE_choice extends dom_div//in:string htext,Array rows
 		if($ev->rem_name=='vb')
 		{
 			$q=unserialize($_POST['val']);
-			
 			if(is_array($q))
 			foreach($q as $qw)
 			{
@@ -1670,7 +1669,7 @@ class EMTSE_choice extends dom_div//in:string htext,Array rows
 			}else $err='Invalid request';
 			if(isset($err))
 			{
-				print "var s=\$i('".js_escape($ev->context[$ev->long_name]['htmlid'])."')";
+				print "var s=\$i('".js_escape($ev->context[$ev->long_name]['htmlid'])."');";
 				print "s.value='".js_escape($err)."';";
 				print "s.disabled=true;";
 			}else

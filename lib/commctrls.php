@@ -674,7 +674,7 @@ class editor_button extends dom_any_noterm
 		{
 			$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:".$this->val_js.",c_id:this.id});";
 		}else
-			$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:'".js_escape(urlencode($value))."',c_id:this.id});";
+			$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:'".js_escape($value)."',c_id:this.id});";
 		
 		$this->attributes['onfocus']='';
 		$this->attributes['onblur']='';
@@ -699,7 +699,7 @@ class editor_valbutton extends editor_button
 	{
 		if(isset($this->value))$value=$this->value;
 		elseif(isset($this->context[$this->long_name]['var']))$value=$this->args[$this->context[$this->long_name]['var']];
-		$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:'".js_escape(urlencode($value))."',c_id:this.id});";
+		$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:'".js_escape($value)."',c_id:this.id});";
 		
 		parent::html_head();
 	}
@@ -728,7 +728,7 @@ class editor_valbutton_button extends dom_any
 	{
 		if(isset($this->value))$value=$this->value;
 		elseif(isset($this->context[$this->long_name]['var']))$value=$this->args[$this->context[$this->long_name]['var']];
-		$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:'".js_escape(urlencode($value))."',c_id:this.id});";
+		$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:'".js_escape($value)."',c_id:this.id});";
 		
 		parent::html_head();
 	}
@@ -748,7 +748,7 @@ class editor_valbutton_image extends editor_button
 	{
 		if(isset($this->value))$value=$this->value;
 		elseif(isset($this->context[$this->long_name]['var']))$value=$this->args[$this->context[$this->long_name]['var']];
-		$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:'".js_escape(urlencode($value))."',c_id:this.id});";
+		$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:'".js_escape($value)."',c_id:this.id});";
 		
 		parent::html_head();
 	}
@@ -2318,7 +2318,7 @@ class editor_divbutton extends dom_div
 		{
 			$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:".$this->val_js.",c_id:this.id});";
 		}else
-			$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:'".js_escape(urlencode($value))."',c_id:this.id});";
+			$this->attributes['onclick']="chse.send_or_push({static:".$this->send.",val:'".js_escape($value)."',c_id:this.id});";
 		
 		// focus persistence test
 	}

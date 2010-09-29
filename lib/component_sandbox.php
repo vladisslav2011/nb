@@ -934,6 +934,10 @@ class regexp_update extends dom_div
 		editor_generic::addeditor('col',new regexp_update_txtasg);
 		editor_generic::addeditor('match',new editor_text);
 		editor_generic::addeditor('replace',new editor_text);
+		editor_generic::addeditor('update',new editor_button);
+		$this->editors['update']->main->attributes['value']='update';
+		editor_generic::addeditor('commit',new editor_button);
+		$this->editors['commit']->main->attributes['value']='commit';
 		editor_generic::addeditor('res',new regexp_update_list);
 		
 		$this->link_nodes();
@@ -947,14 +951,16 @@ class regexp_update extends dom_div
 		$d->append_child($this->editors['col']);
 		$d->append_child($this->editors['match']);
 		$d->append_child($this->editors['replace']);
+		$d->append_child($this->editors['update']);
+		$d->append_child($this->editors['commit']);
 		$this->append_child($this->editors['res']);
 	}
 	
 	function bootstrap()
 	{
 		$this->long_name=editor_generic::long_name();
-		
 		$this->context[$this->long_name]['res_id']=$this->editors['res']->id_gen();
+		$this->context[$this->long_name]['oid']=$this->oid;
 		if(!is_array($this->keys))$this->keys=Array();
 		if(!is_array($this->args))$this->args=Array();
 		if(is_array($this->editors))foreach($this->editors as $i => $e)
@@ -967,6 +973,10 @@ class regexp_update extends dom_div
 		}
 		
 		//$this->args['res']=
+		$this->args['tbl']=$this->rootnode->setting_val($this->oid,$this->long_name.'._tbl','');
+		$this->args['col']=$this->rootnode->setting_val($this->oid,$this->long_name.'._col','');
+		$this->args['match']=$this->rootnode->setting_val($this->oid,$this->long_name.'._match','');
+		$this->args['replace']=$this->rootnode->setting_val($this->oid,$this->long_name.'._replace','');
 		
 		if(is_array($this->editors))foreach($this->editors as $i => $e)
 			$e->bootstrap();
@@ -975,6 +985,83 @@ class regexp_update extends dom_div
 	
 	function handle_event($ev)
 	{
+		global $sql,$ddc_tables;
+		$ev->do_reload=false;
+		$this->long_name=$ev->parent_name;
+		$this->oid=$ev->context[$ev->parent_name]['oid'];
+		$st=new settings_tool;
+		$this->args=Array();
+		$this->args['tbl']=$sql->qv1($st->single_query($this->oid,$this->long_name."._tbl",$_SESSION['uid'],""));
+		$this->args['col']=$sql->qv1($st->single_query($this->oid,$this->long_name."._col",$_SESSION['uid'],""));
+		$this->args['match']=$sql->qv1($st->single_query($this->oid,$this->long_name."._match",$_SESSION['uid'],""));
+		$this->args['replace']=$sql->qv1($st->single_query($this->oid,$this->long_name."._replace",$_SESSION['uid'],""));
+		$ev->real_name=preg_replace('/.fo$/','',$ev->rem_name);
+		$ev->tbl=$this->args['tbl'];
+		
+		if($ev->rem_name=='tbl')
+		{
+				$sql->query($st->set_query($this->oid,$this->long_name.'._tbl',$_SESSION['uid'],0,$_POST['val']));
+				$this->args['tbl']=$_POST['val'];
+				$ev->do_reload=true;
+		}
+		if($ev->rem_name=='col')
+		{
+				$sql->query($st->set_query($this->oid,$this->long_name.'._col',$_SESSION['uid'],0,$_POST['val']));
+				$this->args['col']=$_POST['val'];
+				$ev->do_reload=true;
+		}
+		if($ev->rem_name=='match')
+		{
+				$sql->query($st->set_query($this->oid,$this->long_name.'._match',$_SESSION['uid'],0,$_POST['val']));
+				$this->args['match']=$_POST['val'];
+				$ev->do_reload=true;
+		}
+		if($ev->rem_name=='replace')
+		{
+				$sql->query($st->set_query($this->oid,$this->long_name.'._replace',$_SESSION['uid'],0,$_POST['val']));
+				$this->args['replace']=$_POST['val'];
+				$ev->do_reload=true;
+		}
+		if($ev->rem_name=='update')
+		{
+			print "window.location.reload(true);";
+		}
+		if($ev->rem_name=='commit')
+		{
+			$ka=$sql->qa("SHOW KEYS FROM `".$sql->esc($this->args['tbl'])."`");
+			$sel=new query_gen_ext('SELECT');
+			$sel->from->exprs[]=new sql_column(NULL,$this->args['tbl']);
+			$sel->what->exprs[]=new sql_column(NULL,NULL,$this->args['col'],'s');
+			
+			$up=new query_gen_ext('UPDATE');
+			$up->into->exprs[]=new sql_column(NULL,$this->args['tbl']);
+			$set=new sql_immed;
+			$up->set->exprs[]=new sql_expression('=',Array(
+				new sql_column(NULL,NULL,$this->args['col']),
+				$set
+				));
+			foreach($ka as $kk)
+			if($kk['Key_name']=='PRIMARY')
+			{
+				$kwhere[$kk['Column_name']]=new sql_immed;
+				$up->where->exprs[]=new sql_expression('=',Array(
+					new sql_column(NULL,NULL,$kk['Column_name']),
+					$kwhere[$kk['Column_name']]
+					));
+				$sel->what->exprs[]=new sql_column(NULL,NULL,$kk['Column_name']);
+			}
+			$res=$sql->query($sel->result());
+			while($row=$sql->fetcha($res))
+			if(preg_match($this->args['match'],$row['s']))
+			{
+				$set->val=preg_replace($this->args['match'],$this->args['replace'],$row['s']);
+				foreach($kwhere as $kn => $kimm)
+					$kimm->val=$row[$kn];
+				
+				$sql->query($up->result());
+			}
+			print "window.location.reload(true);";
+		}
 		
 		editor_generic::handle_event($ev);
 	}
@@ -986,33 +1073,30 @@ class regexp_update_txtasg extends editor_txtasg
 	function fetch_list($ev,$k=NULL)
 	{
 		global $sql;
-		if(get_class($ev->current)=='sql_column')
+		if(preg_match('/tbl$/',$ev->real_name))
 		{
-			if(preg_match('/tbl$/',$ev->real_name))
+			$res=$sql->query('SHOW TABLES'.
+				(($k != '')?(" LIKE '%".$sql->esc($k)."%'"):""));
+			while($row=$sql->fetchn($res))
 			{
-				$res=$sql->query('SHOW TABLES'.
+				$ra[]=Array('val'=>$row[0]);
+			}
+			$sql->free($res);
+			return $ra;
+		};
+		if(preg_match('/col$/',$ev->real_name))
+		{
+			if($ev->tbl!='')
+			{
+				$res=$sql->query("SHOW COLUMNS FROM `".$sql->esc($ev->tbl)."`".
 					(($k != '')?(" LIKE '%".$sql->esc($k)."%'"):""));
 				while($row=$sql->fetchn($res))
 				{
 					$ra[]=Array('val'=>$row[0]);
 				}
 				$sql->free($res);
-				return $ra;
-			};
-			if(preg_match('/col$/',$ev->real_name))
-			{
-				if($ev->tbl!='')
-				{
-					$res=$sql->query("SHOW COLUMNS FROM `".$sql->esc($ev->tbl)."`".
-						(($k != '')?(" LIKE '%".$sql->esc($k)."%'"):""));
-					while($row=$sql->fetchn($res))
-					{
-						$ra[]=Array('val'=>$row[0]);
-					}
-					$sql->free($res);
-				}
-				return $ra;
-			};
+			}
+			return $ra;
 		};
 		return NULL;
 	}
@@ -1025,14 +1109,62 @@ class regexp_update_list extends dom_div
 	{
 		parent::__construct();
 		$this->etype=get_class($this);
+		editor_generic::addeditor('rn',new editor_statictext);
+		editor_generic::addeditor('s',new editor_statictext);
+		editor_generic::addeditor('d',new editor_statictext);
+		
+		$this->tbl=new dom_table;
+		$this->append_child($this->tbl);
+		$this->tr=new dom_tr;
+		$this->tbl->append_child($this->tr);
+		$td1=new dom_td;
+		$td2=new dom_td;
+		$td3=new dom_td;
+		
+		$td1->append_child($this->editors['rn']);
+		$td2->append_child($this->editors['s']);
+		$td3->append_child($this->editors['d']);
+		$this->tr->append_child($td1);
+		$this->tr->append_child($td2);
+		$this->tr->append_child($td3);
+		
+		
 	}
 	
 	function bootstrap()
 	{
+		$this->long_name=editor_generic::long_name();
+		$this->context[$this->long_name]['oid']=$this->oid;
+		if(!is_array($this->keys))$this->keys=Array();
+		if(!is_array($this->args))$this->args=Array();
+		if(is_array($this->editors))foreach($this->editors as $i => $e)
+		{
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+			$e->oid=$this->oid;
+		}
 	}
 	
 	function html_inner()
 	{
+		global $sql;
+		$res=$sql->query("SELECT `".$sql->esc($this->args['col'])."` as s FROM `".$sql->esc($this->args['tbl'])."` ORDER BY s");
+		$this->tbl->html_head();
+		$this->args['rn']=1;
+		while($row=$sql->fetcha($res))
+		if(preg_match($this->args['match'],$row['s']))
+		{
+			$this->args['s']=$row['s'];
+			$this->args['d']=preg_replace($this->args['match'],$this->args['replace'],$row['s']);
+			if(is_array($this->editors))foreach($this->editors as $i => $e)
+				$e->bootstrap();
+			$this->tr->html();
+			$this->tr->id_alloc();
+			$this->args['rn']+=1;
+		}
+		$this->tbl->html_tail();
 	}
 	
 	function handle_event($ev)
