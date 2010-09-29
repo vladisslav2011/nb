@@ -1657,16 +1657,17 @@ class EMTSE_choice extends dom_div//in:string htext,Array rows
 		if($ev->rem_name=='vb')
 		{
 			$q=unserialize($_POST['val']);
+			
 			if(is_array($q))
 			foreach($q as $qw)
 			{
 				$r=$sql->query($qw);
-				if($r!=true)
+				if($r===false)
 				{
 					$err=$sql->err();
 					break;
 				}
-			}
+			}else $err='Invalid request';
 			if(isset($err))
 			{
 				print "var s=\$i('".js_escape($ev->context[$ev->long_name]['htmlid'])."')";

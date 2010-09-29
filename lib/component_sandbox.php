@@ -924,12 +924,124 @@ $tests_m_array['sandbox']['code128']='test_code128';
 
 
 
+class regexp_update extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		editor_generic::addeditor('tbl',new regexp_update_txtasg);
+		editor_generic::addeditor('col',new regexp_update_txtasg);
+		editor_generic::addeditor('match',new editor_text);
+		editor_generic::addeditor('replace',new editor_text);
+		editor_generic::addeditor('res',new regexp_update_list);
+		
+		$this->link_nodes();
+	}
+	
+	function link_nodes()
+	{
+		$d=new dom_div;
+		$this->append_child($d);
+		$d->append_child($this->editors['tbl']);
+		$d->append_child($this->editors['col']);
+		$d->append_child($this->editors['match']);
+		$d->append_child($this->editors['replace']);
+		$this->append_child($this->editors['res']);
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		
+		$this->context[$this->long_name]['res_id']=$this->editors['res']->id_gen();
+		if(!is_array($this->keys))$this->keys=Array();
+		if(!is_array($this->args))$this->args=Array();
+		if(is_array($this->editors))foreach($this->editors as $i => $e)
+		{
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+			$e->oid=$this->oid;
+		}
+		
+		//$this->args['res']=
+		
+		if(is_array($this->editors))foreach($this->editors as $i => $e)
+			$e->bootstrap();
+		
+	}
+	
+	function handle_event($ev)
+	{
+		
+		editor_generic::handle_event($ev);
+	}
+}
 
 
+class regexp_update_txtasg extends editor_txtasg
+{
+	function fetch_list($ev,$k=NULL)
+	{
+		global $sql;
+		if(get_class($ev->current)=='sql_column')
+		{
+			if(preg_match('/tbl$/',$ev->real_name))
+			{
+				$res=$sql->query('SHOW TABLES'.
+					(($k != '')?(" LIKE '%".$sql->esc($k)."%'"):""));
+				while($row=$sql->fetchn($res))
+				{
+					$ra[]=Array('val'=>$row[0]);
+				}
+				$sql->free($res);
+				return $ra;
+			};
+			if(preg_match('/col$/',$ev->real_name))
+			{
+				if($ev->tbl!='')
+				{
+					$res=$sql->query("SHOW COLUMNS FROM `".$sql->esc($ev->tbl)."`".
+						(($k != '')?(" LIKE '%".$sql->esc($k)."%'"):""));
+					while($row=$sql->fetchn($res))
+					{
+						$ra[]=Array('val'=>$row[0]);
+					}
+					$sql->free($res);
+				}
+				return $ra;
+			};
+		};
+		return NULL;
+	}
+}
 
 
+class regexp_update_list extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+	}
+	
+	function bootstrap()
+	{
+	}
+	
+	function html_inner()
+	{
+	}
+	
+	function handle_event($ev)
+	{
+		editor_generic::handle_event($ev);
+	}
+}
 
-
+$tests_m_array['util']['regexp_update']='regexp_update';
 
 
 

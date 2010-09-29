@@ -1013,7 +1013,7 @@ END;	*/
 		{
 			$sub=($sub==0)?'':"(".$sub.")";
 			if($a !='')$a.=', ';
-			$a.=$this->sql->esc($coln).$sub;
+			$a.='`'.$this->sql->esc($coln).'`'.$sub;
 		}
 		if($keyname=='PRIMARY')
 			return "ALTER TABLE `".$this->sql->esc($tbl)."` ADD PRIMARY KEY (".$a.")";
