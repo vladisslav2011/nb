@@ -1175,6 +1175,268 @@ class regexp_update_list extends dom_div
 
 $tests_m_array['util']['regexp_update']='regexp_update';
 
+class barcode_fill_test extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		
+		editor_generic::addeditor('id_doc',new editor_text);
+		editor_generic::addeditor('clear',new editor_button);
+		$this->editors['clear']->attributes['value']='Clear';
+		editor_generic::addeditor('list',new barcode_fill_test_list);
+		editor_generic::addeditor('codes',new editor_textarea);
+		
+		$this->append_child($this->editors['id_doc']);
+		$this->append_child($this->editors['clear']);
+		$this->tbl=new dom_table;
+		$tr=new dom_tr;
+		$left=new dom_td;
+		$right=new dom_td;
+		$this->append_child($this->tbl->append_child($tr->append_child($left)));
+		$tr->append_child($right);
+		$left->append_child($this->editors['list']);
+		$right->append_child($this->editors['codes']);
+		
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		$this->context[$this->long_name]['oid']=$this->oid;
+		$this->context[$this->long_name]['list_id']=$this->editors['list']->id_gen();
+		if(!is_array($this->keys))$this->keys=Array();
+		if(!is_array($this->args))$this->args=Array();
+		if(is_array($this->editors))foreach($this->editors as $i => $e)
+		{
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+			$e->oid=$this->oid;
+		}
+		$this->args['id_doc']=$this->rootnode->setting_val($this->oid,$this->long_name.'._id_doc','');
+		$this->editors['list']->def=$this->gen_def();
+		if(is_array($this->editors))foreach($this->editors as $i => $e)
+			$e->bootstrap();
+	}
+	
+	function gen_def()
+	{
+		$r=new query_gen_ext('select');
+		$r->from->exprs=Array(
+			new sql_column(NULL,'test_doc',NULL,'td'),
+			new sql_column(NULL,'barcodes_raw',NULL,'br')
+			);
+		$r->what->exprs=Array(
+			new sql_column(NULL,'td','count'),
+			new sql_column(NULL,'br','name')
+			);
+			
+		$r->where->exprs=Array(
+			new sql_expression('=',Array(
+				new sql_column(NULL,'td','doc_id'),
+				new sql_immed($this->args['id_doc'])
+				)),
+			new sql_expression('=',Array(
+				new sql_column(NULL,'td','prod'),
+				new sql_column(NULL,'br','id'),
+				))
+			);
+		return $r;
+	}
+	
+	function check_doc()
+	{
+		global $sql;
+		$qg=$this->gen_def();
+		$qg->what->exprs=Array(new sql_list('count',Array(
+			new sql_column(NULL,NULL,'row')
+			)));
+		return ($sql->qv1($qg->result())>0);
+		
+	}
+	
+	function perform_clear()
+	{
+		global $sql;
+		$qg=new query_gen_ext('delete');
+		$qg->from->exprs=Array(
+			new sql_column(NULL,'test_doc',NULL),
+		);
+		$qg->where->exprs=Array(
+			new sql_expression('=',Array(
+				new sql_column(NULL,NULL,'doc_id'),
+				new sql_immed($this->args['id_doc'])
+				)),
+			);
+		$sql->query($qg->result());
+	}
+	
+	function parse($l)
+	{
+		global $sql;
+		$le=explode("\n",$l);
+		$im_code=new sql_immed;
+		$im_count=new sql_immed(1);
+		
+		$sq=new query_gen_ext('select');
+		$sq->from->exprs[]=new sql_column(NULL,'barcodes_raw',NULL,'br');
+		$sq->what->exprs[]=new sql_column(NULL,'br','id');
+		$sq->where->exprs[]=new sql_expression('=',Array(
+			new sql_column(NULL,'br','code'),
+			$im_code
+			));
+		
+		$qg=new query_gen_ext('insert update');
+		$qg->into->exprs[]=new sql_column(NULL,'test_doc',NULL);
+		$qg->set->exprs[]=new sql_expression('=',Array(
+			new sql_column(NULL,NULL,'doc_id'),
+			new sql_immed($this->args['id_doc'])
+			));
+		$qg->set->exprs[]=new sql_expression('=',Array(
+			new sql_column(NULL,NULL,'prod'),
+			new sql_subquery($sq)
+			));
+		$qg->set->exprs[]=new sql_expression('=',Array(
+			new sql_column(NULL,NULL,'count'),
+			$im_count
+			));
+		$qg->update->exprs[]=new sql_expression('=',Array(
+			new sql_column(NULL,NULL,'count'),
+			new sql_expression('+',Array(
+				new sql_column(NULL,NULL,'count'),
+				$im_count
+				))
+			));
+		$mm=Array();
+		foreach($le as $r)
+			if(preg_match('/[0-9]{13}/',$r))
+			{
+//				print "alert('".js_escape($qg->result())."');";
+				if(isset($mm[$r]))$mm[$r]+=1;
+				else $mm[$r]=1;
+			}
+		foreach( $mm as $code => $count)
+		{		
+			$im_code->val=$code;
+			$im_count->val=$count;
+			$sql->query($qg->result());
+		}
+	}
+	
+	function handle_event($ev)
+	{
+		global $sql;
+		$this->long_name=$ev->parent_name;
+		$this->oid=$ev->context[$ev->parent_name]['oid'];
+		$st=new settings_tool;
+		$this->args=Array();
+		$this->args['id_doc']=$sql->qv1($st->single_query($this->oid,$this->long_name."._id_doc",$_SESSION['uid'],""));
+		if($ev->rem_name=='id_doc')
+		{
+			$sql->query($st->set_query($this->oid,$this->long_name.'._id_doc',$_SESSION['uid'],0,$_POST['val']));
+			$this->args['id_doc']=$_POST['val'];
+			$ev->reload_list=true;
+		}
+		if($ev->rem_name=='clear')
+		{
+			$this->perform_clear();
+			$ev->reload_list=true;
+		}
+		if($ev->rem_name=='codes')
+		{
+			$this->perform_clear();
+			$this->parse($_POST['val']);
+			$ev->reload_list=true;
+		}
+		editor_generic::handle_event($ev);
+		if($ev->reload_list)
+		{
+			$r=new barcode_fill_test_list;
+			$r->def=$this->gen_def();
+			$r->context=&$ev->context;
+			$r->keys=&$ev->keys;
+			$r->oid=$this->oid;
+			$r->name=$ev->parent_name.'.list';
+			$r->etype=$ev->parent_type.'.'.$r->etype;
+			print "(function(){";
+			print "var nya=\$i('".js_escape($ev->context[$ev->parent_name]['list_id'])."');";
+			print "try{nya.innerHTML=";
+			reload_object($r,true);
+			print "}catch(e){ window.location.reload(true);};";
+			print "})();";
+		}
+	}
+}
+
+class barcode_fill_test_list extends dom_table
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		
+		editor_generic::addeditor('num', new editor_statictext);
+		editor_generic::addeditor('name', new editor_statictext);
+		editor_generic::addeditor('count', new editor_statictext);
+		
+		$this->tr=new dom_tr;
+		$this->append_child($this->tr);
+		foreach($this->editors as $n => $e)
+		{
+			$td=new dom_td;
+			$this->tr->append_child($td);
+			$td->append_child($e);
+		};
+		
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		$this->context[$this->long_name]['oid']=$this->oid;
+		if(!is_array($this->keys))$this->keys=Array();
+		if(!is_array($this->args))$this->args=Array();
+		if(is_array($this->editors))foreach($this->editors as $i => $e)
+		{
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+			$e->oid=$this->oid;
+		}
+	}
+	
+	function html_inner()
+	{
+		global $sql;
+		//$this->def is query_gen_ext returning 'name' and 'count'
+		$sel=$this->def;
+		$res=$sql->query($sel->result());
+		$this->args['num']=0;
+		while($row=$sql->fetcha($res))
+		{
+			$this->args['num']++;
+			$this->args['name']=$row['name'];
+			$this->args['count']=$row['count'];
+			if(is_array($this->editors))foreach($this->editors as $i => $e)
+				$e->bootstrap();
+			$this->tr->html();
+			$this->tr->id_alloc();
+		};
+		$sql->free($res);
+		
+	}
+	
+	function handle_event($ev)
+	{
+		editor_generic::handle_event($ev);
+	}
+}
+
+$tests_m_array['sandbox']['barcode_fill_test']='barcode_fill_test';
 
 
 
