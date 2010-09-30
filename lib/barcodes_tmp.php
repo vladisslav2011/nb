@@ -9,13 +9,15 @@ Array(
   #Array('name' =>'', 'sql_type' =>'', 'sql_null' =>, 'sql_default' =>'', 'sql_sequence' => 0, 'sql_comment' =>NULL),
   Array('name' =>'id',		'sql_type' =>'int(10)',  'sql_null' =>0, 'sql_default' =>NULL,		'sql_sequence' => 1,	'sql_comment' =>NULL, 'hname'=>'Идентификатор'),
   Array('name' =>'name',	'sql_type' =>'varchar(200)', 'sql_null' =>1, 'sql_default' =>NULL,	'sql_sequence' => 0,			'sql_comment' =>NULL, 'hname'=>'Наименование'),
-  Array('name' =>'code',	'sql_type' =>'varchar(13)', 'sql_null' =>1, 'sql_default' =>NULL,	'sql_sequence' => 0,			'sql_comment' =>NULL, 'hname'=>'Код')
+  Array('name' =>'code',	'sql_type' =>'varchar(13)', 'sql_null' =>1, 'sql_default' =>NULL,	'sql_sequence' => 0,			'sql_comment' =>NULL, 'hname'=>'Код'),
+  Array('name' =>'isown',	'sql_type' =>'int(1)', 'sql_null' =>0, 'sql_default' =>0,	'sql_sequence' => 0,			'sql_comment' =>NULL, 'hname'=>'Собственный')
  ),
  'keys' => Array(
 #  Array('key' =>'PRIMARY', 'name' =>'', 'sub' => NULL)
   Array('key' =>'PRIMARY', 'name' =>'id', 'sub' => NULL),
   Array('key' =>'name', 'name' =>'name', 'sub' => NULL),
-  Array('key' =>'code', 'name' =>'code', 'sub' => NULL)
+  Array('key' =>'code', 'name' =>'code', 'sub' => NULL),
+  Array('key' =>'isown', 'name' =>'isown', 'sub' => NULL)
  )
 );
 
