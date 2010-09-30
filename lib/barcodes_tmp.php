@@ -9,7 +9,7 @@ Array(
   #Array('name' =>'', 'sql_type' =>'', 'sql_null' =>, 'sql_default' =>'', 'sql_sequence' => 0, 'sql_comment' =>NULL),
   Array('name' =>'id',		'sql_type' =>'int(10)',  'sql_null' =>0, 'sql_default' =>NULL,		'sql_sequence' => 1,	'sql_comment' =>NULL, 'hname'=>'Идентификатор'),
   Array('name' =>'name',	'sql_type' =>'varchar(200)', 'sql_null' =>1, 'sql_default' =>NULL,	'sql_sequence' => 0,			'sql_comment' =>NULL, 'hname'=>'Наименование'),
-  Array('name' =>'code',	'sql_type' =>'varchar(13)', 'sql_null' =>1, 'sql_default' =>NULL,	'sql_sequence' => 0,			'sql_comment' =>NULL, 'hname'=>'Код'),
+  Array('name' =>'code',	'sql_type' =>'varchar(13)', 'sql_null' =>1, 'sql_default' =>NULL,	'sql_sequence' => 0,			'sql_comment' =>NULL, 'hname'=>'Код', 'editor' => 'editor_text_ean13'),
   Array('name' =>'isown',	'sql_type' =>'int(1)', 'sql_null' =>0, 'sql_default' =>0,	'sql_sequence' => 0,			'sql_comment' =>NULL, 'hname'=>'Собственный', 'editor' => 'editor_checkbox')
  ),
  'keys' => Array(
@@ -3711,6 +3711,20 @@ class codes_import_xdiv extends dom_div
 
 
 $tests_m_array['util']['codes_import']='codes_import';
+
+
+class editor_text_ean13 extends editor_text
+{
+	
+	function bootstrap()
+	{
+		parent::bootstrap();
+		$this->main->attributes['onfocus'].="editor_text_ean13_focus(\$i('".js_escape($this->id_gen())."'),this,'".js_escape($this->keys['-id'])."');";
+		$this->main->attributes['onblur'].="editor_text_ean13_blur(\$i('".js_escape($this->id_gen())."'),this,'".js_escape($this->keys['-id'])."');";
+	}
+}
+
+
 
 
 

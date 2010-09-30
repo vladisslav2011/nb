@@ -265,6 +265,16 @@ function code128l(start,code,width,height,mode)
 	return barcode_len(res,width,height,mode);
 }
 
+function barcode_gen_ean_sum(ean){
+  var even=true; var esum=0; var osum=0;
+  var se=ean.toString();
+  for (var i=se.length-1;i>=0;i--)
+  {
+	if (even) esum+=parseInt(se[i]);	else osum+=parseInt(se[i]);
+	even=!even;
+  }
+  return (10-((3*esum+osum)%10))%10;
+}
 
 
 function init()
@@ -1678,5 +1688,52 @@ function keyboard_test_btn_key(event,obj,t)
 		$i(obj.result_divs[obj.testnum][t])[text_content]=obj.result_struct[obj.testnum][t].cc+'/'
 			+obj.result_struct[obj.testnum][t].kc+'/'+obj.result_struct[obj.testnum][t].wh+'/'+obj.result_struct[obj.testnum][t].cnt;
 }
+
+
+function editor_text_ean13_focus(obj,form,key)
+{
+	if(obj.editor_text_ean13)
+	{
+		clearTimeout(obj.editor_text_ean13);
+	}
+	if(typeof(obj.editor_text_ean13_hint)!='undefined')
+		return;
+	var d=document.createElement('div');
+	obj.editor_text_ean13_hint=d;
+	d.style.position='absolute';
+	d.style.backgroundColor='white';
+		obj.editor_text_ean13_hint.style.display='block';
+	//checksum button
+	var b=document.createElement('input');
+	var clti="var obj=$i('"+obj.id+"');if(obj.editor_text_ean13){clearTimeout(obj.editor_text_ean13);return;};";
+
+	b.setAttribute('type','button');
+	b.setAttribute('value','csum');
+	b.setAttribute('onfocus',clti);
+	b.setAttribute('onblur',"var obj=$i('"+obj.id+"');if(obj.editor_text_ean13)clearTimeout(obj.editor_text_ean13);obj.editor_text_ean13=setTimeout('var obj=$i(\\'"+obj.id+"\\');obj.editor_text_ean13_hint.style.display=\\'none\\';obj.removeChild(obj.editor_text_ean13_hint);delete obj.editor_text_ean13_hint;',200);");
+	b.setAttribute('onclick',
+		"var form=$i('"+form.id+"');if(form.value.length<12)return;tv=form.value.substr(0,12);"+
+		"tv+=barcode_gen_ean_sum(tv).toString();form.focus();form.value=tv;this.focus();");
+	d.appendChild(b);
+	//from id button
+	b=document.createElement('input');
+	b.setAttribute('type','button');
+	b.setAttribute('value','gen');
+	b.setAttribute('onfocus',clti);
+	b.setAttribute('onblur',"var obj=$i('"+obj.id+"');if(obj.editor_text_ean13)clearTimeout(obj.editor_text_ean13);obj.editor_text_ean13=setTimeout('var obj=$i(\\'"+obj.id+"\\');obj.editor_text_ean13_hint.style.display=\\'none\\';obj.removeChild(obj.editor_text_ean13_hint);delete obj.editor_text_ean13_hint;',200);");
+	b.setAttribute('onclick',"var te='"+key+"';while(te.length<11)te='0'+te;te='2'+te;te+=barcode_gen_ean_sum(te).toString();"+
+		"var form=$i('"+form.id+"');form.focus();form.value=te;this.focus();");
+	d.appendChild(b);
+	obj.appendChild(d);
+	
+}
+
+function editor_text_ean13_blur(obj,form,key)
+{
+	if(obj.editor_text_ean13)clearTimeout(obj.editor_text_ean13);
+	obj.editor_text_ean13=setTimeout("var obj=$i('"+obj.id+"');obj.editor_text_ean13_hint.style.display='none';"+
+		"obj.removeChild(obj.editor_text_ean13_hint);delete obj.editor_text_ean13_hint;",200);
+}
+
 
 
