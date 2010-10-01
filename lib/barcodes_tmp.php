@@ -922,6 +922,16 @@ class query_result_viewer_codes extends dom_any
 				if(isset($this->editdb))$this->context[$this->long_name.'.'.$k]['dbname']=$this->editdb;
 				$this->context[$this->long_name.'.'.$k]['tblname']=$this->edittbl;
 				if(isset($e->validator_class))$this->context[$this->long_name.'.'.$k]['validator_class']=$e->validator_class;
+				if(get_class($e)=='editor_text_st1' && isset($this->fltr_id))
+					$e->main->attributes['onkeypress']=
+						"var k=event.keyCode;".
+						"if(k==13)".
+						"{".
+							"var x=\$i('".js_escape($this->fltr_id)."');".
+							"x.focus();x.selectionStart=0;x.selectionEnd=x.value.length;".
+							"return false;".
+						"}".
+						"return true;";
 				$e->bootstrap();
 			}
 		if(is_array($this->col_vars))
@@ -1331,16 +1341,6 @@ class query_result_viewer_codessel extends dom_any
 		editor_generic::addeditor('fltr',new editor_text);
 //		$this->sdiv->append_child($this->editors['fltr']);
 		$td->append_child($this->editors['fltr']);
-		$this->editors['fltr']->attributes['onkeypress']=
-		"var mkc=event_to_mkc(event);".
-		"switch(mkc.keycode)".
-		"{".
-		"case 13:".
-		"this.selectionStart=0;".
-		"this.selectionEnd=this.value.length;".
-		"".
-		"".
-		"}";
 		$this->editors['fltr']->attributes['title']="Фильтр по наименованию: введите части наименования двери по порядку, разделенные пробелами.";
 		//$this->editors['fltr']->node_name='span';
 		
@@ -1696,6 +1696,8 @@ class query_result_viewer_codessel extends dom_any
 		$qw->edittbl='barcodes_print';
 		$qw->keycols=Array('id','task');
 		
+		$qw->fltr_id=$this->context[$this->long_name]['fltr_id'];
+		
 		
 	}
 	
@@ -1724,7 +1726,6 @@ class query_result_viewer_codessel extends dom_any
 	{
 		$this->long_name=editor_generic::long_name();
 		
-		$this->setup($this->editors['qw']);
 		#counters
 		$this->context[$this->long_name.'.labels_init']['tblname']='barcodes_counters';
 		$this->context[$this->long_name.'.labels_init']['colname']='init';
@@ -1758,6 +1759,8 @@ class query_result_viewer_codessel extends dom_any
 		$this->args['@@ed_count']=$_SESSION['ed_count'];
 		$this->args['@@ed_offset']=$_SESSION['ed_offset'];
 		$this->args['@@current_task']=$_SESSION['current_task'];
+
+		$this->setup($this->editors['qw']);
 		
 		$this->ed_more->attributes['onclick']=
 			"var ofs=\$i('".$this->editors['ed_offset']->main_id()."');".
@@ -1802,6 +1805,15 @@ class query_result_viewer_codessel extends dom_any
 		//print "<pre>";print_r($this->keys);print "</pre>";
 		foreach($this->editors as $e)
 			$e->bootstrap();
+		$this->editors['fltr']->main->attributes['onkeypress']=
+			"var k=event.keyCode;".
+			"if(k==13)".
+			"{".
+				"var x=first_row_ed();".
+				"x.focus();x.selectionStart=0;x.selectionEnd=x.value.length;".
+				"return false;".
+			"}".
+			"return true;";
 		$this->editors['print_direct_btn_acct']->attributes['onkeypress'].=
 			"var k=event.charCode;".
 			"if(k==49)".
@@ -1977,6 +1989,7 @@ class query_result_viewer_codessel extends dom_any
 		$this->name=$ev->parent_name;
 		$this->context=&$ev->context;
 		$this->oid=$ev->context[$ev->long_name]['oid'];
+		$this->long_name=$ev->parent_name;
 		
 		$total_count_id=$ev->context[$ev->parent_name]['total_count_id'];
 		if($ev->rem_name=='fltr')
