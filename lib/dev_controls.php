@@ -4945,7 +4945,7 @@ class ed_query_gen_ext_editor extends ed_tree_item_editor//virtual component inj
 			break;
 		case 'sql_expression':
 			//TODO: localization
-			$this->field_add($obj,'operator','operator',new editor_text);
+			$this->field_add($obj,'operator','operator',new editor_txtasg_qop);
 			$this->field_add($obj,'alias','alias',new editor_text);
 			$this->field_add($obj,'variable','Переменная',new editor_text);
 			$this->field_add($obj,'invert','Инвертировать',new editor_checkbox);
@@ -5175,7 +5175,27 @@ class editor_txtasg_q0 extends editor_txtasg
 
 #####################################################################################################
 
-
+class editor_txtasg_qop extends editor_txtasg
+{
+	function fetch_list($ev,$k=NULL)
+	{
+		$oplist=Array(
+			Array('val' => 'AND'),
+			Array('val' => '='),
+			Array('val' => 'OR'),
+			Array('val' => '!='),
+			Array('val' => '+'),
+			Array('val' => '*'),
+			Array('val' => 'LIKE'),
+			Array('val' => 'IS'),
+			Array('val' => '>='),
+			Array('val' => '<='),
+			Array('val' => '>'),
+			Array('val' => '<'),
+			);
+		return $oplist;
+	}
+}
 
 class ed_tree_main_query_gen_ext extends ed_tree_main
 {
