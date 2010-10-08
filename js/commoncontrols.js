@@ -241,11 +241,11 @@ function code128l(start,code,width,height,mode)
 						break;
 					}
 			}
-			if(set==4)//b
+			if(set==4)//c
 			{
-				if(k+1 != code.length)
+				if(k+1 < code.length)
 				{
-					seq.push(parseInt(code[k]+code[k+1]));
+					seq.push(parseInt(((code[k]==0)?"":code[k].toString())+code[k+1].toString()));
 					k++;
 				}
 			}

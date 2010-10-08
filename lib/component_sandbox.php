@@ -1440,4 +1440,210 @@ $tests_m_array['sandbox']['barcode_fill_test']='barcode_fill_test';
 
 
 
+class codes_match extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		
+		editor_generic::addeditor('fltr',new editor_text);
+		editor_generic::addeditor('list',new codes_match_list);
+		$this->append_child($this->editors['fltr']);
+		$this->append_child($this->editors['list']);
+		$this->errmsg=new dom_statictext;
+		$this->append_child($this->errmsg);
+		
+		
+	}
+	
+	function bootstrap()
+	{
+		$this->args=Array();
+		$this->keys=Array();
+		$this->long_name=editor_generic::long_name();
+		//$this->oid=-1;
+		$this->context[$this->long_name]['list_id']=$this->editors['list']->id_gen();
+		$this->context[$this->long_name]['oid']=$this->oid;
+		if(is_array($this->editors))foreach($this->editors as $i => $e)
+		{
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+			$e->args=&$this->args;
+			$e->keys=&$this->keys;
+			$e->context=&$this->context;
+			$e->oid=$this->oid;
+		}
+		if(is_array($this->editors))foreach($this->editors as $e)
+			$e->bootstrap();
+		$this->args['fltr']=$this->rootnode->setting_val($this->oid,$this->long_name.'.fltr','');
+	}
+	
+	function handle_event($ev)
+	{
+		global $sql;
+		$ev->reload_list=false;
+		$this->oid=$ev->context[$ev->parent_name]['oid'];
+		$this->long_name=$ev->parent_name;
+		$st=new settings_tool;
+		$this->args['fltr']=$sql->qv1($st->single_query($this->oid,$this->long_name.".fltr",$_SESSION['uid'],""));
+		switch($ev->rem_name)
+		{
+		case 'fltr':
+			$sql->query($st->set_query($this->oid,$this->long_name.'.fltr',$_SESSION['uid'],0,$_POST['val']));
+			$this->args['fltr']=$_POST['val'];
+			$ev->reload_list=true;
+			break;
+		}
+		if($ev->reload_list)
+		{
+			
+			$customid=$ev->context[$ev->parent_name]['list_id'];
+			//$htmlid=$ev->context[$ev->long_name]['htmlid'];
+			$r=new codes_match_list;
+			
+			$r->context=&$ev->context;
+			$r->keys=&$ev->keys;
+			$r->oid=$this->oid;
+			$r->args=$this->args;
+			$r->name=$ev->parent_name.".list";
+			$r->etype=$ev->parent_type.".".get_class($r);
+
+			$r->bootstrap();
+			print "var nya=\$i('".js_escape($customid)."');";
+			print "try{nya.innerHTML=";
+			reload_object($r,true);
+			print "nya.scrollTop=0;}catch(e){ window.location.reload(true);};";
+			//common part
+		}
+		editor_generic::handle_event($ev);
+	}
+}
+
+class codes_match_list extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		editor_generic::addeditor('o_name',new editor_statictext);
+		editor_generic::addeditor('m_id',new editor_search_pick);
+		editor_generic::addeditor('m_del',new editor_button);
+		$this->editors['m_id']->io=new editor_search_pick_sqltest_io;
+		
+		$this->xdiv=new dom_div;
+		$this->append_child($this->xdiv);
+		$tbl=new dom_table;
+		$this->xdiv->append_child($tbl);
+			$tr=new dom_tr;
+			$tr->css_style['background']='gray';
+			$tbl->append_child($tr);
+				$td=new dom_td;
+				$tr->append_child($td);
+					$brdiv=new dom_div;
+					$brdiv->css_style['width']='700px';
+					$td->append_child($brdiv);
+						$brdiv->append_child($this->editors['o_name']);
+				$td=new dom_td;
+				$td->attributes['rowspan']=2;
+			$tr=new dom_tr;
+			$tbl->append_child($tr);
+				$td=new dom_td;
+				$tr->append_child($td);
+					#editor_generic::addeditor('m_id',new editor_text);
+					$td->append_child($this->editors['m_id']);
+					$this->editors['m_id']->css_style['display']='inline-block';
+					$this->editors['m_del']->attributes['value']='-';
+					$this->editors['m_del']->css_style['display']='none';
+					$td->append_child($this->editors['m_del']);
+		
+	}
+	
+	
+	function bootstrap()
+	{
+		$this->keys=Array();
+		$this->long_name=editor_generic::long_name();
+		foreach($this->editors as $n => $e)
+			$this->context[$this->long_name.".".$n]['var']=$n;
+		foreach($this->editors as $e)
+		{
+			$e->args=&$this->args;
+			$e->keys=&$this->keys;
+			$e->context=&$this->context;
+			$e->oid=$this->oid;
+			$e->bootstrap();
+		}
+	}
+	
+	
+	
+	function html_inner()
+	{
+		global $sql;
+		$fltr='%'.str_replace(' ','%',$this->args['fltr']).'%';
+		$res=$sql->query("SELECT n1.id as `n1-id`, n1.`mapid`, n1.`normalized-name`, br.name FROM `names-1c` as n1 LEFT OUTER JOIN `barcodes_raw` as br ON n1.mapid=br.id WHERE n1.`normalized-name` LIKE '".$sql->esc($fltr)."' LIMIT 50");
+		while($row=$sql->fetcha($res))
+		{
+			$this->args['o_name']=$row['normalized-name'];
+			$this->keys['id']=$row['n1-id'];
+			foreach($this->editors as $e)
+				$e->bootstrap();
+			if($row['name']=='')
+			{
+				$this->editors['m_del']->css_style['display']='none';
+			}else{
+				$this->editors['m_del']->css_style['display']='inline';
+			}
+			if($row['mapid']==0)$row['mapid']=NULL;
+			$this->args['m_id']=$row['mapid'];
+			$this->xdiv->html();
+			$this->xdiv->id_alloc();
+		}
+	}
+	
+	function add_map($n1id,$id)
+	{
+		global $sql;
+		$q="UPDATE `names-1c` SET mapid='".$sql->esc($id)."' WHERE id='".$sql->esc($n1id)."'";
+		$sql->query($q);
+	}
+	
+	function del_map($n1id)
+	{
+		global $sql;
+		$q="UPDATE `names-1c` SET mapid='0' WHERE id='".$sql->esc($n1id)."'";
+		$sql->query($q);
+	}
+	
+	function handle_event($ev)
+	{
+		if($ev->rem_name=='m_id')
+		{
+			$this->add_map($ev->keys['id'],$_POST['val']);
+		}
+		if($ev->rem_name=='m_del')
+		{
+			$this->del_map($ev->keys['id']);
+		}
+		editor_generic::handle_event($ev);
+	}
+}
+
+$tests_m_array['util']['codes_match']='codes_match';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ?>
