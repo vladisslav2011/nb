@@ -1758,7 +1758,7 @@ class query_result_viewer_codessel extends dom_any
 		$this->args['@@selonly']=$_SESSION['selonly'];
 		$this->args['@@ed_count']=$_SESSION['ed_count'];
 		$this->args['@@ed_offset']=$_SESSION['ed_offset'];
-		$this->args['@@current_task']=$_SESSION['current_task'];
+		$this->args['@@current_task']=intval($_SESSION['current_task']);
 
 		$this->setup($this->editors['qw']);
 		
