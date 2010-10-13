@@ -194,7 +194,7 @@ class editor_object_list extends dom_div
 	}
 }
 
-$tests_m_array['simple']['editor_object_list']='editor_object_list';
+$tests_m_array['complex']['editor_object_list']='editor_object_list';
 
 
 

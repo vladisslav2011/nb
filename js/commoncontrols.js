@@ -1,68 +1,103 @@
 
 
-function barcode_bin(bin,width,height,mode)
+
+function barcode_bin(l,width,height,mode)
 {
 	var r=document.createElement('table');
 	r.style.borderCollapse='collapse';
 	var tr=document.createElement('tr');
 	r.appendChild(tr);
-	for(var k=0;k<bin.length;k++)
+	var current_color='black';
+	var d,k,tl,tv;
+	k=0;
+	while(k<l.length)
 	{
+		tl=0;
+		tv=l[k];
+		while(tv==l[k])
+		{
+			tl++;
+			k++;
+			if(k==l.length)break;
+		}
+		var td=document.createElement('td');
+		td.style.border='0px solid white';
+		td.style.padding='0px';
+		td.style.margin='0px';
 		if(mode==0)//backgroundColor
 		{
-			var td=document.createElement('td');
-			td.style.border='0px solid white';
-			td.style.padding='0px';
-			td.style.margin='0px';
-			var d=document.createElement('div');
+			d=document.createElement('div');
 			d.style.border='0px solid white';
 			d.style.padding='0px';
 			d.style.margin='0px';
 			td.appendChild(d);
 			d.appendChild(document.createTextNode(' '));
 			tr.appendChild(td);
-			if(bin[k]=='1')
-				d.style.backgroundColor='black';
-			else
-				d.style.backgroundColor='white';
-			d.style.width=width;
-			d.style.height=height;
-			
+			d.style.backgroundColor=current_color;
 		}else{
-			var td=document.createElement('td');
-			td.style.border='0px solid white';
-			td.style.padding='0px';
-			td.style.margin='0px';
-			var d=document.createElement('img');
+			d=document.createElement('img');
 			d.style.border='0px solid white';
 			d.style.padding='0px';
 			d.style.margin='0px';
 			td.appendChild(d);
 			tr.appendChild(td);
-			if(bin[k]=='1')
-				d.setAttribute('src','/i/black.png');
-			else
-				d.setAttribute('src','/i/white.png');
-			d.style.width=width;
-			d.style.height=height;
+			d.setAttribute('src','/i/'+current_color+'.png');
 		}
+		d.style.width=(parseInt(width.replace(/[^0-9]/,''))*tl).toString()+width.replace(/[0-9]/,'');
+		d.style.height=height;
+		if(current_color=='black')
+			current_color='white';
+		else
+			current_color='black';
+			
 	}
 	return r;
 }
 
-
 function barcode_len(l,width,height,mode)
 {
-	var n="";
-	var s="1";
+	var r=document.createElement('table');
+	r.style.borderCollapse='collapse';
+	var tr=document.createElement('tr');
+	r.appendChild(tr);
+	var current_color='black';
+	var d;
 	for(var k=0;k<l.length;k++)
 	{
-		var c=parseInt(l[k]);
-		for(t=0;t<c;t++) n += s;
-		if(s=="1")s="0";else s="1";
+		var td=document.createElement('td');
+		td.style.border='0px solid white';
+		td.style.padding='0px';
+		td.style.margin='0px';
+		if(mode==0)//backgroundColor
+		{
+			d=document.createElement('div');
+			d.style.border='0px solid white';
+			d.style.padding='0px';
+			d.style.margin='0px';
+			td.appendChild(d);
+			d.appendChild(document.createTextNode(' '));
+			tr.appendChild(td);
+			d.style.backgroundColor=current_color;
+		}else{
+			d=document.createElement('img');
+			d.style.border='0px solid white';
+			d.style.padding='0px';
+			d.style.margin='0px';
+			td.appendChild(d);
+			tr.appendChild(td);
+			d.setAttribute('src','/i/'+current_color+'.png');
+		}
+		d.style.width=(parseInt(width.replace(/[^0-9]/,''))*parseInt(l[k])).toString()+width.replace(/[0-9]/,'');
+		d.style.height=height;
+		if(current_color=='black')
+			current_color='white';
+		else
+			current_color='black';
+			
 	}
-	return barcode_bin(n,width,height,mode);
+	return r;
 }
+
 
 function code128l(start,code,width,height,mode)
 {
