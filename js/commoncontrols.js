@@ -214,6 +214,7 @@ function code128l(start,code,width,height,mode)
 	var seq=Array();
 	//iterate over objects
 	var set=2;
+	var reset_to=0;
 	switch(start)
 	{
 	case "A":
@@ -237,21 +238,59 @@ function code128l(start,code,width,height,mode)
 	for(var k=0;k<code.length;k++)
 	{
 		if(inent && code[k]!=">")
+		{
 			ent+=code[k];
+			continue;
+		}
 		if(inent && code[k]==">")
 		{
+			var ient=0;
 			inent=false;
 			if(ent.match(/[0-9+]/))
 			{
-				seq.push(parseInt(ent));
+				ient=parseInt(ent);
 			}else{
 				for(var t=0;t<107;t++)
 					if(code128[t][set]==ent)
 					{
-						seq.push(t);
+						ient=t;
 						break;
 					}
 			}
+			if(reset_to!=0)
+			{
+				set=reset_to;
+				reset_to=0;
+			}
+			seq.push(ient);
+			if((ient==99)&&(set!=4))
+			{
+				set=4;
+				continue;
+			};
+			if((ient==100)&&(set!=3))
+			{
+				set=3;
+				continue;
+			};
+			if((ient==101)&&(set!=2))
+			{
+				set=2;
+				continue;
+			};
+			if((ient==98)&&(set==2))
+			{
+				set=3;
+				reset_to=2;
+				continue;
+			};
+			if((ient==98)&&(set==3))
+			{
+				set=2;
+				reset_to=3;
+				continue;
+			};
+			continue;
 		}
 		if(code[k]=="<")
 		{
@@ -282,8 +321,16 @@ function code128l(start,code,width,height,mode)
 				{
 					seq.push(parseInt(((code[k]==0)?"":code[k].toString())+code[k+1].toString()));
 					k++;
+				}else{
+					seq.push(101);
+					set=2;
 				}
 			}
+		}
+		if(reset_to!=0)
+		{
+			set=reset_to;
+			reset_to=0;
 		}
 	}
 	var res="";
