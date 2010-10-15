@@ -298,6 +298,19 @@ settings_array[oid][setting]
 			 $this->out("}\n");
 			}
 			$this->out("</style>\n");
+			if(!isset($this->printstyle))$this->printstyle=$this->exstyle;
+		}
+		if(isset($this->printstyle) && is_array($this->printstyle))
+		{
+			$this->out("<style type='text/css' media=print >\n");
+			foreach($this->printstyle as $si=>$se)//selector
+			{
+			 $this->out($si." {\n");
+			 foreach($se as $ai=>$ae)//attribute
+			 	$this->out($ai.' : '.$ae." ;\n");
+			 $this->out("}\n");
+			}
+			$this->out("</style>\n");
 		}
 		$this->out("</head>\n");
 		$this->out("<body");

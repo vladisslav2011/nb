@@ -9,9 +9,10 @@ class table_csvdump_parser
 	var $resParser;
 	var $strXmlData;
 		//$current,$path
-	function __construct($file_name=NULL)
+	function __construct($file_name=NULL,$encoding='utf-8')
 	{
 		$this->file_name=$file_name;
+		$this->encoding=$encoding;
 		$this->table_create_query='';
 		$this->table_stored_name='';
 		$this->table_columns=Array();
@@ -43,6 +44,7 @@ class table_csvdump_parser
 			$csv=new csv;
 			while($str=fgets($fd))
 			{
+				if($this->encoding != 'utf-8')$str=iconv($this->encoding,'utf-8',$str);
 				$values=$csv->split(trim($str));
 				if(isset($this->_2d_mode))
 				{
@@ -289,6 +291,8 @@ class table_xml_load_ui extends dom_div
 		$atbl->append_child($this->editors['ed_table']);
 		editor_generic::addeditor('ed_horizontal',new editor_text);
 		$atbl->append_child($this->editors['ed_horizontal']);
+		editor_generic::addeditor('ed_csv_encoding',new editor_txtasg_encodings);
+		$atbl->append_child($this->editors['ed_csv_encoding']);
 		
 		
 		editor_generic::addeditor('load_controls',new table_xml_load_ui_controls);
@@ -313,6 +317,7 @@ class table_xml_load_ui extends dom_div
 		$this->settings_list=Array(
 			'file_picker'	=> '!txlufile',
 			'ed_table'		=> '!txlutbl',
+			'ed_csv_encoding'		=> '!txluenc',
 			'mapping_val'	=> '!txlumapping',
 			'search_table_val'	=> '!txlustbl',
 			'select_val'	=> '!txlusel',
@@ -324,17 +329,18 @@ class table_xml_load_ui extends dom_div
 			'ed_count'		=> '!txlupgcount'
 			);
 		$this->settings_type=Array(
-			'file_picker'	=> 'r',
-			'ed_table'		=> 'r',
-			'mapping_val'	=> 's',
+			'file_picker'		=> 'r',
+			'ed_table'			=> 'r',
+			'ed_csv_encoding'	=> 'r',
+			'mapping_val'		=> 's',
 			'search_table_val'	=> 's',
-			'select_val'	=> 's',
-			'search_val'	=> 's',
-			'dict_val'		=> 's',
-			'initial_val'	=> 's',
-			'ed_horizontal'	=> 'r',
-			'ed_offset'		=> 'r',
-			'ed_count'		=> 'r'
+			'select_val'		=> 's',
+			'search_val'		=> 's',
+			'dict_val'			=> 's',
+			'initial_val'		=> 's',
+			'ed_horizontal'		=> 'r',
+			'ed_offset'			=> 'r',
+			'ed_count'			=> 'r'
 			);
 		$this->settings_ed=Array(
 			'mapping_val'	=> 'ed_map',
@@ -359,6 +365,7 @@ class table_xml_load_ui extends dom_div
 		//$this->oid=-1;
 		$this->context[$this->long_name.'.ed_table']['rawquery']='SHOW TABLES';
 		$this->context[$this->long_name.'.ed_table']['var']='ed_table';
+		$this->context[$this->long_name.'.ed_csv_encoding']['var']='ed_csv_encoding';
 		$this->context[$this->long_name.'.ed_horizontal']['var']='ed_horizontal';
 		$this->context[$this->long_name.'.pager.ed_offset']['var']='ed_offset';
 		$this->context[$this->long_name.'.pager.ed_count']['var']='ed_count';
@@ -386,13 +393,13 @@ class table_xml_load_ui extends dom_div
 				unserialize($this->rootnode->setting_val($this->oid,$this->long_name.$v,''))
 			:
 				$this->rootnode->setting_val($this->oid,$this->long_name.$v,'');
-			
+		if($this->args['ed_csv_encoding']=='')$this->args['ed_csv_encoding']='utf-8';
 		$this->editors['clear_accept']->attributes['onclick']="if(confirm('Table contents will be deleted!')){".
 			$this->editors['clear_accept']->attributes['onclick']."};";
 		parent::html_inner();
 	}
 	
-	function do_accept($file,$table,$mapping,$initial,$search_tbl,$select,$search,$dict,$parser,$_2d_mode)
+	function do_accept($file,$table,$mapping,$initial,$search_tbl,$select,$search,$dict,$parser,$_2d_mode,$enc)
 	{
 		global $sql;
 		set_time_limit(60*20);//////////////////////////////////////WARNING
@@ -469,6 +476,7 @@ class table_xml_load_ui extends dom_div
 			if(preg_match('#.*[^/]$#',$doc_root))$doc_root.='/';
 			$f=$doc_root.'uploads/'.$f;
 			$xload=new $parser($f);
+			if($parser=='table_csvdump_parser')$xload->encoding=$enc;
 			$xload->row_object=$this;
 			$xload->row_method='out_row';
 			$xload->mode='rows';
@@ -582,6 +590,14 @@ class table_xml_load_ui extends dom_div
 				$sql->query($setting_tool->set_query($oid,$ev->parent_name.'!txlumapping',$_SESSION['uid'],0,serialize(Array())));
 				$sql->query($setting_tool->set_query($oid,$ev->parent_name.'!txluinitial',$_SESSION['uid'],0,serialize(Array())));
 				break;
+		case 'ed_csv_encoding':
+				$reload_list=true;
+				$reload_controls=$reload_list;
+				$_val['ed_csv_encoding']=$_POST['val'];
+				$sql->query($setting_tool->set_query($oid,$ev->parent_name.'!txluenc',$_SESSION['uid'],0,$_val['ed_csv_encoding']));
+				$sql->query($setting_tool->set_query($oid,$ev->parent_name.'!txlumapping',$_SESSION['uid'],0,serialize(Array())));
+				$_val['mapping_val']=Array();
+				break;
 		case 'ed_horizontal':
 				$reload_list=($_val['ed_horizontal']!=$_POST['val']);
 				$reload_controls=$reload_list;
@@ -618,7 +634,9 @@ class table_xml_load_ui extends dom_div
 					$_val['search_val'],
 					$_val['dict_val'],
 					$parser,
-					$_val['ed_horizontal']);
+					$_val['ed_horizontal'],
+					$_val['ed_csv_encoding']
+					);
 				#$reload_list=true;
 				if(is_object($this->qg))print "alert('".js_escape($this->qg->result().";\nok=".$this->row_ok.";\nfailed=".$this->row_failed.";\nsql time=".$sql->querytime)."');";
 				break;
@@ -722,7 +740,17 @@ class table_xml_load_ui extends dom_div
 	}
 }
 
+class editor_txtasg_encodings extends editor_txtasg
+{
+	function fetch_list($ev,$k=NULL)
+	{
+		return Array(
+			Array('val'=>'utf-8'),
+			Array('val'=>'cp1251'),
+			);
+	}
 
+}
 
 #############################################################################################################
 #############################################################################################################
@@ -870,7 +898,7 @@ class table_xml_load_ui_contents extends dom_div
 		unset($xload);
 		if(!$is_valid)
 		{
-			$xload=new table_csvdump_parser($f);
+			$xload=new table_csvdump_parser($f,$this->args['ed_csv_encoding']);
 			$xload->row_object=$this;
 			$xload->row_method='out_row';
 			$xload->mode='rows';
@@ -1016,7 +1044,7 @@ class table_xml_load_ui_controls extends dom_div
 		unset($xload);
 		if(!$is_valid)
 		{
-			$xload=new table_csvdump_parser($f);
+			$xload=new table_csvdump_parser($f,$this->args['ed_csv_encoding']);
 			$xload->row_object=$this;
 			$xload->row_method='out_row';
 			$xload->mode='rows';
