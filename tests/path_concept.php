@@ -896,6 +896,10 @@ class page_samples_db extends dom_root_print
 		$a->append_child(new dom_statictext('Образцы(вариант)'));
 		$pk->append_child($a);
 		
+		$a=new dom_any('a');$a->attributes['href']='?p=samples_db_list_2';
+		$a->append_child(new dom_statictext('Галерея'));
+		$pk->append_child($a);
+		
 		if($_SESSION['interface']=='samples_admin')
 		{
 			$a=new dom_any('a');$a->attributes['href']='?p=samples_db_users';
