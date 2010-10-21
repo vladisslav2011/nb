@@ -496,6 +496,48 @@ $tests_m_array['samples_db']['samples_db_list_1']='samples_db_list_1';
 //----------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------
 
+class samples_db_list_2 extends samples_db_list_1
+{
+	function __construct()
+	{
+		dom_div::__construct();
+		$this->etype=get_class($this);
+		
+		
+		
+		
+		editor_generic::addeditor('ed_filters',new sdb_filters);
+		editor_generic::addeditor('ed_filters_tags',new sdb_filters_tags);
+		editor_generic::addeditor('ed_order',new sdb_order);
+		
+		editor_generic::addeditor('ed_filters_count',new sdb_filters_count);
+		editor_generic::addeditor('ed_filters_tags_count',new sdb_filters_count);
+		editor_generic::addeditor('ed_order_count',new sdb_filters_count);
+		
+		editor_generic::addeditor('ed_pager',new util_small_pager);
+		editor_generic::addeditor('ed_row_num',new sdb_QNUM);
+		editor_generic::addeditor('ed_list',new sdb_QR_3);
+		
+		if($_SESSION['interface']!='samples_view')
+		{
+			editor_generic::addeditor('ed_new',new editor_button);
+			$this->editors['ed_new']->attributes['value']='Добавить';
+		}
+		
+		editor_generic::addeditor('ed_download',new sdb_DL);
+		
+		$this->link_nodes();
+		
+		
+		
+	}
+
+}
+$tests_m_array['samples_db']['samples_db_list_2']='samples_db_list_2';
+
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
+
 class sdb_as_i extends editor_txtasg
 {
 	function __construct()
@@ -3622,6 +3664,7 @@ class sdb_QR_1 extends dom_div
 		editor_generic::addeditor('edit_link',new editor_href);
 		$this->editors['edit_link']->href='?p=samples_db_item&id=%s';
 		$this->editors['edit_link']->attributes['title']='Редактировать/просмотреть';
+		editor_generic::addeditor('thumb',new sdb_QR_thumb);
 		
 		$this->link_nodes();
 		
@@ -3783,6 +3826,7 @@ class sdb_QR_thumb extends dom_any_noterm
 //----------------------------------------------------------------------------------
 class sdb_QR_2 extends sdb_QR_1
 {
+	
 	function link_nodes()
 	{
 		global $ddc_tables;
@@ -3807,7 +3851,6 @@ class sdb_QR_2 extends sdb_QR_1
 		
 		unset($this->table->id);
 		unset($this->tr->id);
-		unset($this->td->id);
 		
 		if($_SESSION['interface']!='samples_view')
 		{
@@ -3857,19 +3900,18 @@ class sdb_QR_2 extends sdb_QR_1
 			if(isset($col['hname']))
 				$tdh_text->text=$col['hname'];
 		}
-			editor_generic::addeditor('thumb',new sdb_QR_thumb);
-			$td=new dom_td;
-			$this->tr->append_child($td);
-			unset($td->id);
-			//$td->append_child($this->editors['thumb']);
-			$td->append_child($this->editors['edit_link']);
-			$this->editors['edit_link']->main->append_child($this->editors['thumb']);
-			$tdh=new dom_td;
-			$this->trh->append_child($tdh);
-			$tdh_text=new dom_statictext;
-			$tdh->append_child($tdh_text);
-			$tdh_text->text='';
-			$tdh->attributes['title']='thumb';
+		$td=new dom_td;
+		$this->tr->append_child($td);
+		unset($td->id);
+		//$td->append_child($this->editors['thumb']);
+		$td->append_child($this->editors['edit_link']);
+		$this->editors['edit_link']->main->append_child($this->editors['thumb']);
+		$tdh=new dom_td;
+		$this->trh->append_child($tdh);
+		$tdh_text=new dom_statictext;
+		$tdh->append_child($tdh_text);
+		$tdh_text->text='';
+		$tdh->attributes['title']='thumb';
 
 
 
@@ -3912,6 +3954,66 @@ class sdb_QR_2 extends sdb_QR_1
 		$qg->what->exprs[]=new sql_subquery($q,'thumb');
 		return $qg;
 	}
+}
+
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
+class sdb_QR_3 extends sdb_QR_2
+{
+	function link_nodes()
+	{
+		global $ddc_tables;
+		$this->tbl=new dom_div;
+		$this->append_child($this->tbl);
+		
+		$this->trh=new dom_div;
+		$this->tbl->append_child($this->trh);
+		
+		$this->tr=new dom_div;
+		$this->tbl->append_child($this->tr);
+/*		$this->td=new dom_td;
+		$this->tr->append_child($this->td);
+		$this->td_text=new dom_statictext;
+		$this->td->append_child($this->td_text);*/
+		
+		unset($this->table->id);
+		unset($this->tr->id);
+		
+		$tb=new dom_table;
+		$this->tr->append_child($tb);
+		unset($tb->id);
+		
+		$tr1=new dom_tr;$tb->append_child($tr1);unset($tr1->id);
+		$tr2=new dom_tr;$tb->append_child($tr2);unset($tr2->id);
+		
+		$td1=new dom_td;$tr1->append_child($td1);unset($td1->id);
+		$td2=new dom_td;$tr2->append_child($td2);unset($td2->id);
+		
+		
+		$td2->append_child($this->editors['code']);
+		if($_SESSION['interface']!='samples_view')
+		{
+			$td2->append_child($this->editors['del']);
+			$td2->append_child($this->editors['clone']);
+		}
+		
+		$td1->append_child($this->editors['edit_link']);
+		$this->editors['edit_link']->main->append_child($this->editors['thumb']);
+		
+		$this->tbl->css_style['overflow']='hidden';
+		$this->tr->css_style['float']='left';
+		$this->tr->css_style['height']='300px';
+		$this->tr->css_style['width']='300px';
+		$this->tr->css_style['overflow']='hidden';
+		$tb->css_style['width']='100%';
+		$tb->css_style['height']='100%';
+		$tr2->css_style['height']='10%';
+		$tr2->css_style['background-color']='#DDDDDD';
+		$td1->css_style['text-align']='center';
+		$td2->css_style['text-align']='center';
+		$this->editors['edit_link']->main->css_style['border']='0px white solid';
+	}
+	
 }
 
 //----------------------------------------------------------------------------------
