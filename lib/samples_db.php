@@ -2439,6 +2439,8 @@ class sdb_attachments extends dom_div
 		$this->append_child($this->attachments);
 		
 		$this->atr=new dom_div;
+		$this->atr->css_style['width']='220px';
+		$this->atr->css_style['height']='240px';
 		$this->atr->css_style['float']='left';
 		$this->atr->css_style['text-align']='center';
 		$this->attachments->append_child($this->atr);
