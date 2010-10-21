@@ -2440,30 +2440,28 @@ class sdb_attachments extends dom_div
 		
 		$this->atr=new dom_div;
 		$this->atr->css_style['width']='220px';
-		$this->atr->css_style['height']='240px';
+		$this->atr->css_style['height']='260px';
 		$this->atr->css_style['float']='left';
 		$this->atr->css_style['text-align']='center';
 		$this->attachments->append_child($this->atr);
 		$this->attachments->css_style['overflow']='hidden';
 		
-		$td=new dom_div;
-		$this->atr->append_child($td);
-		unset($td->id);
-		$td->append_child($this->editors['anum']);
+		
+		$tb=new dom_table;unset($tb->id);$this->atr->append_child($tb);
+		for($k=0;$k<3;$k++)
+		{
+			$tr[$k]=new dom_tr;unset($tr[$k]->id);$tb->append_child($tr[$k]);
+			$td[$k]=new dom_td;unset($td[$k]->id);$tr[$k]->append_child($td[$k]);
+		}
+		$td[0]->append_child($this->editors['anum']);
 		
 		
-		$td=new dom_div;
-		$this->atr->append_child($td);unset($td->id);
-		$td->css_style['width']='205px';
-		$td->css_style['height']='205px';
-		$td->append_child($this->editors['alink']);
+		$td[1]->css_style['width']='205px';
+		$td[1]->css_style['height']='205px';
+		$td[1]->append_child($this->editors['alink']);
 		$this->editors['alink']->main->append_child($this->editors['apv']);
 		
-		$td=new dom_div;
-		$this->atr->append_child($td);
-		unset($td->id);
-		
-		$tb0=new dom_table;unset($tb0->id);$td->append_child($tb0);
+		$tb0=new dom_table;unset($tb0->id);$td[2]->append_child($tb0);
 		$tr0=new dom_tr;unset($tr0->id);$tb0->append_child($tr0);
 		
 		$td0=new dom_td;unset($td0->id);$tr0->append_child($td0);
