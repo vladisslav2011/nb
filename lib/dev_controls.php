@@ -603,7 +603,6 @@ class m_list_list extends dom_div
 		$this->tbl->html_tail();
 	}
 	//$this->rootnode->out(htmlspecialchars($this->fetchq->result()));
-	$this->rootnode->out(htmlspecialchars($this->oid));
 	}
 	
 	function handle_event($ev)

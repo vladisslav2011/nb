@@ -453,7 +453,9 @@ class dom_any extends dom_node
 				if(is_array($this->css_class))
 					$this->css_class[$this->etype]=$this->etype;
 				else{
-					$this->css_class[$this->css_class]=$this->css_class;
+					$x=$this->css_class;
+					$this->css_class=Array();
+					$this->css_class[$x]=$x;
 					$this->css_class[$this->etype]=$this->etype;
 				}
 			}else $this->css_class=$this->etype;
