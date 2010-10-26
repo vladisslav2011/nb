@@ -26,8 +26,23 @@ $page->exstyle['*']=Array(
 'padding'=>'0mm'
 );	
 $page->exstyle['div']=Array(
+'font-family'=>'serif,sans',
 'font-size'=>'5mm',
 'padding'=>'0mm'
+);	
+$page->exstyle['td>div']=Array(
+'overflow'=>'hidden',
+'height'=>'16mm'
+);	
+$page->exstyle['tr.head>td>div']=Array(
+'border'=>'0.5mm solid black',
+'border-collapse'=>'collapse',
+);	
+$page->exstyle['tr.even']=Array(
+'background-color'=>'#ffeeee'
+);	
+$page->exstyle['tr.odd']=Array(
+'background-color'=>'white'
 );	
 
 $page->exstyle['@page']=Array(
@@ -39,56 +54,105 @@ $page->exstyle['@page']=Array(
 
 class qres extends dom_any
 {
-	function __construct()
+	function __construct($qg)
 	{
-		parent::__construct('table');
+		parent::__construct('div');
+		$this->qg=$qg;
 		$this->css_style['padding']='0px';
 		$this->css_style['margin']='0px';
 		$this->css_style['border']='0px';
-		$this->css_style['border-collapse']='collapse';
+		$this->table=new dom_table;
 		$this->row=new dom_tr;
-		$this->cell=new dom_td;
-		$this->cell->css_style['padding']='0px';
-		$this->cell->css_style['margin']='0px';
-		$this->cell->css_style['border']='0px';
-		$this->data=new dom_statictext;
+		$this->hrow=new dom_tr;
+		$this->hrow->css_class='head';
+		$this->table->css_style['page-break-after']='always';
+		$this->table->css_style['padding']='0px';
+		$this->table->css_style['margin']='0px';
+		$this->table->css_style['border']='0px';
+		$this->table->css_style['border-collapse']='collapse';
+		$this->row->css_style['height']='8mm';
+		foreach($this->qg->what->exprs as $e)
+		{
+			if($e->alias == '')
+			{
+				print "You should specify an alias for each column.";
+				exit;
+			}
+			$this->txts[$e->alias]=new dom_statictext;
+			$this->htxts[$e->alias]=new dom_statictext($e->alias);
+			$td=new dom_td;unset($td->id);
+			$div=new dom_div;unset($div->id);
+			$div->append_child($this->txts[$e->alias]);
+			$td->append_child($div);
+			$this->row->append_child($td);
+			$td=new dom_td;unset($td->id);
+			$div=new dom_div;unset($div->id);
+			$div->append_child($this->htxts[$e->alias]);
+			$td->append_child($div);
+			$this->hrow->append_child($td);
+			
+		}
+		
 		unset($this->row->id);
-		unset($this->cell->id);
-		$this->append_child($this->row);
-		$this->row->append_child($this->cell);
-		$this->cell->append_child($this->data);
+		unset($this->table->id);
+		$this->append_child($this->table);
+		$this->table->append_child($this->hrow);
+		$this->table->append_child($this->row);
+		$this->row_height=16.0;
+		$this->page_height=270.0;
 	}
 	
 	function html_inner()
 	{
 		global $sql;
+		$ch=0;
 		$qc=$this->qg->result();
 		$res=$sql->query($qc);
-		while($row=$sql->fetchn($res))
+		$oe=true;
+		while($row=$sql->fetcha($res))
 		{
-			$this->row->html_head();
-			foreach($row as $v)
+			if($ch+$this->row_height>$this->page_height)
 			{
-				$this->data->text=$v;
-				$this->cell->html();
+				$this->table->html_tail();
+				$ch=0;
 			}
-			$this->row->html_tail();
+			if($ch==0)
+			{
+				$this->table->html_head();
+				$this->hrow->html();
+				$ch+=$this->row_height;
+			}
+			$ch+=$this->row_height;
+			foreach($row as $k => $v)
+			{
+				$this->txts[$k]->text=$v;
+			}
+			if($oe)
+			{
+				$oe=false;
+				$this->row->css_class='odd';
+			}else{
+				$oe=true;
+				$this->row->css_class='even';
+			}
+			$this->row->html();
 		}
+		$this->table->html_tail();
 	}
 }
 
 
 $div=new dom_div;
 $div->css_style['width']='190mm';
-$q=new qres;
-$qid=$q->id_gen();
-$q->qg=new query_gen_ext('select');
-$q->qg->from->exprs[]=new sql_column(NULL,'barcodes_raw',NULL,NULL);
-$q->qg->what->exprs[]=new sql_column(NULL,NULL,'id','id');
-$q->qg->what->exprs[]=new sql_column(NULL,NULL,'name','name');
-$q->qg->what->exprs[]=new sql_column(NULL,NULL,'code','code');
-$q->qg->lim_count=500;
+$qg=new query_gen_ext('select');
+$qg->from->exprs[]=new sql_column(NULL,'barcodes_raw',NULL,NULL);
+$qg->what->exprs[]=new sql_column(NULL,NULL,'id','id');
+$qg->what->exprs[]=new sql_column(NULL,NULL,'name','name');
+$qg->what->exprs[]=new sql_column(NULL,NULL,'code','code');
+$qg->lim_count=500;
 
+$q=new qres($qg);
+$qid=$q->id_gen();
 $div->append_child($q);
 $page->append_child($div);
 
@@ -104,25 +168,9 @@ window.onload=function()
 	var r=document.createTextNode('1000mm is '+d.offsetWidth.toString()+'px');
 	var px_h=Math.round((d.offsetWidth*260)/1000);
 	var px_w=Math.round((d.offsetWidth*200)/1000);
-	document.body.appendChild(r);
+	//document.body.appendChild(r);
 	document.body.removeChild(d);
 	//alert(px280+','+px200);
-	var tbl=\$i('".$qid."');
-	tbl=tbl.firstChild;
-	var cc=tbl.firstChild;
-	var ah=0;
-	while(cc!=null)
-	{
-		if(ah>=px_h)
-		{
-			ah=0;
-			cc.style.pageBreakBefore='always';
-			cc.style.backgroundColor='red';
-		}
-		ah+=cc.offsetHeight;
-		cc.title=ah.toString()+' , '+px_h;
-		cc=cc.nextSibling;
-	}
 	
 };
 ";

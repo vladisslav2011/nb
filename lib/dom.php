@@ -211,15 +211,15 @@ class dom_node
 		$res='';
 		if(isset($this->id))$res=" id='".$this->id_gen()."'";
 		if(isset($this->css_class))
-			$res.=" class='".(is_array($this->css_class)?implode(' ',$this->css_class):$this->css_class)."'";
+			$res.=" class='".htmlspecialchars((is_array($this->css_class)?implode(' ',$this->css_class):$this->css_class),ENT_QUOTES)."'";
 		if(isset($this->css_style))
 			if(is_array($this->css_style))
 			{
 				$tmps='';
 				foreach($this->css_style as $sel => $tx)$tmps.="$sel:$tx;";
-				$res.=" style='".$tmps."'";
+				$res.=" style='".htmlspecialchars($tmps,ENT_QUOTES)."'";
 			}else
-				$res.=" style='".$this->css_style."'";
+				$res.=" style='".htmlspecialchars($this->css_style,ENT_QUOTES)."'";
 		if(isset($this->attributes) && is_array($this->attributes))
 			foreach($this->attributes as $a => $v) $res .= " ".$a."='".htmlspecialchars($v,ENT_QUOTES)."'";
 			///////escaping convention????
@@ -446,6 +446,18 @@ class dom_any extends dom_node
 	
 	function html_head()
 	{
+		if(isset($this->etype))
+		{
+			if(isset($this->css_class))
+			{
+				if(is_array($this->css_class))
+					$this->css_class[$this->etype]=$this->etype;
+				else{
+					$this->css_class[$this->css_class]=$this->css_class;
+					$this->css_class[$this->etype]=$this->etype;
+				}
+			}else $this->css_class=$this->etype;
+		}
 		$this->rootnode->out('<'.$this->node_name);
 		$this->rootnode->out($this->common_attributes());
 		$this->rootnode->out(">");

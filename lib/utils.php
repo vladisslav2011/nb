@@ -65,26 +65,26 @@ class csv
 	
 		$entered_quotes=false;
 		$ind=0;
-		$res='';
+		$res=Array();
 		$coll='';
 		$len=strlen($str);
 	
 		for($k=0;$k<$len;$k++)
 		{
 	
-			if(($str[$k]==$this->delimiter)&($entered_quotes==false))
+			if(($str[$k]==$this->delimiter)&&($entered_quotes==false))
 			{
 				$res[$ind]=$coll;
 				$ind++;
 				$coll='';
 				continue;
 			};
-			if(($str[$k]==$this->quotes)&($entered_quotes==false))
+			if(($str[$k]==$this->quotes)&&($entered_quotes==false))
 			{
 				$entered_quotes=true;
 				continue;
 			};
-			if(($str[$k]==$this->quotes)&($entered_quotes==true))
+			if(($str[$k]==$this->quotes)&&($entered_quotes==true))
 			{
 				if($k==($len-1))
 				{
@@ -102,7 +102,7 @@ class csv
 				$entered_quotes=false;
 				continue;
 			};
-			$coll.=$str{$k};
+			$coll.=$str[$k];
 		};
 		$res[$ind]=$coll;
 	

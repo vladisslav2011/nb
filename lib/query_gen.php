@@ -367,9 +367,9 @@ class sql_immed
 			return NULL;
 		}*/
 		//do not quote numbers
-		if(preg_match('/^-?\d+\.?\d*$/',$this->val)||preg_match('/^-?\d*\.\d+$/',$this->val)||preg_match('/^-?\d\.\d*[eE]-?\d+$/',$this->val))
+/*		if(preg_match('/^-?\d+\.?\d*$/',$this->val)||preg_match('/^-?\d*\.\d+$/',$this->val)||preg_match('/^-?\d\.\d*[eE]-?\d+$/',$this->val))
 			$res=' '.sql::esc($this->val);
-		else
+		else*/
 			$res=' \''.sql::esc($this->val).'\'';
 		if($this->alias != '')
 			$res.=' AS `'.sql::esc($this->alias).'`';
