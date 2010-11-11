@@ -25,12 +25,13 @@ if (move_uploaded_file($_FILES['file1']['tmp_name'], $uploadfile))
 	};
 	if($_POST['rtype']=='rawname')
 	{
-		print htmlspecialchars($uploadfile);
+		header("Content-type: text/plain; charset=UTF-8");
+		print $uploadfile;
 	};
 	if($_POST['rtype']=='ext')
 	{
-		
-		print "400\n".htmlspecialchars($uploadfile);
+		header("Content-type: text/plain; charset=UTF-8");
+		print "400\n".$uploadfile;
 	};
 }else{
 
