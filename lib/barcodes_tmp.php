@@ -974,7 +974,6 @@ class query_result_viewer_codes extends dom_any
 			while($row=$sql->fetcha($res))
 			{
 				unset($this_editor);
-				$this->row->html_head();
 				foreach($row as $k => $e)
 					$this->args[$k]=$e;
 				
@@ -982,10 +981,12 @@ class query_result_viewer_codes extends dom_any
 					foreach($this->keycols as $kk)
 						$this->keys[$kk]=$this->args[$kk];
 				unset($dst_rows);
+				if(isset($row['bgcolor']))$this->row->css_style['background-color']=$row['bgcolor'];
+				$this->row->html_head();
 				for($k=0 ; $k < $this->colcn ; $k++)
 				{
 					$this->editors['ed'.$k]->onfocus_add='$i(\''.js_escape($this->row->id_gen()).'\').style.backgroundColor=\'#FFDDDD\';';
-					$this->editors['ed'.$k]->onblur_add='$i(\''.js_escape($this->row->id_gen()).'\').style.backgroundColor=\'\';';
+					$this->editors['ed'.$k]->onblur_add='$i(\''.js_escape($this->row->id_gen()).'\').style.backgroundColor=\''.$row['bgcolor'].'\';';
 					$this->editors['ed'.$k]->bootstrap();
 					$this->cell->html_head();
 					if(get_class($this->editors['ed'.$k])!='editor_text_st1')$dst_rows[]=$this->cell->id_gen();
@@ -1633,6 +1634,15 @@ class query_result_viewer_codessel extends dom_any
 		$qr->what->exprs[]=new sql_column(NULL,'sel','count','count');
 		$qr->what->exprs[]=new sql_immed($this->current_task,'task');
 		$qw->add_col('Количество',$edtrs['count'],'count');
+		//show own codes in different color
+		$qr->what->exprs[]=new sql_list('if',Array(
+			new sql_expression('=',Array(
+				new sql_column(NULL,'ref','isown'),
+				new sql_immed(1)
+				)),
+			new sql_immed('gray'),
+			new sql_immed('white')
+		),'bgcolor');
 		
 		$qr->from->exprs[]=new sql_column(NULL,'barcodes_raw',NULL,'ref');
 		#$qr->from->exprs[]=new sql_column('dbfp','barcodes_print',NULL,'sel');
