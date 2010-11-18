@@ -1766,8 +1766,10 @@ class query_result_viewer_codessel extends dom_any
 			"a.focus();a.value=\$i('".js_escape($this->editors['ribbon_init']->main->id_gen())."').value;";
 		$this->args['@@fltr']=$_SESSION['fltr'];
 		$this->args['@@selonly']=$_SESSION['selonly'];
-		$this->args['@@ed_count']=$_SESSION['ed_count'];
-		$this->args['@@ed_offset']=$_SESSION['ed_offset'];
+		if(!isset($_SESSION['ed_count']))$_SESSION['ed_count']=50;
+		if(!isset($_SESSION['ed_offset']))$_SESSION['ed_offset']=0;
+		$this->args['@@ed_count']=intval($_SESSION['ed_count']);
+		$this->args['@@ed_offset']=intval($_SESSION['ed_offset']);
 		$this->args['@@current_task']=intval($_SESSION['current_task']);
 
 		$this->setup($this->editors['qw']);

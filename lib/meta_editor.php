@@ -2121,6 +2121,63 @@ $tests_m_array['meta_tree']['editor_meta_tree_sqlerrors']='editor_meta_tree_sqle
 $tests_m_array['meta_tree']['editor_meta_tree_cmpold']='editor_meta_tree_cmpold';
 $tests_m_array['meta_tree']['editor_meta_tree_inh']='editor_meta_tree_inh';
 
+//###########################################################################################################################
+//###########################################################################################################################
+//###########################################################################################################################
+//###########################################################################################################################
+//###########################################################################################################################
+
+class editor_meta_2 extends dom_div
+{
+	function __construct()
+	{
+		parent::__construct();
+		$this->etype=get_class($this);
+		
+	}
+	
+	function bootstrap()
+	{
+		$this->long_name=editor_generic::long_name();
+		if(!is_array($this->editors))return;
+		foreach($this->editors as $i => $e)
+		{
+			$this->context[$this->long_name.'.'.$i]['var']=$i;
+			$e->context=&$this->context;
+			$e->keys=&$this->keys;
+			$e->args=&$this->args;
+			$e->oid=$this->oid;
+		}
+		foreach($this->editors as $i => $e)
+			$e->bootstrap();
+	}
+	
+	function handle_event($ev)
+	{
+		editor_generic::handle_event($ev);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
