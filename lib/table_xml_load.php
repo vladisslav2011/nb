@@ -393,7 +393,7 @@ class table_xml_load_ui extends dom_div
 				unserialize($this->rootnode->setting_val($this->oid,$this->long_name.$v,''))
 			:
 				$this->rootnode->setting_val($this->oid,$this->long_name.$v,'');
-		if($this->args['ed_csv_encoding']=='')$this->args['ed_csv_encoding']='utf-8';
+//		if($this->args['ed_csv_encoding']=='')$this->args['ed_csv_encoding']='utf-8';
 		$this->editors['clear_accept']->attributes['onclick']="if(confirm('Table contents will be deleted!')){".
 			$this->editors['clear_accept']->attributes['onclick']."};";
 		parent::html_inner();
@@ -762,6 +762,12 @@ class table_xml_load_ui_contents extends dom_div
 	{
 		parent::__construct();
 		$this->etype=get_class($this);
+		
+		$this->detection=new dom_div;
+		$this->detection_text=new dom_statictext;
+		$this->append_child($this->detection);
+		$this->detection->append_child($this->detection_text);
+		
 		$this->tbl=new dom_table;
 		
 		$this->tr=new dom_tr;
@@ -888,6 +894,7 @@ class table_xml_load_ui_contents extends dom_div
 		$doc_root=$_SERVER['DOCUMENT_ROOT'];
 		if(preg_match('#.*[^/]$#',$doc_root))$doc_root.='/';
 		$f=$doc_root.'uploads/'.$f;
+		$this->detection_text->text='not detected';
 		$this->tbl->html_head();
 		
 		$xload=new table_xmldump_parser($f);
@@ -904,12 +911,17 @@ class table_xml_load_ui_contents extends dom_div
 			$xload->mode='rows';
 			if(intval($this->args['ed_horizontal'])>0)$xload->_2d_mode=intval($this->args['ed_horizontal']);
 			$is_valid=$xload->run();
+			if($is_valid)
+				$this->detection_text->text='csv detected';
 			unset($xload);
 			$sql->query($setting_tool->set_query($oid,$this->long_name.'!txluparser',$_SESSION['uid'],0,'table_csvdump_parser'));
 		}else{
+				$this->detection_text->text='xml detected';
 				$sql->query($setting_tool->set_query($oid,$this->long_name.'!txluparser',$_SESSION['uid'],0,'table_xmldump_parser'));
 		}
 		$this->tbl->html_tail();
+		$this->detection_text->text=$f.' in '.$this->args['ed_csv_encoding']." : ".$this->detection_text->text;
+		$this->detection->html();
 	}
 	
 	
