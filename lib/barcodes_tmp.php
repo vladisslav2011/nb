@@ -1716,6 +1716,10 @@ class query_result_viewer_codessel extends dom_any
 		global $sql;
 		$q=new query_gen_ext('delete');
 		$q->from->exprs[]=new sql_column(NULL,'barcodes_print',NULL,NULL);
+		$q->where->exprs[]=new sql_expression('=',Array(
+			new sql_column(NULL,NULL,"task"),
+			new sql_immed($_SESSION['current_task'])
+			));
 		$query=$q->result();
 		$sql->query($query);
 		
