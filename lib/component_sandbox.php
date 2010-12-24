@@ -1175,6 +1175,13 @@ class regexp_update_list extends dom_div
 
 $tests_m_array['util']['regexp_update']='regexp_update';
 
+
+
+
+
+
+
+
 class barcode_fill_test extends dom_div
 {
 	function __construct()
@@ -1188,8 +1195,21 @@ class barcode_fill_test extends dom_div
 		editor_generic::addeditor('list',new barcode_fill_test_list);
 		editor_generic::addeditor('codes',new editor_textarea);
 		
+		
 		$this->append_child($this->editors['id_doc']);
 		$this->append_child($this->editors['clear']);
+		
+		$link=new dom_any('a');
+		$link->append_child(new dom_statictext(' with groups '));
+		$this->append_child($link);
+		$this->get_all=$link;
+		
+		$link=new dom_any('a');
+		$link->append_child(new dom_statictext(' combined '));
+		$this->append_child($link);
+		$this->get_combined=$link;
+		
+		
 		$this->tbl=new dom_table;
 		$tr=new dom_tr;
 		$left=new dom_td;
@@ -1197,8 +1217,23 @@ class barcode_fill_test extends dom_div
 		$this->append_child($this->tbl->append_child($tr->append_child($left)));
 		$tr->append_child($right);
 		$left->append_child($this->editors['list']);
-		$right->append_child($this->editors['codes']);
+		$this->rs=new container_resize;
+		$right->append_child($this->rs);
+		$this->rs->append_child($this->editors['codes']);
+		$this->editors['codes']->main->css_style['width']='100%';
+		$this->editors['codes']->main->css_style['height']='100%';
+		$this->editors['codes']->main->css_style['margin-top']='-3px';
+		$this->editors['codes']->main->css_style['margin-left']='-3px';
 		
+		
+	}
+	
+	function gen_links($a)
+	{
+		$this->link_all='/ext/table_csv_dump.php?query='.
+			urlencode("SELECT a.place,b.name,cast(a.count as decimal(10,0)) as `count` FROM barcodes_raw as b,test_doc as a WHERE b.id=a.prod AND doc_id=".intval($a));
+		$this->link_combined='/ext/table_csv_dump.php?query='.
+			urlencode("SELECT b.name,cast(sum(a.count) as decimal(10,0)) as `count` FROM barcodes_raw as b,test_doc as a WHERE b.id=a.prod  AND doc_id=".intval($a)." GROUP BY a.prod");
 	}
 	
 	function bootstrap()
@@ -1206,6 +1241,8 @@ class barcode_fill_test extends dom_div
 		$this->long_name=editor_generic::long_name();
 		$this->context[$this->long_name]['oid']=$this->oid;
 		$this->context[$this->long_name]['list_id']=$this->editors['list']->id_gen();
+		$this->context[$this->long_name]['all_id']=$this->get_all->id_gen();
+		$this->context[$this->long_name]['combined_id']=$this->get_combined->id_gen();
 		if(!is_array($this->keys))$this->keys=Array();
 		if(!is_array($this->args))$this->args=Array();
 		if(is_array($this->editors))foreach($this->editors as $i => $e)
@@ -1216,7 +1253,10 @@ class barcode_fill_test extends dom_div
 			$e->args=&$this->args;
 			$e->oid=$this->oid;
 		}
-		$this->args['id_doc']=$this->rootnode->setting_val($this->oid,$this->long_name.'._id_doc','');
+		$this->args['id_doc']=$this->rootnode->setting_val($this->oid,$this->long_name.'._id_doc',0);
+		$this->gen_links($this->args['id_doc']);
+		$this->get_all->attributes['href']=$this->link_all;
+		$this->get_combined->attributes['href']=$this->link_combined;
 		$this->editors['list']->def=$this->gen_def();
 		if(is_array($this->editors))foreach($this->editors as $i => $e)
 			$e->bootstrap();
@@ -1231,6 +1271,7 @@ class barcode_fill_test extends dom_div
 			);
 		$r->what->exprs=Array(
 			new sql_column(NULL,'td','count'),
+			new sql_column(NULL,'td','place'),
 			new sql_column(NULL,'br','name')
 			);
 			
@@ -1280,6 +1321,7 @@ class barcode_fill_test extends dom_div
 		$le=explode("\n",$l);
 		$im_code=new sql_immed;
 		$im_count=new sql_immed(1);
+		$im_place=new sql_immed;
 		
 		$sq=new query_gen_ext('select');
 		$sq->from->exprs[]=new sql_column(NULL,'barcodes_raw',NULL,'br');
@@ -1300,6 +1342,10 @@ class barcode_fill_test extends dom_div
 			new sql_subquery($sq)
 			));
 		$qg->set->exprs[]=new sql_expression('=',Array(
+			new sql_column(NULL,NULL,'place'),
+			$im_place
+			));
+		$qg->set->exprs[]=new sql_expression('=',Array(
 			new sql_column(NULL,NULL,'count'),
 			$im_count
 			));
@@ -1311,19 +1357,35 @@ class barcode_fill_test extends dom_div
 				))
 			));
 		$mm=Array();
+		$im_place->val=1;
+		$place=0;
 		foreach($le as $r)
-			if(preg_match('/[0-9]{13}/',$r))
+		{
+			if(preg_match('/^[0-9]{13}$/',$r))
 			{
 //				print "alert('".js_escape($qg->result())."');";
-				if(isset($mm[$r]))$mm[$r]+=1;
-				else $mm[$r]=1;
+				if(isset($mm[$place][$r]))$mm[$place][$r]+=1;
+				else $mm[$place][$r]=1;
 			}
-		foreach( $mm as $code => $count)
-		{		
-			$im_code->val=$code;
-			$im_count->val=$count;
-			$sql->query($qg->result());
+			if(preg_match('/^0[0-9]$/',$r))
+			{
+				$place-=($place % 10);
+				$place+=intval($r[1]);
+			}
+			if(preg_match('/^[0-9]0$/',$r))
+			{
+				$place=($place % 10);
+				$place+=intval($r[0])*10;
+			}
 		}
+		foreach( $mm as $place => $u)
+			foreach( $u as $code => $count)
+			{		
+				$im_place->val=$place;
+				$im_code->val=$code;
+				$im_count->val=$count;
+				$sql->query($qg->result());
+			}
 	}
 	
 	function handle_event($ev)
@@ -1338,6 +1400,9 @@ class barcode_fill_test extends dom_div
 		{
 			$sql->query($st->set_query($this->oid,$this->long_name.'._id_doc',$_SESSION['uid'],0,$_POST['val']));
 			$this->args['id_doc']=$_POST['val'];
+			$this->gen_links($_POST['val']);
+			print "\$i('".js_escape($ev->context[$this->long_name]['all_id'])."').setAttribute('href','".js_escape($this->link_all)."');";
+			print "\$i('".js_escape($ev->context[$this->long_name]['combined_id'])."').setAttribute('href','".js_escape($this->link_combined)."');";
 			$ev->reload_list=true;
 		}
 		if($ev->rem_name=='clear')
@@ -1379,6 +1444,7 @@ class barcode_fill_test_list extends dom_table
 		$this->etype=get_class($this);
 		
 		editor_generic::addeditor('num', new editor_statictext);
+		editor_generic::addeditor('place', new editor_statictext);
 		editor_generic::addeditor('name', new editor_statictext);
 		editor_generic::addeditor('count', new editor_statictext);
 		
@@ -1420,6 +1486,7 @@ class barcode_fill_test_list extends dom_table
 		{
 			$this->args['num']++;
 			$this->args['name']=$row['name'];
+			$this->args['place']=$row['place'];
 			$this->args['count']=$row['count'];
 			if(is_array($this->editors))foreach($this->editors as $i => $e)
 				$e->bootstrap();
