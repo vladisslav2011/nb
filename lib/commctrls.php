@@ -1479,7 +1479,7 @@ class editor_text_autosuggest extends dom_void
 	function html_inner()
 	{
 	$this->text->attributes['value']=$this->args[$this->context[$this->long_name]['var']];
-	$this->text->attributes['onfocus']="chse.activatemon({obj:this,objtype:'editor_text',static:".$this->send."});this.selectionStart=0;this.selectionEnd=this.value.length;clearTimeout(this.hide_timeout);chse.send_or_push({static:".$this->send.",val:encodeURIComponent(this.value),c_id:this.id});";
+	$this->text->attributes['onfocus']="chse.activatemon({obj:this,objtype:'editor_text',static:".$this->send."});this.selectionStart=0;this.selectionEnd=this.value.length;clearTimeout(this.hide_timeout);chse.send_or_push({static:".$this->send.",val:this.value,c_id:this.id});";
 	$this->text->attributes['onfocus'].="\$i('".js_escape($this->div->id_gen())."').tabIndex=1000;";
 	$this->text->attributes['onblur']="chse.latedeactivate(this);if(this.refresh_timeout)clearTimeout(this.refresh_timeout);this.hide_timeout=setTimeout('\$i(\\'".js_escape($this->div->id_gen())."\\').style.display=\\'none\\';',200);";
 	
