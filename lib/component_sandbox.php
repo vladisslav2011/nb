@@ -1231,7 +1231,7 @@ class barcode_fill_test extends dom_div
 	function gen_links($a)
 	{
 		$this->link_all='/ext/table_csv_dump.php?query='.
-			urlencode("SELECT a.place,b.name,cast(a.count as decimal(10,0)) as `count` FROM barcodes_raw as b,test_doc as a WHERE b.id=a.prod AND doc_id=".intval($a));
+			urlencode("SELECT a.zone,a.place,b.name,cast(a.count as decimal(10,0)) as `count` FROM barcodes_raw as b,test_doc as a WHERE b.id=a.prod AND doc_id=".intval($a));
 		$this->link_combined='/ext/table_csv_dump.php?query='.
 			urlencode("SELECT b.name,cast(sum(a.count) as decimal(10,0)) as `count` FROM barcodes_raw as b,test_doc as a WHERE b.id=a.prod  AND doc_id=".intval($a)." GROUP BY a.prod");
 	}
@@ -1271,6 +1271,7 @@ class barcode_fill_test extends dom_div
 			);
 		$r->what->exprs=Array(
 			new sql_column(NULL,'td','count'),
+			new sql_column(NULL,'td','zone'),
 			new sql_column(NULL,'td','place'),
 			new sql_column(NULL,'br','name')
 			);
@@ -1322,6 +1323,7 @@ class barcode_fill_test extends dom_div
 		$im_code=new sql_immed;
 		$im_count=new sql_immed(1);
 		$im_place=new sql_immed;
+		$im_zone=new sql_immed;
 		
 		$sq=new query_gen_ext('select');
 		$sq->from->exprs[]=new sql_column(NULL,'barcodes_raw',NULL,'br');
@@ -1346,6 +1348,10 @@ class barcode_fill_test extends dom_div
 			$im_place
 			));
 		$qg->set->exprs[]=new sql_expression('=',Array(
+			new sql_column(NULL,NULL,'zone'),
+			$im_zone
+			));
+		$qg->set->exprs[]=new sql_expression('=',Array(
 			new sql_column(NULL,NULL,'count'),
 			$im_count
 			));
@@ -1359,33 +1365,48 @@ class barcode_fill_test extends dom_div
 		$mm=Array();
 		$im_place->val=1;
 		$place=0;
+		$zone=1;
 		foreach($le as $r)
 		{
 			if(preg_match('/^[0-9]{13}$/',$r))
 			{
 //				print "alert('".js_escape($qg->result())."');";
-				if(isset($mm[$place][$r]))$mm[$place][$r]+=1;
-				else $mm[$place][$r]=1;
+				if(isset($mm[$zone][$place][$r]))$mm[$zone][$place][$r]+=1;
+				else $mm[$zone][$place][$r]=1;
 			}
-			if(preg_match('/^0[0-9]$/',$r))
+			if(preg_match('/^0[1-9]$/',$r))
 			{
 				$place-=($place % 10);
 				$place+=intval($r[1]);
 			}
-			if(preg_match('/^[0-9]0$/',$r))
+			if(preg_match('/^a[0-9]$/',$r))
+			{
+				$place=intval($r[1]);
+			}
+			if(preg_match('/^[0-9]$/',$r))
+			{
+				$place=intval($r[0]);
+			}
+			if(preg_match('/^[1-9]0$/',$r))
 			{
 				$place=($place % 10);
 				$place+=intval($r[0])*10;
 			}
-		}
-		foreach( $mm as $place => $u)
-			foreach( $u as $code => $count)
-			{		
-				$im_place->val=$place;
-				$im_code->val=$code;
-				$im_count->val=$count;
-				$sql->query($qg->result());
+			if(preg_match('/^00$/',$r))
+			{
+				$place=0;
 			}
+		}
+		foreach( $mm as $zone => $xx)
+			foreach( $xx as $place => $u)
+				foreach( $u as $code => $count)
+				{		
+					$im_zone->val=$zone;
+					$im_place->val=$place;
+					$im_code->val=$code;
+					$im_count->val=$count;
+					$sql->query($qg->result());
+				}
 	}
 	
 	function handle_event($ev)
@@ -1444,6 +1465,7 @@ class barcode_fill_test_list extends dom_table
 		$this->etype=get_class($this);
 		
 		editor_generic::addeditor('num', new editor_statictext);
+		editor_generic::addeditor('zone', new editor_statictext);
 		editor_generic::addeditor('place', new editor_statictext);
 		editor_generic::addeditor('name', new editor_statictext);
 		editor_generic::addeditor('count', new editor_statictext);
@@ -1486,6 +1508,7 @@ class barcode_fill_test_list extends dom_table
 		{
 			$this->args['num']++;
 			$this->args['name']=$row['name'];
+			$this->args['zone']=$row['zone'];
 			$this->args['place']=$row['place'];
 			$this->args['count']=$row['count'];
 			if(is_array($this->editors))foreach($this->editors as $i => $e)
