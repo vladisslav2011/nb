@@ -65,9 +65,12 @@ for(var kk=0;kk<10;kk++)
 	var ii=Array();
 	for(var t1=0;t1<2;t1++)
 	{
-		var ks=(kk*((t1==1)?10:1)).toString();
-		if(ks.length<2)ks='0'+ks;
-		ii.push({l:ks,r:code128l('c',ks,'1mm','15mm',1)});
+		var ks=0;
+		if(t1==0)
+			ks='X'+kk.toString();
+		else
+			ks=kk.toString()+'X';
+		ii.push({l:ks,r:code128l('a',ks,'1mm','15mm',1)});
 	}
 	tbl.appendChild(gentr2(ii));
 }

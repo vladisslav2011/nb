@@ -1374,12 +1374,12 @@ class barcode_fill_test extends dom_div
 				if(isset($mm[$zone][$place][$r]))$mm[$zone][$place][$r]+=1;
 				else $mm[$zone][$place][$r]=1;
 			}
-			if(preg_match('/^0[1-9]$/',$r))
+			if(preg_match('/^0[1-9]$/i',$r)||preg_match('/^X[0-9]$/i',$r))
 			{
 				$place-=($place % 10);
 				$place+=intval($r[1]);
 			}
-			if(preg_match('/^a[0-9]$/',$r))
+			if(preg_match('/^A[0-9]$/i',$r))
 			{
 				$place=intval($r[1]);
 			}
@@ -1387,7 +1387,7 @@ class barcode_fill_test extends dom_div
 			{
 				$place=intval($r[0]);
 			}
-			if(preg_match('/^[1-9]0$/',$r))
+			if(preg_match('/^[1-9]0$/i',$r)||preg_match('/^[0-9]X$/i',$r))
 			{
 				$place=($place % 10);
 				$place+=intval($r[0])*10;
