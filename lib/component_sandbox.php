@@ -1214,6 +1214,7 @@ class barcode_fill_test extends dom_div
 		$tr=new dom_tr;
 		$left=new dom_td;
 		$right=new dom_td;
+		$right->css_style['vertical-align']='top';
 		$this->append_child($this->tbl->append_child($tr->append_child($left)));
 		$tr->append_child($right);
 		$left->append_child($this->editors['list']);
@@ -1381,11 +1382,11 @@ class barcode_fill_test extends dom_div
 			}
 			if(preg_match('/^A[0-9]$/i',$r))
 			{
-				$place=intval($r[1]);
+				$zone=intval($r[1]);
 			}
 			if(preg_match('/^[0-9]$/',$r))
 			{
-				$place=intval($r[0]);
+				$zone=intval($r[0]);
 			}
 			if(preg_match('/^[1-9]0$/i',$r)||preg_match('/^[0-9]X$/i',$r))
 			{
