@@ -1916,7 +1916,7 @@ class query_result_viewer_codessel extends dom_any
 		$lim_labels=$sql->fetch1($sql->query("SELECT `current` FROM `barcodes_counters` WHERE `id`=0"));
 		$lim_ribbon=$sql->fetch1($sql->query("SELECT `current` FROM `barcodes_counters` WHERE `id`=1"));
 		$count=min($row['count'],min($lim_labels,$lim_ribbon));
-		$name=iconv('UTF-8','CP866',$row['name']);
+		$name=iconv('UTF-8','CP866//IGNORE',$row['name']);
 		if(strlen($name)<55)
 		{
 			$ln=27;
