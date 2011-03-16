@@ -933,7 +933,7 @@ this.send_async = function(d)//d={uri:uri,static:'var',val:'value'}
 	var xmlHttp=new_xmlHTTP();
 	
 	var curi='';
-	if(this.callback_uri)	curi=this.callback_uri
+	if(this.callback_uri)	curi=this.callback_uri;
 	if(d.uri)		curi=d.uri;
 	
 	xmlHttp.open("POST", curi, true);

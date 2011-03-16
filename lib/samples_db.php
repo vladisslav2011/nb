@@ -4298,7 +4298,7 @@ class query_result_viewer_any extends dom_div
 			}
 		}else{
 			unset($db);
-			if($ev->setting->db != '')$db="`".$sql->esc($ev->settings->db)."`.";
+			if($ev->settings->db != '')$db="`".$sql->esc($ev->settings->db)."`.";
 			$res=$sql->query("SHOW COLUMNS FROM ".$db."`".$sql->esc($ev->settings->table)."`");
 			while($row=$sql->fetcha($res))
 			{
@@ -4352,6 +4352,7 @@ class query_result_viewer_any extends dom_div
 				if($sql->query($qg->result())!==false)
 				{
 					$ev->do_reload=true;
+					$ev->reload_rowcount=true;
 				}else{
 					print "alert('Не удалось добавить запись.');";
 				};
@@ -4367,6 +4368,7 @@ class query_result_viewer_any extends dom_div
 				$qg->from->exprs[]=new sql_column($ev->settings->db,$ev->settings->table);
 				$sql->query($qg->result());
 				$ev->do_reload=true;
+				$ev->reload_rowcount=true;
 				break;
 			case 'ed_list.clone':
 				$qg=new query_gen_ext('INSERT SELECT');
@@ -4387,6 +4389,7 @@ class query_result_viewer_any extends dom_div
 				if($sql->query($qg->result())!==false)
 				{
 					$ev->do_reload=true;
+					$ev->reload_rowcount=true;
 				}else{
 					print "alert('Не удалось добавить запись.');";
 				};
@@ -4502,6 +4505,10 @@ class query_result_viewer_any extends dom_div
 				print "try{nya.innerHTML=";
 				reload_object($r,true);
 				print "}catch(e){/* window.location.reload(true);*/};";
+				$ev->reload_rowcount=true;
+			}
+			if($ev->reload_rowcount)
+			{
 				$rq=new QRVA_rc;
 				$rq->context=&$ev->context;
 				$rq->keys=&$ev->keys;
