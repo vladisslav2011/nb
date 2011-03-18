@@ -1415,7 +1415,7 @@ class query_result_viewer_codessel extends dom_any
 		$sp=new dom_any('span');
 		if($_SESSION['uid']==0)$td->append_child($sp);
 		$a=new dom_any('a');
-		$a->attributes['href']='/dump.php?d=,&e=UTF-8&q='.urlencode("SELECT * FROM `barcodes_raw` ORDER BY name");
+		$a->attributes['href']='/dump.php?d=,&e=UTF-8&q='.urlencode("SELECT * FROM `barcodes_raw` WHERE isown=0 ORDER BY name");
 		//$a->attributes['target']='_blank';
 		$a->attributes['title']='Сохранить в CSV';
 		$sp->append_child($a);
