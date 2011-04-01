@@ -188,7 +188,7 @@ class sql
 		if($res===TRUE) return $res;
 		if($res===FALSE) return $res;//is it real? Or always undef if failed
 		if(!isset($res))return NULL;
-		$ret=Array();
+		$ret=NULL;
 		if($row=$this->fetchn($res))
 			$ret=$row[0];
 		$this->free($res);
