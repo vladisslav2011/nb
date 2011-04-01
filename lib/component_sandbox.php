@@ -1209,6 +1209,11 @@ class barcode_fill_test extends dom_div
 		$this->append_child($link);
 		$this->get_combined=$link;
 		
+		$link=new dom_any('a');
+		$link->append_child(new dom_statictext(' special '));
+		$this->append_child($link);
+		$this->get_special=$link;
+
 		
 		$this->tbl=new dom_table;
 		$tr=new dom_tr;
@@ -1235,6 +1240,8 @@ class barcode_fill_test extends dom_div
 			urlencode("SELECT a.zone,a.place,b.name,cast(a.count as decimal(10,0)) as `count` FROM barcodes_raw as b,test_doc as a WHERE b.id=a.prod AND doc_id=".intval($a));
 		$this->link_combined='/ext/table_csv_dump.php?query='.
 			urlencode("SELECT b.name,cast(sum(a.count) as decimal(10,0)) as `count` FROM barcodes_raw as b,test_doc as a WHERE b.id=a.prod  AND doc_id=".intval($a)." GROUP BY a.prod");
+		$this->link_special='/ext/table_csv_dump.php?query='.
+			urlencode("SELECT `br`.`name` , (SELECT sum( `d`.`count` ) FROM `test_doc` AS `d` WHERE ( `td`.`prod` = `d`.`prod` ) AND ( `d`.`zone` = '1' ) AND ( `d`.`doc_id` = '".intval($a)."' ) ) AS `z1` , (SELECT sum( `d`.`count` ) FROM `test_doc` AS `d` WHERE ( `td`.`prod` = `d`.`prod` ) AND ( `d`.`zone` = '2' ) AND ( `d`.`doc_id` = '".intval($a)."' ) ) AS `z2` , (SELECT sum( `d`.`count` ) FROM `test_doc` AS `d` WHERE ( `td`.`prod` = `d`.`prod` ) AND ( `d`.`zone` = '3' ) AND ( `d`.`doc_id` = '".intval($a)."' ) ) AS `z3` FROM `barcodes_raw` AS `br` , `test_doc` AS `td` WHERE ( `br`.`id` = `td`.`prod` ) AND ( `td`.`doc_id` = '".intval($a)."' ) GROUP BY `br`.`name` ASC");
 	}
 	
 	function bootstrap()
@@ -1244,6 +1251,7 @@ class barcode_fill_test extends dom_div
 		$this->context[$this->long_name]['list_id']=$this->editors['list']->id_gen();
 		$this->context[$this->long_name]['all_id']=$this->get_all->id_gen();
 		$this->context[$this->long_name]['combined_id']=$this->get_combined->id_gen();
+		$this->context[$this->long_name]['special_id']=$this->get_special->id_gen();
 		if(!is_array($this->keys))$this->keys=Array();
 		if(!is_array($this->args))$this->args=Array();
 		if(is_array($this->editors))foreach($this->editors as $i => $e)
@@ -1258,6 +1266,7 @@ class barcode_fill_test extends dom_div
 		$this->gen_links($this->args['id_doc']);
 		$this->get_all->attributes['href']=$this->link_all;
 		$this->get_combined->attributes['href']=$this->link_combined;
+		$this->get_special->attributes['href']=$this->link_special;
 		$this->editors['list']->def=$this->gen_def();
 		if(is_array($this->editors))foreach($this->editors as $i => $e)
 			$e->bootstrap();
@@ -1425,6 +1434,7 @@ class barcode_fill_test extends dom_div
 			$this->gen_links($_POST['val']);
 			print "\$i('".js_escape($ev->context[$this->long_name]['all_id'])."').setAttribute('href','".js_escape($this->link_all)."');";
 			print "\$i('".js_escape($ev->context[$this->long_name]['combined_id'])."').setAttribute('href','".js_escape($this->link_combined)."');";
+			print "\$i('".js_escape($ev->context[$this->long_name]['special_id'])."').setAttribute('href','".js_escape($this->link_special)."');";
 			$ev->reload_list=true;
 		}
 		if($ev->rem_name=='clear')
