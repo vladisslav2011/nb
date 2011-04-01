@@ -1214,6 +1214,11 @@ class barcode_fill_test extends dom_div
 		$this->append_child($link);
 		$this->get_special=$link;
 
+		$link=new dom_any('a');
+		$link->append_child(new dom_statictext(' place_zone '));
+		$this->append_child($link);
+		$this->get_place_zone=$link;
+
 		
 		$this->tbl=new dom_table;
 		$tr=new dom_tr;
@@ -1242,6 +1247,10 @@ class barcode_fill_test extends dom_div
 			urlencode("SELECT b.name,cast(sum(a.count) as decimal(10,0)) as `count` FROM barcodes_raw as b,test_doc as a WHERE b.id=a.prod  AND doc_id=".intval($a)." GROUP BY a.prod");
 		$this->link_special='/ext/table_csv_dump.php?query='.
 			urlencode("SELECT `br`.`name` , (SELECT sum( `d`.`count` ) FROM `test_doc` AS `d` WHERE ( `td`.`prod` = `d`.`prod` ) AND ( `d`.`zone` = '1' ) AND ( `d`.`doc_id` = '".intval($a)."' ) ) AS `z1` , (SELECT sum( `d`.`count` ) FROM `test_doc` AS `d` WHERE ( `td`.`prod` = `d`.`prod` ) AND ( `d`.`zone` = '2' ) AND ( `d`.`doc_id` = '".intval($a)."' ) ) AS `z2` , (SELECT sum( `d`.`count` ) FROM `test_doc` AS `d` WHERE ( `td`.`prod` = `d`.`prod` ) AND ( `d`.`zone` = '3' ) AND ( `d`.`doc_id` = '".intval($a)."' ) ) AS `z3` FROM `barcodes_raw` AS `br` , `test_doc` AS `td` WHERE ( `br`.`id` = `td`.`prod` ) AND ( `td`.`doc_id` = '".intval($a)."' ) GROUP BY `br`.`name` ASC");
+
+		$this->link_place_zone='/ext/table_csv_dump.php?query='.
+			urlencode("SELECT `td`.`zone` , `td`.`place` , cast(sum(td.count) as decimal(10,0)) as `count` FROM `test_doc` AS `td` WHERE ( `td`.`doc_id` = '".intval($a)."' ) GROUP BY `td`.`zone` ASC, `td`.`place` ASC");
+
 	}
 	
 	function bootstrap()
@@ -1252,6 +1261,7 @@ class barcode_fill_test extends dom_div
 		$this->context[$this->long_name]['all_id']=$this->get_all->id_gen();
 		$this->context[$this->long_name]['combined_id']=$this->get_combined->id_gen();
 		$this->context[$this->long_name]['special_id']=$this->get_special->id_gen();
+		$this->context[$this->long_name]['place_zone_id']=$this->get_place_zone->id_gen();
 		if(!is_array($this->keys))$this->keys=Array();
 		if(!is_array($this->args))$this->args=Array();
 		if(is_array($this->editors))foreach($this->editors as $i => $e)
@@ -1267,6 +1277,7 @@ class barcode_fill_test extends dom_div
 		$this->get_all->attributes['href']=$this->link_all;
 		$this->get_combined->attributes['href']=$this->link_combined;
 		$this->get_special->attributes['href']=$this->link_special;
+		$this->get_place_zone->attributes['href']=$this->link_place_zone;
 		$this->editors['list']->def=$this->gen_def();
 		if(is_array($this->editors))foreach($this->editors as $i => $e)
 			$e->bootstrap();
@@ -1435,6 +1446,7 @@ class barcode_fill_test extends dom_div
 			print "\$i('".js_escape($ev->context[$this->long_name]['all_id'])."').setAttribute('href','".js_escape($this->link_all)."');";
 			print "\$i('".js_escape($ev->context[$this->long_name]['combined_id'])."').setAttribute('href','".js_escape($this->link_combined)."');";
 			print "\$i('".js_escape($ev->context[$this->long_name]['special_id'])."').setAttribute('href','".js_escape($this->link_special)."');";
+			print "\$i('".js_escape($ev->context[$this->long_name]['place_zone_id'])."').setAttribute('href','".js_escape($this->link_place_zone)."');";
 			$ev->reload_list=true;
 		}
 		if($ev->rem_name=='clear')
