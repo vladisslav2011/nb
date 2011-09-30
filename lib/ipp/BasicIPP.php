@@ -1111,46 +1111,49 @@ class BasicIPP {
    // }}}
    
     // {{{ _parseHttpHeaders
-    protected function _parseHttpHeaders () {
-        
-        $response = "";
-        
-        switch ($this->serveroutput->headers[0]) {
-            
-            case "http/1.1 200 ok: ":
-                $this->serveroutput->httpstatus = "HTTP/1.1 200 OK";
-                $response = "OK";
-                break;
-            case "http/1.1 100 continue: ":
-                $this->serveroutput->httpstatus = "HTTP/1.1 100 CONTINUE";
-                $response = "OK";
-                break;
-            case "":
-                $this->serveroutput->httpstatus = "HTTP/1.1 000 No Response From Server";
-                $this->serveroutput->status = "HTTP-ERROR-000_NO_RESPONSE_FROM_SERVER";
-                trigger_error("No Response From Server",E_USER_WARNING);
-                self::_errorLog("No Response From Server",1);
-                $this->disconnected = 1;
-                return FALSE;
-                break;
-            default:
-                $server_response = preg_replace("/: $/",'',$this->serveroutput->headers[0]);
-                $strings = split(' ',$server_response,3);
-                $errno = $strings[1];
-                $string = strtoupper(str_replace(' ','_',$strings[2]));
-                trigger_error(sprintf(_("server responds %s"),$server_response),E_USER_WARNING);
-                self::_errorLog("server responds ".$server_response,1);
-                $this->serveroutput->httpstatus = strtoupper($strings[0])." ".$errno." ".ucfirst($strings[2]);
-                $this->serveroutput->status = "HTTP-ERROR-".$errno."-".$string;
-                $this->disconnected = 1;
-                return FALSE;
-                break;
-            }
-        
-        unset ($this->serveroutput->headers);
-        
-    return TRUE;
-    }
+	protected function _parseHttpHeaders () {
+		
+		$response = "";
+		
+		$header0= $this->serveroutput->headers[0];
+		if(preg_match('#http/1\\.1#',$header0))
+		{
+			if(preg_match("#http/1\\.1 +200#",$header0))
+			{
+				$this->serveroutput->httpstatus = "HTTP/1.1 200 OK";
+				$response = "OK";
+			}
+			if(preg_match("#http/1\\.1 +100#",$header0))
+			{
+				$this->serveroutput->httpstatus = "HTTP/1.1 100 CONTINUE";
+				$response = "OK";
+			}
+		}else{
+			if($header0 == "")
+			{
+				$this->serveroutput->httpstatus = "HTTP/1.1 000 No Response From Server";
+				$this->serveroutput->status = "HTTP-ERROR-000_NO_RESPONSE_FROM_SERVER";
+				trigger_error("No Response From Server",E_USER_WARNING);
+				self::_errorLog("No Response From Server",1);
+				$this->disconnected = 1;
+				return FALSE;
+			}else{
+				$server_response = preg_replace("/: $/",'',$this->serveroutput->headers[0]);
+				$strings = split(' ',$server_response,3);
+				$errno = $strings[1];
+				$string = strtoupper(str_replace(' ','_',$strings[2]));
+				trigger_error(sprintf(_("server responds %s"),$server_response),E_USER_WARNING);
+				self::_errorLog("server responds ".$server_response,1);
+				$this->serveroutput->httpstatus = strtoupper($strings[0])." ".$errno." ".ucfirst($strings[2]);
+				$this->serveroutput->status = "HTTP-ERROR-".$errno."-".$string;
+				$this->disconnected = 1;
+				return FALSE;
+			}
+		}
+		unset ($this->serveroutput->headers);
+		
+	return TRUE;
+	}
     // }}}
      
     // {{{ _parseIppVersion ()
@@ -1814,7 +1817,7 @@ class BasicIPP {
                             $this->port,
                             $this->requesting_user,
                             $string_to_log);
-        error_log($string,$this->log_type,$this->log_destination);
+        if(!empty($this->log_destination))error_log($string,$this->log_type,$this->log_destination);
 
     return;
     }
