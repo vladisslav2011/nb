@@ -501,7 +501,7 @@ function ddc_gentable_o($obj,$sql)
 	$sa=new ddc_raw;
 	foreach ($obj->cols as $e)
 //	function addcol($name,$type,$null,$default,$sequence,$comment)
-		$sa->addcol($e['name'],$e['sql_type'],$e['sql_null'],$e['sql_default'],$e['sql_sequence'],$e['sql_comment']);
+		$sa->addcol($e['name'],$e['type'],$e['null'],$e['default'],$e['sequence'],$e['comment']);
 	foreach ($obj->keys as $e)
 //	function addcol_to_key($key,$name,$sub)
 		$sa->addcol_to_key($e['key'],$e['name'],$e['sub']);
