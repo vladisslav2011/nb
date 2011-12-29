@@ -151,7 +151,7 @@ class http_class {
         $url = $arguments["URL"];
         $port = $this->default_port;
         
-        $url = split (':',$url,2);
+        $url = explode (':',$url,2);
         $transport_type = $url[0];
         $unix = false;
         switch($transport_type) {
@@ -172,7 +172,7 @@ class http_class {
             }
         $url = $url[1];
         if (!$unix) {
-            $url = split("/",preg_replace("#^/{1,}#",'',$url),2);
+            $url = explode("/",preg_replace("#^/{1,}#",'',$url),2);
             $url = $url[0];
             $port = $this->port;
             $error = sprintf(_("Cannot resolve url: %s"),$url);
@@ -232,7 +232,7 @@ class http_class {
          if (!in_array("www-authenticate",$headers))
             return("SendRequest: need authentication but no mechanism provided");
 
-         $authtype = split(' ',$this->reply_headers["www-authenticate"]);
+         $authtype = explode(' ',$this->reply_headers["www-authenticate"]);
          $authtype = strtolower($authtype[0]);
 
          switch ($authtype) {
@@ -529,11 +529,11 @@ class http_class {
         
         $auth = $this->reply_headers["www-authenticate"];
         
-        list($head, $auth) = split(" ",$auth,2);
+        list($head, $auth) = explode(" ",$auth,2);
 
-        $auth=split(", ",$auth);
+        $auth=explode(", ",$auth);
         foreach ($auth as $sheme) {
-            list($sheme,$value) = split('=',$sheme);
+            list($sheme,$value) = explode('=',$sheme);
             $fields[$sheme] = trim(trim($value),'"');
         }
 
@@ -571,7 +571,7 @@ class http_class {
         
         if (array_key_exists("qop",$fields)) {
             $qop = strtolower($fields["qop"]);
-            $qop = split(" ",$qop);
+            $qop = explode(" ",$qop);
             if (in_array("auth",$qop))
                 $qop = "auth";
             else {
