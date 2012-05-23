@@ -1439,24 +1439,28 @@ class query_result_viewer_codessel extends dom_any
 		$tr->append_child($td);
 		editor_generic::addeditor('density',new editor_select);
 		for($k=0;$k<16;$k++)$this->editors['density']->options[$k]=$k;
+		$this->editors['density']->attributes['title']='Плотность печати';
 		$td->append_child($this->editors['density']);
 		
 		$td=new dom_any('td');//скор
 		$tr->append_child($td);
 		editor_generic::addeditor('speed',new editor_select);
 		for($k=0;$k<7;$k++)$this->editors['speed']->options[$k]=$k;
+		$this->editors['speed']->attributes['title']='Скорость печати';
 		$td->append_child($this->editors['speed']);
 		
 		$td=new dom_any('td');//host
 		$tr->append_child($td);
 		editor_generic::addeditor('ipp_host',new editor_text);
 		$td->append_child($this->editors['ipp_host']);
+		$this->editors['ipp_host']->attributes['title']='Сервер печати';
 		$this->editors['ipp_host']->main->css_style['width']='5em';
 		
 		$td=new dom_any('td');//printer
 		$tr->append_child($td);
 		editor_generic::addeditor('ipp_printer',new editor_text);
 		$td->append_child($this->editors['ipp_printer']);
+		$this->editors['ipp_printer']->attributes['title']='Принтер';
 		$this->editors['ipp_printer']->main->css_style['width']='9em';
 		
 /* ---------------------------------------------------------- */
