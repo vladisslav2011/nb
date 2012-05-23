@@ -43,13 +43,15 @@ Array(
  'name' => 'barcodes_counters',
  'cols' => Array(
   #Array('name' =>'', 'sql_type' =>'', 'sql_null' =>, 'sql_default' =>'', 'sql_sequence' => 0, 'sql_comment' =>NULL),
+  Array('name' =>'uid',		'sql_type' =>'int(10)',  'sql_null' =>0, 'sql_default' =>0,		'sql_sequence' => 0,	'sql_comment' =>NULL),
   Array('name' =>'id',		'sql_type' =>'int(10)',  'sql_null' =>0, 'sql_default' =>0,		'sql_sequence' => 0,	'sql_comment' =>NULL),
   Array('name' =>'init',	'sql_type' =>'int(10)', 'sql_null' =>1, 'sql_default' =>0,	'sql_sequence' => 0,		'sql_comment' =>NULL),
   Array('name' =>'current',	'sql_type' =>'int(10)', 'sql_null' =>1, 'sql_default' =>0,	'sql_sequence' => 0,		'sql_comment' =>NULL)
   ),
  'keys' => Array(
 #  Array('key' =>'PRIMARY', 'name' =>'', 'sub' => NULL)
-  Array('key' =>'PRIMARY', 'name' =>'id', 'sub' => NULL)
+  Array('key' =>'PRIMARY', 'name' =>'id', 'sub' => NULL),
+  Array('key' =>'PRIMARY', 'name' =>'uid', 'sub' => NULL)
  )
 );
 
@@ -1827,15 +1829,15 @@ class query_result_viewer_codessel extends dom_any
 			$e->args=&$this->args;
 			$e->oid=$this->oid;
 		}
-		
+		$uid=$_SESSION['uid'];
 		$this->args['density']=$this->rootnode->setting_val($this->oid,$this->long_name.'.density',7);
 		$this->args['speed']=$this->rootnode->setting_val($this->oid,$this->long_name.'.speed',5);
 		$this->args['ipp_host']=$this->rootnode->setting_val($this->oid,$this->long_name.'.ipp_host','localhost');
 		$this->args['ipp_printer']=$this->rootnode->setting_val($this->oid,$this->long_name.'.ipp_printer','/printers/TLP2824_');
-		unset($this->editors['labels_init']->keys);$this->editors['labels_init']->keys=Array('id'=>0);
-		unset($this->editors['labels_remaining']->keys);$this->editors['labels_remaining']->keys=Array('id'=>0);
-		unset($this->editors['ribbon_init']->keys);$this->editors['ribbon_init']->keys=Array('id'=>1);
-		unset($this->editors['ribbon_remaining']->keys);$this->editors['ribbon_remaining']->keys=Array('id'=>1);
+		unset($this->editors['labels_init']->keys);$this->editors['labels_init']->keys=Array('id'=>0,'uid'=>$uid);
+		unset($this->editors['labels_remaining']->keys);$this->editors['labels_remaining']->keys=Array('id'=>0,'uid'=>$uid);
+		unset($this->editors['ribbon_init']->keys);$this->editors['ribbon_init']->keys=Array('id'=>1,'uid'=>$uid);
+		unset($this->editors['ribbon_remaining']->keys);$this->editors['ribbon_remaining']->keys=Array('id'=>1,'uid'=>$uid);
 		//print "<pre>";print_r($this->keys);print "</pre>";
 		foreach($this->editors as $e)
 			$e->bootstrap();
@@ -1892,19 +1894,21 @@ class query_result_viewer_codessel extends dom_any
 	function reset_lr($id)
 	{
 		global $sql;
-		$sql->query("UPDATE barcodes_counters SET current=init WHERE id=".$id);
+		$uid=$sql->esc($_SESSION["uid"]);
+		$sql->query("UPDATE barcodes_counters SET current=init WHERE id=".$id." AND `uid`=".$uid);
 	}
 	
 	function subtract_current()
 	{
 		global $sql;
 		$this->setup_h();
+		$uid=$sql->esc($_SESSION["uid"]);
 		$printed=$sql->fetch1($sql->query("SELECT SUM(`printed`) FROM barcodes_print WHERE task=".$this->current_task));
 		if($printed!=0)
 		{
 		$sql->query("INSERT INTO barcodes_printed SELECT `id`, NULL as `when`,`printed` as `count` FROM barcodes_print WHERE task=".$this->current_task." AND `printed`>0");
 		$sql->query("UPDATE barcodes_print SET `count`=`count`-`printed` WHERE task=".$this->current_task);
-		$sql->query("UPDATE barcodes_counters SET current=current-(SELECT SUM(`printed`) FROM barcodes_print WHERE task=".$this->current_task.")");
+		$sql->query("UPDATE barcodes_counters SET current=current-(SELECT SUM(`printed`) FROM barcodes_print WHERE task=".$this->current_task.") WHERE `uid`=".$uid);
 		$sql->query("UPDATE barcodes_print SET `printed`=0 WHERE task=".$this->current_task);
 		$sql->query("DELETE FROM barcodes_print WHERE `count`=0");
 		}else print "alert('Ничего не было напечатано');";
@@ -1914,7 +1918,8 @@ class query_result_viewer_codessel extends dom_any
 	function print_plus_1()
 	{
 		global $sql;
-		$sql->query("UPDATE barcodes_counters SET current=current-1");
+		$uid=$sql->esc($_SESSION["uid"]);
+		$sql->query("UPDATE barcodes_counters SET current=current-1 WHERE `uid`=".$uid);
 		$this->print_job("\nP1\n");
 	}
 	
@@ -1931,8 +1936,9 @@ class query_result_viewer_codessel extends dom_any
 			$s="";
 		$result=$sql->query("SELECT barcodes_print.id,barcodes_raw.name,barcodes_print.`count`,barcodes_raw.code FROM barcodes_raw,barcodes_print WHERE count <> 0 AND barcodes_raw.id=barcodes_print.id AND barcodes_print.task=".$current_task.$s." ORDER BY name LIMIT 1");
 		$row=$sql->fetcha($result);
-		$lim_labels=$sql->fetch1($sql->query("SELECT `current` FROM `barcodes_counters` WHERE `id`=0"));
-		$lim_ribbon=$sql->fetch1($sql->query("SELECT `current` FROM `barcodes_counters` WHERE `id`=1"));
+		$uid=$sql->esc($_SESSION["uid"]);
+		$lim_labels=$sql->fetch1($sql->query("SELECT `current` FROM `barcodes_counters` WHERE `id`=0 AND `uid`=".$uid));
+		$lim_ribbon=$sql->fetch1($sql->query("SELECT `current` FROM `barcodes_counters` WHERE `id`=1 AND `uid`=".$uid));
 		$count=min($row['count'],min($lim_labels,$lim_ribbon));
 		$name=iconv('UTF-8','CP866//IGNORE',$row['name']);
 		if(strlen($name)<55)
