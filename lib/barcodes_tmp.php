@@ -1392,13 +1392,20 @@ class query_result_viewer_codessel extends dom_any
 		editor_generic::addeditor('print_direct_btn_acct',new editor_button_image);
 #		$this->editors['print_direct_btn_acct']->attributes['value']='DP♻';
 		$this->editors['print_direct_btn_acct']->attributes['src']='/i/print-a.png';
-		$this->editors['print_direct_btn_acct']->attributes['title']='Печать через CUPS и учесть';
+		$this->editors['print_direct_btn_acct']->attributes['title']="Печать через CUPS и учесть\n".
+			"'+' - Добавить 4 этикетки в верхней строке\n".
+			"'l' - Добавить 2 этикетки\n".
+			"'L' - Сбросить счетчик этикеток\n".
+			"'r' - Добавить 5 ленты\n".
+			"'R' - Сбросить счетчик ленты\n".
+			"";
 		$td->append_child($this->editors['print_direct_btn_acct']);
 		
 		editor_generic::addeditor('print_direct_btn_+1',new editor_button_image);
 #		$this->editors['print_direct_btn_acct']->attributes['value']='DP♻';
 		$this->editors['print_direct_btn_+1']->attributes['src']='/i/print-+1.png';
-		$this->editors['print_direct_btn_+1']->attributes['title']='Печать через CUPS и учесть (повтор последней)';
+		$this->editors['print_direct_btn_+1']->attributes['title']=
+			"Печать через CUPS и учесть (повтор последней)";
 		$td->append_child($this->editors['print_direct_btn_+1']);
 		
 		
@@ -1477,15 +1484,18 @@ class query_result_viewer_codessel extends dom_any
 		$td=new dom_any('td');
 		editor_generic::addeditor('ribbon_init',new editor_text_autofetch);
 		$this->editors['ribbon_init']->ed->css_style['width']='5em';
+		$this->editors['ribbon_init']->ed->attributes['title']='Этикеток с одного рулона ленты';
 		$tr->append_child($td->append_child($this->editors['ribbon_init']));
 		
 		$td=new dom_any('td');
 		$this->ribbon_reset=new dom_textbutton('=>');
+		$this->ribbon_reset->attributes['title']='Сбросить счетчик ленты';
 		$tr->append_child($td->append_child($this->ribbon_reset));
 		
 		$td=new dom_any('td');
 		editor_generic::addeditor('ribbon_remaining',new editor_text_autofetch);
 		$this->editors['ribbon_remaining']->ed->css_style['width']='5em';
+		$this->editors['ribbon_remaining']->ed->attributes['title']='Осталось ленты';
 		$tr->append_child($td->append_child($this->editors['ribbon_remaining']));
 		
 		$td=new dom_any('td');
@@ -1496,18 +1506,22 @@ class query_result_viewer_codessel extends dom_any
 		$td=new dom_any('td');
 		editor_generic::addeditor('labels_init',new editor_text_autofetch);
 		$this->editors['labels_init']->ed->css_style['width']='5em';
+		$this->editors['labels_init']->ed->attributes['title']='Этикеток в рулоне';
 		$tr->append_child($td->append_child($this->editors['labels_init']));
 		
 		$td=new dom_any('td');
 		$this->labels_reset=new dom_textbutton('=>');
+		$this->labels_reset->attributes['title']='Сбросить счетчик этикеток';
 		$tr->append_child($td->append_child($this->labels_reset));
 		
 		$td=new dom_any('td');
 		editor_generic::addeditor('labels_remaining',new editor_text_autofetch);
 		$this->editors['labels_remaining']->ed->css_style['width']='5em';
+		$this->editors['labels_remaining']->ed->attributes['title']='Осталось этикеток';
 		$tr->append_child($td->append_child($this->editors['labels_remaining']));
 		
 		$td=new dom_any('td');
+		$td->css_style['display']='none';
 		editor_generic::addeditor('subtract_current',new editor_button);
 		$this->editors['subtract_current']->attributes['value']='Учесть';
 		$tr->append_child($td->append_child($this->editors['subtract_current']));
