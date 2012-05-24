@@ -229,14 +229,17 @@ class dom_auth_request extends dom_div
 		'if(k==13){'.$submitnorm.
 		'return false};return true;';
 		$td->append_child($this->submit);
-		$tr=new dom_tr;
-		$tbl->append_child($tr);
-		$td=new dom_td;
-		$tr->append_child($td);
-		$td->attributes['colspan']='2';
-		$txt=new dom_statictext;
-		$txt->text="Login from :".$_SERVER['REMOTE_ADDR'];
-		$td->append_child($txt);
+		if(false)
+		{
+			$tr=new dom_tr;
+			$tbl->append_child($tr);
+			$td=new dom_td;
+			$tr->append_child($td);
+			$td->attributes['colspan']='2';
+			$txt=new dom_statictext;
+			$txt->text="Login from :".$_SERVER['REMOTE_ADDR'];
+			$td->append_child($txt);
+		}
 	}
 }
 

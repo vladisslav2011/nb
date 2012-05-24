@@ -588,7 +588,7 @@ if(count($_POST)>0)
 	$event->name=preg_replace('/\..*/','',$long_name);
 	$event->parent_name=$event->name;
 	$event->rem_name=preg_replace('/^[^.]*\./','',$long_name);
-	$event->context=unserialize($_POST['context']);
+	$event->context=(editor_generic::em?unserialize($_POST['context']):unserialize(gzuncompress(base64_decode($_POST['context']))));
 	//$this_cont=$context[$long_name];
 	$event->keys=unserialize($_POST['keys']);
 	$event->val=&$_POST['val'];
@@ -693,6 +693,7 @@ $pk=new $editor_name;
 $pk->name='pk';
 
 $page->append_child($pk);
+$pk->context=&$page->context;
 $pk->bootstrap();
 
 
