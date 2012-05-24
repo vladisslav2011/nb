@@ -246,7 +246,8 @@ if(isset($_POST['auth']))
 	$auth=$_POST['auth'];
 	if($auth == 'root')
 	{
-		if(preg_match('/^127\.0\..*/',$_SERVER['REMOTE_ADDR']))$_SESSION['uid']=0;
+		if(preg_match('/^127\.0\..*/',$_SERVER['REMOTE_ADDR'])||($_SERVER['REMOTE_ADDR']===$_SERVER['SERVER_ADDR']))
+			$_SESSION['uid']=0;
 		print 'window.location.reload(true);';
 		exit;
 	}
