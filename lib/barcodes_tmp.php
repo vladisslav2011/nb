@@ -1522,12 +1522,15 @@ class query_result_viewer_codessel extends dom_any
 		$this->editors['labels_remaining']->ed->attributes['title']='Осталось этикеток';
 		$tr->append_child($td->append_child($this->editors['labels_remaining']));
 		
-		$td=new dom_any('td');
-		$td->css_style['display']='none';
+/*		$td=new dom_any('td');
 		editor_generic::addeditor('subtract_current',new editor_button);
 		$this->editors['subtract_current']->attributes['value']='Учесть';
-		$tr->append_child($td->append_child($this->editors['subtract_current']));
+		$tr->append_child($td->append_child($this->editors['subtract_current']));*/
 		
+		$td=new dom_any('td');
+		editor_generic::addeditor('do_logout',new editor_button);
+		$this->editors['do_logout']->attributes['value']='Выйти';
+		$tr->append_child($td->append_child($this->editors['do_logout']));
 		
 		
 		$tbl=new dom_any('table');
@@ -2051,6 +2054,12 @@ class query_result_viewer_codessel extends dom_any
 			//child node targeted event
 			$_SESSION['ed_count']=intval($_POST['val']);
 			$changed=true;
+		}
+		if($ev->rem_name=='do_logout')
+		{
+			//child node targeted event
+			unset($_SESSION['uid']);
+			print "window.location.reload(true);";
 		}
 		if($ev->rem_name=='ed_offset')
 		{

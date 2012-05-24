@@ -179,7 +179,6 @@ class dom_auth_request extends dom_div
 		$td=new dom_td;
 		$tr->append_child($td);
 		$this->username=new dom_textinput;
-		$this->username->attributes['value']='test';
 		$td->append_child($this->username);
 		
 		$tr=new dom_tr;
@@ -193,7 +192,6 @@ class dom_auth_request extends dom_div
 		$tr->append_child($td);
 		$this->pass=new dom_textinput;
 		$this->pass->attributes['type']='password';
-		$this->pass->attributes['value']='password';
 		$td->append_child($this->pass);
 		
 		$tr=new dom_tr;
@@ -202,6 +200,8 @@ class dom_auth_request extends dom_div
 		$tr->append_child($td);
 		if(preg_match('/^127\.0\..*/',$_SERVER['REMOTE_ADDR']))
 		{
+			$this->username->attributes['value']='test';
+			$this->pass->attributes['value']='password';
 			$rootlogin=new dom_textbutton;
 			$rootlogin->attributes['value']='Вход';
 			$rootlogin->attributes['onclick']=
