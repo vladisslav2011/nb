@@ -99,6 +99,7 @@ class auth_handler
 	function login($user,$pass)
 	{
 		global $sql;
+		//simple auth
 		$euser=$sql->esc($user);
 		$epass=md5($pass);
 		$res=$sql->query("SELECT uid, `interface` FROM `".TABLE_META_USERS."` WHERE name='".$euser."' AND pass='".$epass."' AND isactive=1");
@@ -108,6 +109,44 @@ class auth_handler
 			//add ip?????
 			$sql->free($res);
 		}
+		//ldap auth attempt
+		if(defined('LDAP_DOMAIN')&&defined('LDAP_SERVER')&& ! isset($_SESSION['uid']))
+		{
+			$ldapeuser=$sql->esc(LDAP_DOMAIN."\\".$user);
+			$ldapconn = ldap_connect(LDAP_SERVER);
+			if($ldapconn)
+			{
+				$ldapbind = ldap_bind($ldapconn, LDAP_DOMAIN."\\".$user, $pass);
+				if($ldapbind)
+				{
+					$res=$sql->query("SELECT uid, `interface` FROM `".TABLE_META_USERS."` WHERE name='".$ldapeuser."' AND pass='ldap' AND isactive=1");
+					if($row=$sql->fetcha($res))
+					{
+						$_SESSION['uid']=$row['uid'];
+						//add ip?????
+						$sql->free($res);
+					}
+					if(!isset($_SESSION['uid']))
+					{
+						$q="INSERT INTO `".TABLE_META_USERS."` (`name`,`pass`,`isgroup`,`isactive`) ".
+						"VALUES ('".$ldapeuser."','ldap',0,1)";
+						$res=$sql->query($q);
+						if($res)
+							$_SESSION['uid']=$sql->q1("SELECT LAST_INSERT_ID()");
+					}
+				}else{
+//				print "Failed to authenticate ".$user." to ".LDAP_SERVER;
+				exit;
+			}
+
+			}else{
+//				print "Failed to connect to ".LDAP_SERVER;
+				exit;
+			}
+		}
+/*		print 'uid='.$_SESSION['uid'].";".isset($_SESSION['uid']);
+		exit;*/
+		
 		if(isset($_SESSION['uid']))
 		{
 			$sql->query("INSERT INTO `".TABLE_META_AUTHLOG."` SET uid=".$_SESSION['uid']." , ip='".$_SERVER['REMOTE_ADDR']."' , useragent='".$_SERVER['HTTP_USER_AGENT']."'");
