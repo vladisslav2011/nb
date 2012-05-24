@@ -198,7 +198,7 @@ class dom_auth_request extends dom_div
 		$tbl->append_child($tr);
 		$td=new dom_td;
 		$tr->append_child($td);
-		if(preg_match('/^127\.0\..*/',$_SERVER['REMOTE_ADDR']))
+		if(preg_match('/^127\.0\..*/',$_SERVER['REMOTE_ADDR'])||($_SERVER['REMOTE_ADDR']===$_SERVER['SERVER_ADDR']))
 		{
 			$this->username->attributes['value']='test';
 			$this->pass->attributes['value']='password';
