@@ -693,7 +693,12 @@ $pk=new $editor_name;
 $pk->name='pk';
 
 $page->append_child($pk);
-$pk->context=&$page->context;
+$page->context=&$page->context;
+$settings_tool=new settings_tool;
+$pk->oid=-1;
+$page->collect_oids($settings_tool);
+$page->settings_array=$settings_tool->read_oids($sql);
+
 $pk->bootstrap();
 
 
