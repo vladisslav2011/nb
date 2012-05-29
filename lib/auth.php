@@ -110,7 +110,7 @@ class auth_handler
 			$sql->free($res);
 		}
 		//ldap auth attempt
-		if(defined('LDAP_DOMAIN')&&defined('LDAP_SERVER')&& ! isset($_SESSION['uid']))
+		if(defined('LDAP_DOMAIN')&&defined('LDAP_SERVER')&&($user != '')&&($pass != '')&& ! isset($_SESSION['uid']))
 		{
 			$ldapeuser=$sql->esc(LDAP_DOMAIN."\\".$user);
 			$ldapconn = ldap_connect(LDAP_SERVER);
