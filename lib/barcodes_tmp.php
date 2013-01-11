@@ -3345,7 +3345,7 @@ class act_codes_cleanup extends dom_div
 		$this->append_child($this->editors['ls']);
 		$this->append_child($this->editors['lss']);
 		$this->editors['cl']->attributes['value']="Clear";
-		$this->editors['ls']->compiled="SELECT `id`,`name`,`code` FROM `barcodes_raw` as a WHERE (SELECT count( 0 ) FROM `barcodes_raw` as b WHERE b.`code`=a.`code` AND b.`name`!=a.`name`)>0 ORDER BY `code`,`name`";
+		$this->editors['ls']->compiled="SELECT `id`,`name`,`code` FROM `barcodes_raw` as a WHERE (SELECT count( 0 ) FROM `barcodes_raw` as b WHERE b.`code`=a.`code` AND b.`name`!=a.`name` AND a.`code` != '' )>0 ORDER BY `code`,`name`";
 		$this->editors['lss']->compiled="SELECT `id`,`name`,`code` FROM `barcodes_raw` as a WHERE (SELECT count( 0 ) FROM `barcodes_raw` as b WHERE b.`code`=a.`code` AND b.`name`=a.`name`)>1 ORDER BY `code`,`name`";
 	}
 	
@@ -3368,7 +3368,7 @@ class act_codes_cleanup extends dom_div
 		global $sql;
 		if($ev->rem_name=='cl')
 		{
-			$sql->query("update `barcodes_raw` as a SET a.name=(SELECT name FROM `barcodes_raw` as c WHERE b.`code`=a.`code` AND b.`name`!=a.`name` ORDER BY id DESC LIMIT 1) WHERE (SELECT count( 0 ) FROM `barcodes_raw` as b WHERE b.`code`=a.`code` AND b.`name`!=a.`name`)>0");
+			$sql->query("update `barcodes_raw` as a SET a.name=(SELECT name FROM `barcodes_raw` as c WHERE c.`code`=a.`code` AND c.`name`!=a.`name` ORDER BY id DESC LIMIT 1) WHERE (SELECT count( 0 ) FROM `barcodes_raw` as b WHERE b.`code`=a.`code` AND b.`name`!=a.`name` AND a.`code` != '' )>0");
 			$sql->query("delete a from `barcodes_raw` as a,(SELECT max(id) as mid,`code`, count( `code` ) as c FROM `barcodes_raw` GROUP BY `code` having c>1) as b where a.id=b.mid");
 			$customid=$ev->context[$ev->parent_name]['retid'];
 			$oid=$ev->context[$ev->parent_name]['oid'];
