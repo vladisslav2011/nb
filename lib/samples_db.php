@@ -4237,8 +4237,10 @@ class query_result_viewer_any extends dom_div
 		$this->args['ed_table']=$this->rootnode->setting_val($this->oid,$this->long_name.'._table','');
 		$this->args['ed_db']=$this->rootnode->setting_val($this->oid,$this->long_name.'._db','');
 
-		$this->link_save_xml->attributes['href']="/ext/table_xml_dump.php?table=".urlencode($this->args['ed_table']);
-		$this->link_save_csv->attributes['href']="/ext/table_csv_dump.php?table=".urlencode($this->args['ed_table']);
+		$this->link_save_xml->attributes['href']="/ext/table_xml_dump.php?table=".urlencode($this->args['ed_table']).
+			"&db=".urlencode($this->args['ed_db']);
+		$this->link_save_csv->attributes['href']="/ext/table_csv_dump.php?table=".urlencode($this->args['ed_table']).
+			"&db=".urlencode($this->args['ed_db']);
 		foreach($this->editors as $i => $e)
 		{
 			$e->oid=$this->oid;
@@ -4487,9 +4489,11 @@ class query_result_viewer_any extends dom_div
 			reload_object($r,true);
 			print "}catch(e){/* window.location.reload(true);*/};";
 			print "\$i('".js_escape($ev->context[$this->long_name]['link_save_xml_id'])."').setAttribute('href','".
-				js_escape("/ext/table_xml_dump.php?table=".urlencode($this->args['ed_table']))."');";
+				js_escape("/ext/table_xml_dump.php?table=".urlencode($this->args['ed_table']).
+					"&db=".urlencode($this->args['ed_db']))."');";
 			print "\$i('".js_escape($ev->context[$this->long_name]['link_save_csv_id'])."').setAttribute('href','".
-				js_escape("/ext/table_csv_dump.php?table=".urlencode($this->args['ed_table']))."');";
+				js_escape("/ext/table_csv_dump.php?table=".urlencode($this->args['ed_table']).
+					"&db=".urlencode($this->args['ed_db']))."');";
 			if($ev->reload_insert)
 			{
 				$r=new QRVA_insert;

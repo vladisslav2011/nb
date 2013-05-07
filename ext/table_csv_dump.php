@@ -22,6 +22,7 @@ function read_var_get_or_post($name,$default)
 }
 
 $force_names=(read_var_get_or_post('force_names',0)==1);
+$db=read_var_get_or_post('db',C_SQL_DB);
 $table=read_var_get_or_post('table','');
 $query=read_var_get_or_post('query','');
 if($table=='' && $query=='')exit;
@@ -31,9 +32,10 @@ if($table=='')
 	$table='q';
 	$force_names=(read_var_get_or_post('force_names',1)==1);
 }
-if($query=='')$query="SELECT * FROM `".mysql_escape_string($table)."`";
+if($query=='')
+	$query="SELECT * FROM `".mysql_escape_string($db)."`.`".mysql_escape_string($table)."`";
 else $out_query=$query;
-$filename=read_var_get_or_post('filename',$table."_".date("YmdHi").'.csv');
+$filename=read_var_get_or_post('filename',$db.'_'.$table."_".date("YmdHi").'.csv');
 
 $csvdelimiter=read_var_get_or_post('d',',');
 $csvencoding=read_var_get_or_post('e','UTF-8');

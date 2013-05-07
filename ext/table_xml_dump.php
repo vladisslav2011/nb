@@ -108,6 +108,7 @@ function db_version()
 
 $force_names=(read_var_get_or_post('force_names',0)==1);
 $table=read_var_get_or_post('table','');
+$db=read_var_get_or_post('db',C_SQL_DB);
 $query=read_var_get_or_post('query','');
 if($table=='' && $query=='')exit;
 if($table!='')
@@ -122,9 +123,11 @@ if($table=='')
 	$table='q';
 	$force_names=true;
 }
-if($query=='')$query="SELECT * FROM `".mysql_escape_string($table)."`";
-else $out_query=$query;
-$filename=read_var_get_or_post('filename',$table."_".date("YmdHi").'.xml');
+if($query=='')
+	$query="SELECT * FROM `".mysql_escape_string($db)."`.`".mysql_escape_string($table)."`";
+else
+	$out_query=$query;
+$filename=read_var_get_or_post('filename',$db.'_'.$table."_".date("YmdHi").'.xml');
 
 header("Content-type: text/xml; charset=utf-8");
 header("Content-Disposition: attachment; filename=".$filename);
