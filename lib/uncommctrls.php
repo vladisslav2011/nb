@@ -498,6 +498,7 @@ class editor_search_pick_sqltest_io
 		$this->qa->from->exprs[]=new sql_column(NULL,'barcodes_raw');
 		$this->qa->what->exprs[]=new sql_column(NULL,NULL,'id');
 		$this->qa->what->exprs[]=new sql_column(NULL,NULL,'name');
+		$this->qa->where->exprs[]=new sql_expression('=',Array(new sql_column(NULL,NULL,'isown'),new sql_immed(0)));
 		$this->qa->lim_count=9;
 		
 	}

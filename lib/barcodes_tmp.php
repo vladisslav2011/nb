@@ -3488,7 +3488,7 @@ class codes_import extends dom_div
 			while($str=fgets($fd))
 			{
 				$values=$csv->split(trim($str));
-				$rs=$sql->fetch1($sql->query("SELECT id FROM barcodes_raw WHERE name = '".$sql->esc($values[0])."'"));
+				$rs=$sql->fetch1($sql->query("SELECT id FROM barcodes_raw WHERE isown=0 AND name = '".$sql->esc($values[0])."'"));
 				if($rs=='')
 				{
 					$rs=$sql->fetch1($sql->query("SELECT id FROM barcodes_mapping WHERE name = '".$sql->esc($values[0])."'"));
@@ -3526,7 +3526,7 @@ class codes_import extends dom_div
 			while($str=fgets($fdi))
 			{
 				$values=$csv->split(trim($str));
-				$rs=$sql->fetch1($sql->query("SELECT id FROM barcodes_raw WHERE name = '".$sql->esc($values[0])."'"));
+				$rs=$sql->fetch1($sql->query("SELECT id FROM barcodes_raw WHERE isown=0 AND name = '".$sql->esc($values[0])."'"));
 				if($rs=='')
 				{
 					$rs=$sql->fetch1($sql->query("SELECT id FROM barcodes_mapping WHERE name = '".$sql->esc($values[0])."'"));
@@ -3679,7 +3679,7 @@ class codes_import_xdiv extends dom_div
 			$this->keys['name']=$values[0];
 			foreach($this->editors as $e)
 				$e->bootstrap();
-			$rs=$sql->fetch1($sql->query("SELECT id FROM barcodes_raw WHERE name = '".$sql->esc($values[0])."'"));
+			$rs=$sql->fetch1($sql->query("SELECT id FROM barcodes_raw WHERE isown=0 AND name = '".$sql->esc($values[0])."'"));
 			if($rs=='')
 			{
 				$rs=$sql->fetch1($sql->query("SELECT id FROM barcodes_mapping WHERE name = '".$sql->esc($values[0])."'"));
