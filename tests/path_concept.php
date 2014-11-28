@@ -1,6 +1,6 @@
 <?php
 $profiler=microtime(true);
-ini_set('memory_limit', '16M');
+//ini_set('memory_limit', '16M');
 set_include_path($_SERVER['DOCUMENT_ROOT']);
 session_start();
 //$_SESSION['uid']=0;

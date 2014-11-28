@@ -66,7 +66,7 @@ function ean_gnivc($ean)
 
 
 	$ean=trim($ean);
-	if (eregi("[^0-9]",$ean))
+	if (preg_match("/[^0-9]/",$ean))
 	{
 		return "Invalid EAN-Code";
 	}
