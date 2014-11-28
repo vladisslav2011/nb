@@ -493,8 +493,9 @@ class table_xml_load_ui extends dom_div
 	function out_row($row)
 	{
 		global $sql;
-		foreach($this->qg_consts as $i => $v)
-			$this->qg_consts[$i]->val=$row[$i];
+		if(is_array($this->qg_consts))
+			foreach($this->qg_consts as $i => $v)
+				$this->qg_consts[$i]->val=$row[$i];
 		$res=$sql->query($this->qg->result());
 		if($res===true)$this->row_ok++;
 		else{

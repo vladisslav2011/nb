@@ -1433,6 +1433,8 @@ class barcode_fill_test extends dom_div
 	function handle_event($ev)
 	{
 		global $sql;
+		ini_set('memory_limit', '256M');
+
 		$this->long_name=$ev->parent_name;
 		$this->oid=$ev->context[$ev->parent_name]['oid'];
 		$st=new settings_tool;
