@@ -1598,8 +1598,8 @@ class query_result_viewer_codessel extends dom_any
 	
 	function setup_h()
 	{
-		if(!isset($_SESSION['current_task']))$_SESSION['current_task']=0;
-		$this->current_task=intval($_SESSION['current_task']);
+//		if(!isset($_SESSION['current_task']))$_SESSION['current_task']=0;
+//		$this->current_task=intval($_SESSION['current_task']);
 		$this->editors['total_count']->compiled="SELECT SUM(`count`) FROM `barcodes_print` WHERE task=".$this->current_task;
 	}
 	
@@ -1780,7 +1780,7 @@ class query_result_viewer_codessel extends dom_any
 		$this->context[$this->long_name.'.only_selected']['var']='@@selonly';
 		$this->context[$this->long_name.'.ed_count']['var']='@@ed_count';
 		$this->context[$this->long_name.'.ed_offset']['var']='@@ed_offset';
-		$this->context[$this->long_name.'.current_task']['var']='@@current_task';
+		$this->context[$this->long_name.'.current_task']['var']='current_task';
 		$this->context[$this->long_name.'.current_task']['rawquery']='SELECT DISTINCT `task` FROM `barcodes_print`';
 		$this->context[$this->long_name]['retid']=$this->rdiv->id_gen();
 		$this->context[$this->long_name]['fltr_id']=$this->editors['fltr']->main_id();
@@ -1797,8 +1797,10 @@ class query_result_viewer_codessel extends dom_any
 		if(!isset($_SESSION['ed_offset']))$_SESSION['ed_offset']=0;
 		$this->args['@@ed_count']=intval($_SESSION['ed_count']);
 		$this->args['@@ed_offset']=intval($_SESSION['ed_offset']);
-		$this->args['@@current_task']=intval($_SESSION['current_task']);
-
+		$uid=$_SESSION['uid'];
+		$this->current_task=intval($this->rootnode->setting_val($this->oid,$this->long_name.'.current_task',0));
+		$this->args['current_task']=$this->current_task;
+		
 		$this->setup($this->editors['qw']);
 		
 		$this->ed_more->attributes['onclick']=
@@ -1832,7 +1834,6 @@ class query_result_viewer_codessel extends dom_any
 			$e->args=&$this->args;
 			$e->oid=$this->oid;
 		}
-		$uid=$_SESSION['uid'];
 		$this->args['density']=$this->rootnode->setting_val($this->oid,$this->long_name.'.density',7);
 		$this->args['speed']=$this->rootnode->setting_val($this->oid,$this->long_name.'.speed',5);
 		$this->args['ipp_host']=$this->rootnode->setting_val($this->oid,$this->long_name.'.ipp_host','localhost');
@@ -1932,7 +1933,9 @@ class query_result_viewer_codessel extends dom_any
 	function print_direct($id=-1)
 	{
 		global $sql;// !
-		$current_task=intval($_SESSION['current_task']);
+		
+		$uid=$_SESSION['uid'];
+		$current_task=intval($this->rootnode->setting_val($this->oid,$this->long_name.'.current_task',0));
 		if($id != -1)
 			$s=" AND barcodes_raw.id=".$id;
 		else
@@ -2099,7 +2102,8 @@ class query_result_viewer_codessel extends dom_any
 		if($ev->rem_name=='current_task')
 		{
 			//child node targeted event
-			$_SESSION['current_task']=intval($_POST['val']);
+			$settings=new settings_tool;
+			$sql->query($settings->set_query(-1,$ev->long_name,$_SESSION['uid'],0,$_POST['val']));
 			$changed=true;
 		}
 		if($ev->rem_name=='only_selected')
