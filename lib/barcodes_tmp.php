@@ -8,14 +8,14 @@ Array(
  'cols' => Array(
   #Array('name' =>'', 'sql_type' =>'', 'sql_null' =>, 'sql_default' =>'', 'sql_sequence' => 0, 'sql_comment' =>NULL),
   Array('name' =>'id',		'sql_type' =>'int(10)',  'sql_null' =>0, 'sql_default' =>NULL,		'sql_sequence' => 1,	'sql_comment' =>NULL, 'hname'=>'Идентификатор'),
-  Array('name' =>'name',	'sql_type' =>'varchar(200)', 'sql_null' =>1, 'sql_default' =>NULL,	'sql_sequence' => 0,			'sql_comment' =>NULL, 'hname'=>'Наименование'),
+  Array('name' =>'name',	'sql_type' =>'varchar(600)', 'sql_null' =>1, 'sql_default' =>NULL,	'sql_sequence' => 0,			'sql_comment' =>NULL, 'hname'=>'Наименование'),
   Array('name' =>'code',	'sql_type' =>'varchar(13)', 'sql_null' =>1, 'sql_default' =>NULL,	'sql_sequence' => 0,			'sql_comment' =>NULL, 'hname'=>'Код', 'editor' => 'editor_text_ean13'),
   Array('name' =>'isown',	'sql_type' =>'int(1)', 'sql_null' =>0, 'sql_default' =>0,	'sql_sequence' => 0,			'sql_comment' =>NULL, 'hname'=>'Собственный', 'editor' => 'editor_checkbox')
  ),
  'keys' => Array(
 #  Array('key' =>'PRIMARY', 'name' =>'', 'sub' => NULL)
   Array('key' =>'PRIMARY', 'name' =>'id', 'sub' => NULL),
-  Array('key' =>'name', 'name' =>'name', 'sub' => NULL),
+  Array('key' =>'name', 'name' =>'name', 'sub' => 100),
   Array('key' =>'code', 'name' =>'code', 'sub' => NULL),
   Array('key' =>'isown', 'name' =>'isown', 'sub' => NULL)
  )
@@ -1944,46 +1944,51 @@ class query_result_viewer_codessel extends dom_any
 		$lim_ribbon=$sql->fetch1($sql->query("SELECT `current` FROM `barcodes_counters` WHERE `id`=1 AND `uid`=".$uid));
 		$count=min($row['count'],min($lim_labels,$lim_ribbon));
 		$name=iconv('UTF-8','CP866//IGNORE',$row['name']);
-		if(strlen($name)<55)
+		$namelen=strlen($name);
+		$ss=Array();
+		if($namelen<55)
 		{
 			$ln=27;
-			$s1=substr($name,0,$ln);
-			$s2=substr($name,$ln,$ln);
+			$font=4;
+			$space=28;
+/*			$s1=substr($name,0,$ln);
+			$s2=substr($name,$ln,$ln);*/
 		}else{
-			$ln=36;
-			$s1=substr($name,0,$ln);
+			$ln=37;
+			$font=2;
+			$space=20;
+/*			$s1=substr($name,0,$ln);
 			$s2=substr($name,$ln,$ln);
-			$s3=substr($name,$ln*2,$ln);
+			$s3=substr($name,$ln*2,$ln);*/
 		}
-		$s1=preg_replace('/"/','\\"',preg_replace('/\\\\/','\\\\',$s1));
+		$outp=0;
+		$inp=0;
+		while($inp<$namelen)
+		{
+			$ss[$outp]=preg_replace('/"/','\\"',preg_replace('/\\\\/','\\\\',substr($name,$inp,$ln)));
+			$inp+=$ln;
+			$outp++;
+		}
+/*		$s1=preg_replace('/"/','\\"',preg_replace('/\\\\/','\\\\',$s1));
 		$s2=preg_replace('/"/','\\"',preg_replace('/\\\\/','\\\\',$s2));
-		$s3=preg_replace('/"/','\\"',preg_replace('/\\\\/','\\\\',$s3));
+		$s3=preg_replace('/"/','\\"',preg_replace('/\\\\/','\\\\',$s3));*/
 		$barcode=$row['code'];
 		
 		$sql->query("UPDATE `barcodes_print` SET `printed`=".$count." WHERE `id`=".$row['id']." AND `task`=".$current_task);
 
 		if(preg_match('/^[ 0]+$/',$barcode))
 			$barcode_part="";
-		else
+		else{
 			$barcode_part="B10,80,0,E30,4,4,120,B,\"".$barcode."\"\n";
-		if(strlen($name)<55)
-		{
-			$print=	"N\n".
-					"I8,10,001\n".
-					"A8,0,0,4,1,1,N,\"".$s1."\"\n".
-					"A8,28,0,4,1,1,N,\"".$s2."\"\n".
-					"A8,56,0,4,1,1,N,\"".iconv('UTF-8','CP866//IGNORE','Изготовлено: ').date("d.m.Y")."\"\n";
-		}else{
-			$print=	"N\n".
-					"I8,10,001\n".
-					"A7,0,0,2,1,1,N,\"".$s1."\"\n".
-					"A7,20,0,2,1,1,N,\"".$s2."\"\n".
-					"A7,40,0,2,1,1,N,\"".$s3."\"\n".
-					"A7,60,0,2,1,1,N,\"".iconv('UTF-8','CP866//IGNORE','Изготовлено: ').date("d.m.Y")."\"\n";
+			$ss[]=iconv('UTF-8','CP866//IGNORE','Изготовлено: ').date("d.m.Y");
 		}
+		$print=	"N\nq440\n".
+				"I8,10,001\n";
+		for($k=0;$k<count($ss);$k++)
+			$print.="A5,".($space*$k).",0,".$font.",1,1,N,\"".$ss[$k]."\"\n";
 		$print.=
 					$barcode_part.
-					"A7,260,0,2,1,1,N,\"".iconv('UTF-8','CP866//IGNORE','Страна происхождения: Россия')."\"\n".
+/*					"A7,260,0,2,1,1,N,\"".iconv('UTF-8','CP866//IGNORE','Страна происхождения: Россия')."\"\n".
 					"A7,280,0,2,1,1,N,\"".iconv('UTF-8','CP866//IGNORE','Продавец: ')."\"\n".
 					"A7,300,0,2,1,1,N,\"".iconv('UTF-8','CP866//IGNORE','ООО \\"Торговый Дом \\"Интерьерные двери\\"')."\"\n".
 					"A7,320,0,2,1,1,N,\"".iconv('UTF-8','CP866//IGNORE','140060,МО,Люберецкий р-н,')."\"\n".
@@ -1994,7 +1999,19 @@ class query_result_viewer_codessel extends dom_any
 					"A7,420,0,2,1,1,N,\"".iconv('UTF-8','CP866//IGNORE','Сертификат соответствия')."\"\n".
 					"A7,440,0,2,1,1,N,\"".iconv('UTF-8','CP866//IGNORE','№ РОСС RU.ХП28.Н02331,')."\"\n".
 					"A7,460,0,2,1,1,N,\"".iconv('UTF-8','CP866//IGNORE','№ РОСС RU.ХП28.Н02332')."\"\n".
+Страна происхождения: Россия         Продавец:                            ООО "Торговый Дом "Интерьерные двери"140060,МО,Люберецкий р-н,            п.Октябрьский, ул.Ленина, д.47       Производитель: http://www.dveri.ru/  182100, г. Великие Луки, пр. Гагаринад. 127А                              Сертификат соответствия              № РОСС RU.ХП28.Н02331,               № РОСС RU.ХП28.Н02332
+
+
+
+
+
+
+
+
+
+*/
 					"P".$count."\n";
+//		print "Alert('".js_escape($print)."');";
 		$this->print_job($print);
 		/*
 		$print=	"\nS0\n".
