@@ -1741,7 +1741,7 @@ class query_result_viewer_codessel extends dom_any
 		$q->from->exprs[]=new sql_column(NULL,'barcodes_print',NULL,NULL);
 		$q->where->exprs[]=new sql_expression('=',Array(
 			new sql_column(NULL,NULL,"task"),
-			new sql_immed($_SESSION['current_task'])
+			new sql_immed($this->current_task)
 			));
 		$query=$q->result();
 		$sql->query($query);
@@ -1934,8 +1934,8 @@ class query_result_viewer_codessel extends dom_any
 	{
 		global $sql;// !
 		
-		$uid=$_SESSION['uid'];
-		$current_task=intval($this->rootnode->setting_val($this->oid,$this->long_name.'.current_task',0));
+		$settings=new settings_tool;
+		$current_task=intval($sql->q1($settings->single_query(-1,$this->name.'.current_task',$_SESSION['uid'],0)));
 		if($id != -1)
 			$s=" AND barcodes_raw.id=".$id;
 		else
@@ -2065,6 +2065,8 @@ class query_result_viewer_codessel extends dom_any
 		$this->context=&$ev->context;
 		$this->oid=$ev->context[$ev->long_name]['oid'];
 		$this->long_name=$ev->parent_name;
+		$settings=new settings_tool;
+		$this->current_task=intval($sql->q1($settings->single_query(-1,$this->name.'.current_task',$_SESSION['uid'],0)));
 		
 		$total_count_id=$ev->context[$ev->parent_name]['total_count_id'];
 		if($ev->rem_name=='fltr')
@@ -2078,7 +2080,6 @@ class query_result_viewer_codessel extends dom_any
 		}
 		if(preg_match('/^speed$|^density$|^ipp_host$|^ipp_printer$/',$ev->rem_name))
 		{
-			$settings=new settings_tool;
 			$sql->query($settings->set_query(-1,$ev->long_name,$_SESSION['uid'],0,$_POST['val']));
 		}
 		if($ev->rem_name=='ed_count')
@@ -2102,8 +2103,8 @@ class query_result_viewer_codessel extends dom_any
 		if($ev->rem_name=='current_task')
 		{
 			//child node targeted event
-			$settings=new settings_tool;
 			$sql->query($settings->set_query(-1,$ev->long_name,$_SESSION['uid'],0,$_POST['val']));
+			$this->current_task=$_POST['val'];
 			$changed=true;
 		}
 		if($ev->rem_name=='only_selected')
