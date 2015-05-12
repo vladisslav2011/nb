@@ -1528,6 +1528,12 @@ class query_result_viewer_codessel extends dom_any
 		$tr->append_child($td->append_child($this->editors['subtract_current']));*/
 		
 		$td=new dom_any('td');
+		editor_generic::addeditor('print_date',new editor_checkbox);
+		$label=new dom_any('label');
+		$tr->append_child($td->append_child($label->append_child($this->editors['print_date'])));
+		$label->append_child(new dom_statictext("Печатать дату"));
+		
+		$td=new dom_any('td');
 		editor_generic::addeditor('do_logout',new editor_button);
 		$this->editors['do_logout']->attributes['value']='Выйти';
 		$tr->append_child($td->append_child($this->editors['do_logout']));
@@ -1834,6 +1840,8 @@ class query_result_viewer_codessel extends dom_any
 			$e->args=&$this->args;
 			$e->oid=$this->oid;
 		}
+		$this->args['print_date']=$this->rootnode->setting_val($this->oid,$this->long_name.'.print_date',1);
+		
 		$this->args['density']=$this->rootnode->setting_val($this->oid,$this->long_name.'.density',7);
 		$this->args['speed']=$this->rootnode->setting_val($this->oid,$this->long_name.'.speed',5);
 		$this->args['ipp_host']=$this->rootnode->setting_val($this->oid,$this->long_name.'.ipp_host','localhost');
@@ -1934,8 +1942,8 @@ class query_result_viewer_codessel extends dom_any
 	{
 		global $sql;// !
 		
-		$settings=new settings_tool;
-		$current_task=intval($sql->q1($settings->single_query(-1,$this->name.'.current_task',$_SESSION['uid'],0)));
+		$current_task=dom_root::setting_val(-1,$this->name.'.current_task',0);
+		$print_date=dom_root::setting_val(-1,$this->name.'.print_date',1);
 		if($id != -1)
 			$s=" AND barcodes_raw.id=".$id;
 		else
@@ -1978,12 +1986,13 @@ class query_result_viewer_codessel extends dom_any
 		$barcode=$row['code'];
 		
 		$sql->query("UPDATE `barcodes_print` SET `printed`=".$count." WHERE `id`=".$row['id']." AND `task`=".$current_task);
-
+		
 		if(preg_match('/^[ 0]+$/',$barcode))
 			$barcode_part="";
 		else{
 			$barcode_part="B10,80,0,E30,4,4,120,B,\"".$barcode."\"\n";
-			$ss[]=iconv('UTF-8','CP866//IGNORE','Изготовлено: ').date("d.m.Y");
+			if($print_date=="1")
+				$ss[]=iconv('UTF-8','CP866//IGNORE','Изготовлено: ').date("d.m.Y");
 		}
 		$print=	"N\nq440\n".
 				"I8,10,001\n";
@@ -2066,9 +2075,13 @@ class query_result_viewer_codessel extends dom_any
 		$this->oid=$ev->context[$ev->long_name]['oid'];
 		$this->long_name=$ev->parent_name;
 		$settings=new settings_tool;
-		$this->current_task=intval($sql->q1($settings->single_query(-1,$this->name.'.current_task',$_SESSION['uid'],0)));
+		$this->current_task=dom_root::setting_val(-1,$this->name.'.current_task',0);
 		
 		$total_count_id=$ev->context[$ev->parent_name]['total_count_id'];
+		if($ev->rem_name=='print_date')
+		{
+			$sql->query($settings->set_query(-1,$ev->long_name,$_SESSION['uid'],0,$_POST['val']));
+		}
 		if($ev->rem_name=='fltr')
 		{
 			//child node targeted event
